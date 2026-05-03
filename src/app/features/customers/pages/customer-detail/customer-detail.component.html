@@ -15,7 +15,7 @@
         </a>
         <div class="cd-header__actions">
           <button class="action-btn" (click)="toggleEdit()" aria-label="Edit customer">
-            <span class="material-icons-outlined">{{ editing() ? 'close' : 'edit' }}</span>
+            <span class="material-icons-outlined">{{ editing() ? 'cancel' : 'edit' }}</span>
             {{ editing() ? 'Done' : 'Edit' }}
           </button>
           <button class="action-btn" (click)="archiveCustomer()" aria-label="Archive customer">

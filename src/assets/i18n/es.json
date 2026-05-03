@@ -426,6 +426,8 @@
   },
   "parts": {
     "title": "Catálogo de Piezas",
+    "part": "Pieza",
+    "searchByPartNumber": "Buscar por número de pieza…",
     "subtitle": "Gestionar piezas, listas de materiales y especificaciones",
     "createPart": "Nueva Pieza",
     "editPart": "Editar Pieza",
@@ -2657,6 +2659,8 @@
   },
   "vendors": {
     "title": "Proveedores",
+    "vendor": "Proveedor",
+    "searchByCompanyName": "Buscar por nombre de empresa…",
     "subtitle": "Gestionar proveedores y relaciones comerciales",
     "newVendor": "Nuevo Proveedor",
     "editVendor": "Editar Proveedor",
