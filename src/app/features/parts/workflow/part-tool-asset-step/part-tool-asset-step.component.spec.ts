@@ -5,6 +5,7 @@ import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { environment } from '../../../../../environments/environment';
+import { WorkflowService } from '../../../../shared/services/workflow.service';
 import { PartDetail } from '../../models/part-detail.model';
 import { mockSignalInputs } from '../../../../../testing/signal-input-harness';
 import { PartToolAssetStepComponent } from './part-tool-asset-step.component';
@@ -48,8 +49,9 @@ function buildPart(overrides: Partial<PartDetail> = {}): PartDetail {
   };
 }
 
-describe('PartToolAssetStepComponent', () => {
+describe('PartToolAssetStepComponent (Phase 5 — save-on-Continue)', () => {
   let httpMock: HttpTestingController;
+  let workflowService: WorkflowService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -61,6 +63,7 @@ describe('PartToolAssetStepComponent', () => {
       ],
     }).compileComponents();
     httpMock = TestBed.inject(HttpTestingController);
+    workflowService = TestBed.inject(WorkflowService);
   });
 
   afterEach(() => {
@@ -77,34 +80,48 @@ describe('PartToolAssetStepComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('dispatches a PATCH /workflows/:runId/step on form change after debounce', () => {
-    vi.useFakeTimers();
-    try {
-      const component = TestBed.runInInjectionContext(() => new PartToolAssetStepComponent());
-      mockSignalInputs(component, {
-        stepId: 'toolAsset', componentName: 'PartToolAssetStepComponent',
-        runId: 7, entityId: 42, entity: buildPart(),
-      });
-      TestBed.flushEffects();
+  it('PATCHes /workflows/:runId/step when WorkflowService.saveCurrentStep() fires after a user edit', () => {
+    const component = TestBed.runInInjectionContext(() => new PartToolAssetStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'toolAsset', componentName: 'PartToolAssetStepComponent',
+      runId: 7, entityId: 42, entity: buildPart(),
+    });
+    TestBed.flushEffects();
 
-      const form = (component as unknown as { form: { patchValue(v: unknown): void } }).form;
-      form.patchValue({ toolingAssetId: 99 });
+    const form = (component as unknown as { form: { patchValue(v: unknown): void; markAsDirty(): void } }).form;
+    form.patchValue({ toolingAssetId: 99 });
+    form.markAsDirty();
 
-      vi.advanceTimersByTime(700);
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
 
-      const req = httpMock.expectOne(`${environment.apiUrl}/workflows/7/step`);
-      expect(req.request.method).toBe('PATCH');
-      expect(req.request.body.stepId).toBe('toolAsset');
-      expect(req.request.body.fields.toolingAssetId).toBe(99);
-      req.flush({
-        id: 7, entityType: 'Part', entityId: 42, definitionId: 'd', currentStepId: 'toolAsset',
-        mode: 'guided', startedAt: '', startedByUserId: 1, completedAt: null,
-        abandonedAt: null, abandonedReason: null, lastActivityAt: '', version: 1,
-      });
-      const partReq = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
-      partReq.flush(buildPart({ toolingAssetId: 99 }));
-    } finally {
-      vi.useRealTimers();
-    }
+    const req = httpMock.expectOne(`${environment.apiUrl}/workflows/7/step`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body.stepId).toBe('toolAsset');
+    expect(req.request.body.fields.toolingAssetId).toBe(99);
+    req.flush({
+      id: 7, entityType: 'Part', entityId: 42, definitionId: 'd', currentStepId: 'toolAsset',
+      mode: 'guided', startedAt: '', startedByUserId: 1, completedAt: null,
+      abandonedAt: null, abandonedReason: null, lastActivityAt: '', version: 1,
+    });
+    const partReq = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
+    partReq.flush(buildPart({ toolingAssetId: 99 }));
+
+    expect(saveResult).toEqual({ ok: true });
+  });
+
+  it('does NOT round-trip when the form is pristine — Back/Jump on a never-touched step is a no-op', () => {
+    const component = TestBed.runInInjectionContext(() => new PartToolAssetStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'toolAsset', componentName: 'PartToolAssetStepComponent',
+      runId: 7, entityId: 42, entity: buildPart(),
+    });
+    TestBed.flushEffects();
+
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
+
+    httpMock.verify();
+    expect(saveResult).toEqual({ ok: true });
   });
 });

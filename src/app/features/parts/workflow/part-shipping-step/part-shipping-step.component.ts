@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
@@ -20,6 +19,8 @@ import { PartsService } from '../../services/parts.service';
  *
  * Conversion math mirrors `PartMaterialClusterComponent` — kept as a copy
  * for now; can be extracted to a shared util once a third caller appears.
+ *
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
  */
 @Component({
   selector: 'app-part-shipping-step',
@@ -81,8 +82,6 @@ export class PartShippingStepComponent {
     volumeDisplayUnit: new FormControl<string>('mL', { nonNullable: true }),
   });
 
-  private suppressDispatch = false;
-
   constructor() {
     effect(() => {
       const part = this.entity() as PartDetail | null;
@@ -93,7 +92,6 @@ export class PartShippingStepComponent {
         part.dimensionDisplayUnit,
       );
       const vol = this.mlToDisplay(part.volumeMl, part.volumeDisplayUnit);
-      this.suppressDispatch = true;
       this.form.patchValue({
         weight: weight.value,
         weightDisplayUnit: weight.unit,
@@ -104,16 +102,23 @@ export class PartShippingStepComponent {
         volume: vol.value,
         volumeDisplayUnit: vol.unit,
       }, { emitEvent: false });
-      this.suppressDispatch = false;
     });
 
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        weight: this.translate.instant('parts.workflow.shipping.weightLabel'),
+        weightDisplayUnit: this.translate.instant('parts.workflow.shipping.weightUnitLabel'),
+        length: this.translate.instant('parts.workflow.shipping.lengthLabel'),
+        width: this.translate.instant('parts.workflow.shipping.widthLabel'),
+        height: this.translate.instant('parts.workflow.shipping.heightLabel'),
+        dimensionDisplayUnit: this.translate.instant('parts.workflow.shipping.dimensionUnitLabel'),
+        volume: this.translate.instant('parts.workflow.shipping.volumeLabel'),
+        volumeDisplayUnit: this.translate.instant('parts.workflow.shipping.volumeUnitLabel'),
+      },
+      () => this.save(),
+    );
+    this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
   private gramsToDisplay(grams: number | null, unit: string | null): { value: number | null; unit: string } {
@@ -142,9 +147,10 @@ export class PartShippingStepComponent {
     return { value: ml / this.volumeToMl[u], unit: u };
   }
 
-  private dispatchSave(): void {
+  private save(): Observable<unknown> {
     const runId = this.runId();
-    if (runId == null) return;
+    if (runId == null) return of(null);
+    if (this.form.pristine) return of(null);
     const v = this.form.getRawValue();
 
     const weightEach = v.weight === null
@@ -159,7 +165,7 @@ export class PartShippingStepComponent {
       : v.volume * (this.volumeToMl[v.volumeDisplayUnit] ?? 1);
 
     this.saving.set(true);
-    this.workflowService.patchStep(runId, this.stepId(), {
+    return this.workflowService.patchStep(runId, this.stepId(), {
       weightEach,
       weightDisplayUnit: v.weightDisplayUnit,
       lengthMm,
@@ -168,18 +174,23 @@ export class PartShippingStepComponent {
       dimensionDisplayUnit: v.dimensionDisplayUnit,
       volumeMl,
       volumeDisplayUnit: v.volumeDisplayUnit,
-    }).subscribe({
-      next: (run) => {
-        this.saving.set(false);
-        if (run.entityId == null) return;
-        this.partsService.getPartById(run.entityId).subscribe({
-          next: (detail) => this.workflowService.currentEntity.set(detail),
-        });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.shipping.saveFailed'));
-      },
-    });
+    }).pipe(
+      switchMap((run) => {
+        if (run.entityId == null) return of(null);
+        return this.partsService.getPartById(run.entityId).pipe(
+          tap((detail) => this.workflowService.currentEntity.set(detail)),
+        );
+      }),
+      tap({
+        next: () => {
+          this.saving.set(false);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.shipping.saveFailed'));
+        },
+      }),
+    );
   }
 }

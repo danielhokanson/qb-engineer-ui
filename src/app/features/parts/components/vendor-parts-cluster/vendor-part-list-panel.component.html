@@ -99,7 +99,7 @@
             @if (getLowestTier(row); as t) {
               <button class="vendor-part-tier-link" (click)="onViewTiers(row)">
                 <app-currency-display [value]="t.price" [currency]="t.currency" />
-                <span class="vendor-part-tier-link__count">({{ row.priceTiers.length }})</span>
+                <span class="vendor-part-tier-link__count" [attr.aria-label]="('vendorPart.priceTiersCount' | translate:{ count: row.priceTiers.length })">{{ row.priceTiers.length }}</span>
               </button>
             } @else {
               <button class="vendor-part-tier-link vendor-part-tier-link--empty" (click)="onViewTiers(row)">—</button>
@@ -180,7 +180,7 @@
             matTooltipPosition="above"
             [attr.aria-label]="'vendorPart.priceTiersLabel' | translate">
             <app-currency-display [value]="t.price" [currency]="t.currency" />
-            <span class="vendor-part-tier-link__count">({{ row.priceTiers.length }})</span>
+            <span class="vendor-part-tier-link__count" [attr.aria-label]="('vendorPart.priceTiersCount' | translate:{ count: row.priceTiers.length })">{{ row.priceTiers.length }}</span>
           </button>
         } @else {
           <button class="vendor-part-tier-link vendor-part-tier-link--empty"

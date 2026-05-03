@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, tap } from 'rxjs';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -27,6 +26,8 @@ type CostingMode = 'flat' | 'departmental' | 'abc';
  *
  * Read priority follows the worked example: `manualCostOverride ??
  * currentCostCalculation?.resultAmount ?? null`.
+ *
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
  */
 @Component({
   selector: 'app-part-costing-step',
@@ -68,27 +69,23 @@ export class PartCostingStepComponent {
     manualCostOverride: new FormControl<number | null>(null, [Validators.min(0)]),
   });
 
-  /** Suppresses save dispatch while patching the form from input. */
-  private suppressDispatch = false;
-
   constructor() {
     effect(() => {
       const part = this.part();
       if (!part) return;
-      this.suppressDispatch = true;
       this.form.patchValue({
         manualCostOverride: part.manualCostOverride ?? null,
       }, { emitEvent: false });
-      this.suppressDispatch = false;
     });
 
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        manualCostOverride: this.translate.instant('parts.workflow.costing.manualOverrideLabel'),
+      },
+      () => this.save(),
+    );
+    this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
   protected setMode(mode: CostingMode): void {
@@ -100,24 +97,28 @@ export class PartCostingStepComponent {
     return this.mode() === 'flat';
   }
 
-  private dispatchSave(): void {
+  private save(): Observable<unknown> {
     const id = this.entityId();
-    if (id == null) return;
+    if (id == null) return of(null);
+    if (this.form.pristine) return of(null);
     const value = this.form.getRawValue();
     // -1 sentinel clears the override on the server.
     const overrideToSend = value.manualCostOverride == null ? -1 : value.manualCostOverride;
     this.saving.set(true);
-    this.partsService.updatePart(id, {
+    return this.partsService.updatePart(id, {
       manualCostOverride: overrideToSend,
-    }).subscribe({
-      next: (detail) => {
-        this.saving.set(false);
-        this.workflowService.currentEntity.set(detail);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.costing.saveFailed'));
-      },
-    });
+    }).pipe(
+      tap({
+        next: (detail) => {
+          this.saving.set(false);
+          this.workflowService.currentEntity.set(detail);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.costing.saveFailed'));
+        },
+      }),
+    );
   }
 }

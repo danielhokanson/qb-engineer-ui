@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 
-import { Observable, Subscription, catchError, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, Subscription, catchError, defer, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { startWith } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
@@ -62,6 +62,20 @@ export class WorkflowService {
   readonly currentStepViolations = signal<string[]>([]);
 
   private currentStepFormSub: Subscription | null = null;
+
+  /**
+   * Save callback registered by the currently-mounted step component. The
+   * shell's parent invokes this via {@link saveCurrentStep} before navigating
+   * (Continue / Back / Jump) so the user's in-progress edits are persisted
+   * before the cursor moves. `null` when no step is mounted, when the mounted
+   * step has no form, or when an acknowledge-only step intentionally opted out.
+   *
+   * Replaces the per-step debounced auto-save model that flapped on trailing
+   * whitespace and other server-normalized values. See
+   * `docs/coding-standards.md` (Workflow Save-on-Continue section) for the
+   * design rationale.
+   */
+  private currentStepSaveCallback: (() => Observable<unknown>) | null = null;
 
   /** Mode (express / guided). Falls back to 'guided' until a run loads. */
   readonly mode = computed<'express' | 'guided'>(() => this.currentRun()?.mode ?? 'guided');
@@ -294,18 +308,32 @@ export class WorkflowService {
    * names to human-readable labels for the popover ("Lead Time Days is
    * required" vs "leadTimeDays is required").
    *
+   * Optional `save` callback: invoked by the shell's parent via
+   * {@link saveCurrentStep} before navigating away (Continue / Back / Jump).
+   * Replaces the per-step debounced auto-save that previously flapped on
+   * server-normalized values (trailing whitespace, case-folding, etc.). The
+   * callback should return an Observable that completes when the persistence
+   * round-trip resolves; the shell-parent waits for it before advancing the
+   * cursor. Steps with no persistent state (acknowledge-only) omit the
+   * callback and `saveCurrentStep` becomes a no-op.
+   *
    * Each call replaces the prior subscription — *ngComponentOutlet destroys
    * the old step before mounting the new one, so when this fires the prior
    * registration's destroy hook has already cleared. Defensive
    * unregisterStepForm() handles the rare overlap.
    */
-  registerStepForm(form: FormGroup, labels: Record<string, string>): void {
+  registerStepForm(
+    form: FormGroup,
+    labels: Record<string, string>,
+    save?: () => Observable<unknown>,
+  ): void {
     this.unregisterStepForm();
     const refresh = (): void => {
       this.currentStepValid.set(form.valid);
       this.currentStepViolations.set(FormValidationService.collectViolations(form, labels));
     };
     this.currentStepFormSub = form.statusChanges.pipe(startWith(form.status)).subscribe(refresh);
+    this.currentStepSaveCallback = save ?? null;
     refresh();
   }
 
@@ -313,8 +341,37 @@ export class WorkflowService {
   unregisterStepForm(): void {
     this.currentStepFormSub?.unsubscribe();
     this.currentStepFormSub = null;
+    this.currentStepSaveCallback = null;
     this.currentStepValid.set(true);
     this.currentStepViolations.set([]);
+  }
+
+  /**
+   * Persist the currently-mounted step's edits via its registered save
+   * callback, then resolve to a tagged result the shell-parent can branch on.
+   * If no callback was registered (acknowledge-only step, or no form) this
+   * resolves immediately as `{ ok: true }` so callers can `.subscribe(r => if
+   * (r.ok) advance())` without special-casing.
+   *
+   * Errors from the save callback are caught and reported as
+   * `{ ok: false, error }` — the shell-parent should NOT advance on `ok:
+   * false`. The step component is responsible for surfacing user-facing error
+   * messaging (snackbar / toast); this method's job is purely the
+   * proceed/abort signal.
+   *
+   * Wrapped in `defer` so callers re-trigger fresh saves on every subscribe
+   * — without it the same Observable would short-circuit on a second
+   * Continue click.
+   */
+  saveCurrentStep(): Observable<{ ok: true } | { ok: false; error: unknown }> {
+    return defer(() => {
+      const cb = this.currentStepSaveCallback;
+      if (!cb) return of({ ok: true as const });
+      return cb().pipe(
+        map(() => ({ ok: true as const })),
+        catchError((error: unknown) => of({ ok: false as const, error })),
+      );
+    });
   }
 
   /** Drop cached definition / validator fetches — useful after admin edits. */

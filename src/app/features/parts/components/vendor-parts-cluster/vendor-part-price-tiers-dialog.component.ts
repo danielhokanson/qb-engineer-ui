@@ -15,8 +15,10 @@ import { DatepickerComponent } from '../../../../shared/components/datepicker/da
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
+import { SelectComponent } from '../../../../shared/components/select/select.component';
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
 import { ColumnDef } from '../../../../shared/models/column-def.model';
+import { CURRENCY_OPTIONS } from '../../../../shared/models/currency.const';
 import { FormValidationService } from '../../../../shared/services/form-validation.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { toIsoDate } from '../../../../shared/utils/date.utils';
@@ -35,6 +37,7 @@ export interface VendorPartPriceTiersDialogData {
     DatePipe, ReactiveFormsModule, TranslatePipe,
     MatTooltipModule,
     DialogComponent, DatepickerComponent, InputComponent, CurrencyInputComponent,
+    SelectComponent,
     CurrencyDisplayComponent,
     DataTableComponent, ColumnCellDirective,
     EmptyStateComponent, ValidationButtonComponent,
@@ -53,6 +56,7 @@ export class VendorPartPriceTiersDialogComponent {
 
   protected readonly tiers = signal<VendorPartPriceTier[]>(this.data.vendorPart.priceTiers ?? []);
   protected readonly saving = signal(false);
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
 
   protected readonly title = computed(() =>
     `${this.data.vendorPart.partNumber} — ${this.data.vendorPart.vendorCompanyName}`,

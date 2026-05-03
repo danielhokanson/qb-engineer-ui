@@ -5,6 +5,7 @@ import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { environment } from '../../../../../environments/environment';
+import { WorkflowService } from '../../../../shared/services/workflow.service';
 import { PartDetail } from '../../models/part-detail.model';
 import { mockSignalInputs } from '../../../../../testing/signal-input-harness';
 import { PartBasicsStepComponent } from './part-basics-step.component';
@@ -18,7 +19,7 @@ function buildPart(overrides: Partial<PartDetail> = {}): PartDetail {
     id: 42, partNumber: 'PRT-00042', name: 'Widget', description: null, revision: 'A',
     status: 'Draft',
     procurementSource: 'Make', inventoryClass: 'Subassembly', itemKindId: null, itemKindLabel: null,
-    traceabilityType: 'None', abcClass: null, 
+    traceabilityType: 'None', abcClass: null,
     materialSpecId: null, materialSpecLabel: null,
     externalId: null, externalRef: null,
     provider: null, preferredVendorId: null, preferredVendorName: null,
@@ -48,8 +49,9 @@ function buildPart(overrides: Partial<PartDetail> = {}): PartDetail {
   };
 }
 
-describe('PartBasicsStepComponent (Phase 5)', () => {
+describe('PartBasicsStepComponent (Phase 5 — save-on-Continue)', () => {
   let httpMock: HttpTestingController;
+  let workflowService: WorkflowService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -61,6 +63,7 @@ describe('PartBasicsStepComponent (Phase 5)', () => {
       ],
     }).compileComponents();
     httpMock = TestBed.inject(HttpTestingController);
+    workflowService = TestBed.inject(WorkflowService);
   });
 
   afterEach(() => {
@@ -73,7 +76,6 @@ describe('PartBasicsStepComponent (Phase 5)', () => {
       stepId: 'basics', componentName: 'PartBasicsStepComponent',
       runId: 7, entityId: 42, entity: buildPart({ name: 'Hydration', description: 'Hydration notes' }),
     });
-    // Trigger effect by reading the form
     TestBed.flushEffects();
     const form = (component as unknown as { form: { value: unknown } }).form;
     expect(form.value).toMatchObject({
@@ -82,58 +84,68 @@ describe('PartBasicsStepComponent (Phase 5)', () => {
     });
   });
 
-  it('dispatches a PATCH /workflows/:runId/step on form change after debounce', async () => {
-    vi.useFakeTimers();
-    try {
-      const component = TestBed.runInInjectionContext(() => new PartBasicsStepComponent());
-      mockSignalInputs(component, {
-        stepId: 'basics', componentName: 'PartBasicsStepComponent',
-        runId: 7, entityId: 42, entity: buildPart({ name: 'Initial' }),
-      });
-      TestBed.flushEffects();
+  it('PATCHes /workflows/:runId/step when WorkflowService.saveCurrentStep() fires after a user edit', () => {
+    const component = TestBed.runInInjectionContext(() => new PartBasicsStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'basics', componentName: 'PartBasicsStepComponent',
+      runId: 7, entityId: 42, entity: buildPart({ name: 'Initial' }),
+    });
+    TestBed.flushEffects();
 
-      const form = (component as unknown as { form: { patchValue(v: unknown): void } }).form;
-      form.patchValue({ name: 'Updated name' });
+    const form = (component as unknown as { form: { patchValue(v: unknown): void; markAsDirty(): void } }).form;
+    form.patchValue({ name: 'Updated name' });
+    form.markAsDirty();
 
-      // Debounce 600ms
-      vi.advanceTimersByTime(700);
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
 
-      const req = httpMock.expectOne(`${environment.apiUrl}/workflows/7/step`);
-      expect(req.request.method).toBe('PATCH');
-      expect(req.request.body.stepId).toBe('basics');
-      expect(req.request.body.fields.name).toBe('Updated name');
-      req.flush({
-        id: 7, entityType: 'Part', entityId: 42, definitionId: 'd', currentStepId: 'basics',
-        mode: 'guided', startedAt: '', startedByUserId: 1, completedAt: null,
-        abandonedAt: null, abandonedReason: null, lastActivityAt: '', version: 1,
-      });
-      // Re-fetch of the part for currentEntity sync
-      const partReq = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
-      partReq.flush(buildPart({ name: 'Updated name' }));
-    } finally {
-      vi.useRealTimers();
-    }
+    const req = httpMock.expectOne(`${environment.apiUrl}/workflows/7/step`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body.stepId).toBe('basics');
+    expect(req.request.body.fields.name).toBe('Updated name');
+    req.flush({
+      id: 7, entityType: 'Part', entityId: 42, definitionId: 'd', currentStepId: 'basics',
+      mode: 'guided', startedAt: '', startedByUserId: 1, completedAt: null,
+      abandonedAt: null, abandonedReason: null, lastActivityAt: '', version: 1,
+    });
+    const partReq = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
+    partReq.flush(buildPart({ name: 'Updated name' }));
+
+    expect(saveResult).toEqual({ ok: true });
   });
 
-  it('skips the dispatch when runId is null (entity-less, before materialization)', async () => {
-    vi.useFakeTimers();
-    try {
-      const component = TestBed.runInInjectionContext(() => new PartBasicsStepComponent());
-      mockSignalInputs(component, {
-        stepId: 'basics', componentName: 'PartBasicsStepComponent',
-        runId: null, entityId: null, entity: null,
-      });
-      TestBed.flushEffects();
+  it('does NOT round-trip when the form is pristine — Back/Jump on a never-touched step is a no-op', () => {
+    const component = TestBed.runInInjectionContext(() => new PartBasicsStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'basics', componentName: 'PartBasicsStepComponent',
+      runId: 7, entityId: 42, entity: buildPart({ name: 'Initial' }),
+    });
+    TestBed.flushEffects();
 
-      const form = (component as unknown as { form: { patchValue(v: unknown): void } }).form;
-      form.patchValue({ name: 'Whatever' });
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
 
-      vi.advanceTimersByTime(700);
+    // No HTTP — pristine guard short-circuits. saveCurrentStep still resolves ok so navigation proceeds.
+    httpMock.verify();
+    expect(saveResult).toEqual({ ok: true });
+  });
 
-      // Nothing fires — guard clause short-circuits the save.
-      httpMock.verify();
-    } finally {
-      vi.useRealTimers();
-    }
+  it('skips the PATCH when runId is null (workflow not yet materialized)', () => {
+    const component = TestBed.runInInjectionContext(() => new PartBasicsStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'basics', componentName: 'PartBasicsStepComponent',
+      runId: null, entityId: null, entity: null,
+    });
+    TestBed.flushEffects();
+
+    const form = (component as unknown as { form: { patchValue(v: unknown): void; markAsDirty(): void } }).form;
+    form.patchValue({ name: 'Whatever' });
+    form.markAsDirty();
+
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
+
+    httpMock.verify();
+    expect(saveResult).toEqual({ ok: true });
   });
 });

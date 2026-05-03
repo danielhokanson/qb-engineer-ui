@@ -299,7 +299,13 @@ export class PartWorkflowPageComponent {
     });
   }
 
-  protected onStepJumped(stepId: string): void {
+  /**
+   * Issue the server-side cursor jump + URL update. Does NOT save the active
+   * step's edits — callers that need a save-then-navigate flow should go
+   * through {@link saveThenNavigate} instead. This stays separate so Skip
+   * (which intentionally bypasses save) doesn't accidentally trigger one.
+   */
+  private navigateToStep(stepId: string): void {
     const run = this.run();
     if (!run) return;
     this.workflowService.jumpToStep(run.id, stepId).subscribe({
@@ -315,43 +321,81 @@ export class PartWorkflowPageComponent {
     });
   }
 
+  /**
+   * Save the active step (via the registered save callback), then jump.
+   * Used by Continue / Back / explicit Jump-to-step from the rail. If the
+   * save fails, the jump does not happen — the step stays mounted so the
+   * user can fix the issue and try again. The step component is responsible
+   * for surfacing the error message; this just gates the navigation.
+   */
+  private saveThenNavigate(stepId: string): void {
+    this.workflowService.saveCurrentStep().subscribe({
+      next: (result) => {
+        if (result.ok) this.navigateToStep(stepId);
+        // ok: false → step component already surfaced its error. Stay put.
+      },
+    });
+  }
+
+  protected onStepJumped(stepId: string): void {
+    this.saveThenNavigate(stepId);
+  }
+
   protected onStepAdvanced(currentStepId: string): void {
-    const run = this.run();
     const def = this.definition();
-    if (!run || !def) return;
+    if (!def) return;
     const idx = def.steps.findIndex((s) => s.id === currentStepId);
     const next = def.steps[idx + 1]?.id;
     if (!next) return;
-    this.onStepJumped(next);
+    this.saveThenNavigate(next);
   }
 
   protected onStepBacked(targetStepId: string): void {
-    this.onStepJumped(targetStepId);
+    this.saveThenNavigate(targetStepId);
   }
 
+  /**
+   * Skip is for OPTIONAL steps where the user is explicitly bypassing without
+   * commit. Do NOT call saveCurrentStep — by definition the user is choosing
+   * to discard whatever they may have typed. Just navigate.
+   */
   protected onStepSkipped(currentStepId: string): void {
-    this.onStepAdvanced(currentStepId);
+    const def = this.definition();
+    if (!def) return;
+    const idx = def.steps.findIndex((s) => s.id === currentStepId);
+    const next = def.steps[idx + 1]?.id;
+    if (!next) return;
+    this.navigateToStep(next);
   }
 
   protected onCompleteRequested(): void {
     const run = this.run();
     if (!run) return;
-    this.workflowService.completeRun(run.id).subscribe({
-      next: (result) => {
-        if (result.success) {
-          this.snackbar.success(this.translate.instant('parts.workflow.page.completeSuccess'));
-          this.router.navigate(['/parts']);
-        } else {
-          this.missingValidators.set(result.missing);
-          // Prefer the missingMessageKey (human "needs name + material + …")
-          // over the gate name ("Basics") so the user knows which fields.
-          const missingDescription = result.missing
-            .map((m) => this.translate.instant(m.missingMessageKey ?? m.displayNameKey))
-            .join('; ');
-          this.snackbar.error(this.translate.instant('parts.workflow.page.missingValidators', {
-            missing: missingDescription,
-          }));
-        }
+    // Save the active step first — otherwise the user's in-progress edits on
+    // the LAST step never persist before the server runs its readiness gates.
+    // Pre-refactor that worked because of debounced auto-save; post-refactor
+    // the only persistence trigger is an explicit save call.
+    this.workflowService.saveCurrentStep().subscribe({
+      next: (saveResult) => {
+        if (!saveResult.ok) return;
+        this.workflowService.completeRun(run.id).subscribe({
+          next: (result) => {
+            if (result.success) {
+              this.snackbar.success(this.translate.instant('parts.workflow.page.completeSuccess'));
+              this.router.navigate(['/parts']);
+            } else {
+              this.missingValidators.set(result.missing);
+              // Prefer the missingMessageKey (human "needs name + material + …")
+              // over the gate name ("Basics") so the user knows which fields.
+              const missingDescription = result.missing
+                .map((m) => this.translate.instant(m.missingMessageKey ?? m.displayNameKey))
+                .join('; ');
+              this.snackbar.error(this.translate.instant('parts.workflow.page.missingValidators', {
+                missing: missingDescription,
+              }));
+            }
+          },
+        });
       },
     });
   }

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
@@ -20,6 +20,8 @@ import { PartsService } from '../../services/parts.service';
  * Pillar 6 follow-up — Quality step. Captures receiving inspection
  * settings, traceability tier, ABC class, hazmat class, and shelf life
  * for combos where quality matters (B1-B4, M1-M3, S1, S2).
+ *
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
  */
 @Component({
   selector: 'app-part-quality-step',
@@ -82,13 +84,10 @@ export class PartQualityStepComponent {
 
   protected readonly showInspectionFields = computed(() => this.inspectionEnabled());
 
-  private suppressDispatch = false;
-
   constructor() {
     effect(() => {
       const part = this.entity() as PartDetail | null;
       if (!part) return;
-      this.suppressDispatch = true;
       this.form.patchValue({
         traceabilityType: part.traceabilityType ?? 'None',
         requiresReceivingInspection: part.requiresReceivingInspection ?? false,
@@ -99,7 +98,6 @@ export class PartQualityStepComponent {
         shelfLifeDays: part.shelfLifeDays ?? null,
       }, { emitEvent: false });
       this.inspectionEnabled.set(part.requiresReceivingInspection ?? false);
-      this.suppressDispatch = false;
     });
 
     // Track the toggle locally so the conditional rendering reacts.
@@ -107,32 +105,29 @@ export class PartQualityStepComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => this.inspectionEnabled.set(!!v));
 
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
-
-    this.workflowService.registerStepForm(this.form, {
-      traceabilityType: this.translate.instant('parts.workflow.quality.traceabilityLabel'),
-      requiresReceivingInspection: this.translate.instant('parts.workflow.quality.requiresReceivingInspectionLabel'),
-      inspectionFrequency: this.translate.instant('parts.workflow.quality.inspectionFrequencyLabel'),
-      inspectionSkipAfterN: this.translate.instant('parts.workflow.quality.inspectionSkipAfterNLabel'),
-      abcClass: this.translate.instant('parts.workflow.quality.abcClassLabel'),
-      hazmatClass: this.translate.instant('parts.workflow.quality.hazmatClassLabel'),
-      shelfLifeDays: this.translate.instant('parts.workflow.quality.shelfLifeDaysLabel'),
-    });
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        traceabilityType: this.translate.instant('parts.workflow.quality.traceabilityLabel'),
+        requiresReceivingInspection: this.translate.instant('parts.workflow.quality.requiresReceivingInspectionLabel'),
+        inspectionFrequency: this.translate.instant('parts.workflow.quality.inspectionFrequencyLabel'),
+        inspectionSkipAfterN: this.translate.instant('parts.workflow.quality.inspectionSkipAfterNLabel'),
+        abcClass: this.translate.instant('parts.workflow.quality.abcClassLabel'),
+        hazmatClass: this.translate.instant('parts.workflow.quality.hazmatClassLabel'),
+        shelfLifeDays: this.translate.instant('parts.workflow.quality.shelfLifeDaysLabel'),
+      },
+      () => this.save(),
+    );
     this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
-  private dispatchSave(): void {
+  private save(): Observable<unknown> {
     const runId = this.runId();
-    if (runId == null) return;
+    if (runId == null) return of(null);
+    if (this.form.pristine) return of(null);
     const value = this.form.getRawValue();
     this.saving.set(true);
-    this.workflowService.patchStep(runId, this.stepId(), {
+    return this.workflowService.patchStep(runId, this.stepId(), {
       traceabilityType: value.traceabilityType ?? 'None',
       requiresReceivingInspection: value.requiresReceivingInspection,
       inspectionFrequency: value.requiresReceivingInspection ? value.inspectionFrequency ?? null : null,
@@ -140,18 +135,23 @@ export class PartQualityStepComponent {
       abcClass: value.abcClass ?? null,
       hazmatClass: value.hazmatClass || undefined,
       shelfLifeDays: value.shelfLifeDays ?? null,
-    }).subscribe({
-      next: (run) => {
-        this.saving.set(false);
-        if (run.entityId == null) return;
-        this.partsService.getPartById(run.entityId).subscribe({
-          next: (detail) => this.workflowService.currentEntity.set(detail),
-        });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.quality.saveFailed'));
-      },
-    });
+    }).pipe(
+      switchMap((run) => {
+        if (run.entityId == null) return of(null);
+        return this.partsService.getPartById(run.entityId).pipe(
+          tap((detail) => this.workflowService.currentEntity.set(detail)),
+        );
+      }),
+      tap({
+        next: () => {
+          this.saving.set(false);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.quality.saveFailed'));
+        },
+      }),
+    );
   }
 }

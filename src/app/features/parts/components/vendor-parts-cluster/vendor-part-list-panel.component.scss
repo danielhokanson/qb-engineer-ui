@@ -66,9 +66,18 @@
 }
 
 .vendor-part-tier-link__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: $icon-size-sm;
+  height: $icon-size-sm;
   margin-left: $sp-xs;
-  color: var(--text-muted);
-  font-size: $font-size-xs;
+  padding: 0 $sp-xs;
+  background: var(--success-light);
+  color: var(--success);
+  font-size: $font-size-xxs;
+  font-weight: 600;
+  border-radius: $border-radius;
 }
 
 .approved-icon {

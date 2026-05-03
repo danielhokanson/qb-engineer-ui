@@ -13,11 +13,13 @@ import { DataTableComponent } from '../../../../../shared/components/data-table/
 import { DatepickerComponent } from '../../../../../shared/components/datepicker/datepicker.component';
 import { EmptyStateComponent } from '../../../../../shared/components/empty-state/empty-state.component';
 import { InputComponent } from '../../../../../shared/components/input/input.component';
+import { SelectComponent } from '../../../../../shared/components/select/select.component';
 import { TextareaComponent } from '../../../../../shared/components/textarea/textarea.component';
 import { ValidationButtonComponent } from '../../../../../shared/components/validation-button/validation-button.component';
 import { ColumnCellDirective } from '../../../../../shared/directives/column-cell.directive';
 import { LoadingBlockDirective } from '../../../../../shared/directives/loading-block.directive';
 import { ColumnDef } from '../../../../../shared/models/column-def.model';
+import { CURRENCY_OPTIONS } from '../../../../../shared/models/currency.const';
 import { CurrencyService } from '../../../../../shared/services/currency.service';
 import { FormValidationService } from '../../../../../shared/services/form-validation.service';
 import { SnackbarService } from '../../../../../shared/services/snackbar.service';
@@ -49,7 +51,7 @@ import { PartsService } from '../../../services/parts.service';
     MatTooltipModule,
     CurrencyDisplayComponent, CurrencyInputComponent,
     DataTableComponent, ColumnCellDirective, LoadingBlockDirective,
-    DatepickerComponent, InputComponent, TextareaComponent,
+    DatepickerComponent, InputComponent, SelectComponent, TextareaComponent,
     EmptyStateComponent, ValidationButtonComponent,
   ],
   templateUrl: './part-pricing-cluster.component.html',
@@ -79,6 +81,7 @@ export class PartPricingClusterComponent {
   protected readonly history = signal<PartPrice[]>([]);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
 
   /** Resolves the source-badge label for the resolver-current price. */
   protected readonly sourceLabelKey = computed(() => {

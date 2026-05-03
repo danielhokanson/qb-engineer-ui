@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
@@ -15,16 +14,18 @@ import { PartsService } from '../../services/parts.service';
 /**
  * Workflow Pattern Phase 5 — Part Assembly basics step.
  *
- * Edits the gate fields for `hasBasics`: name, partType, material, plus
- * description (optional) and externalPartNumber (non-gated convenience).
- * Persists each change via the workflow's PatchWorkflowStep endpoint after
- * a 600ms debounce — that endpoint owns deferred materialization, so the
- * first save creates the underlying Part row when the workflow was started
- * with no entity yet. Subsequent saves apply field updates to the now-real
- * entity through the same endpoint.
+ * Edits the gate fields for `hasBasics`: name, description. Persists via the
+ * workflow's PatchWorkflowStep endpoint when the shell triggers `save`
+ * (Continue / Back / Jump / Mark Complete) — the endpoint owns deferred
+ * materialization, so step 1's first save creates the underlying Part row
+ * when the workflow was started with no entity yet. Subsequent saves apply
+ * field updates to the now-real entity.
  *
- * Uses the shared `<app-input>` / `<app-select>` wrappers per CLAUDE.md.
- * No inline styles. Form is ReactiveForms; signals drive the loaded state.
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
+ * Pre-refactor this used a 600ms debounced valueChanges subscription which
+ * round-tripped on every keystroke and flapped on server-normalized values
+ * (trailing whitespace deleted, etc.). The current model only fires on
+ * shell navigation.
  */
 @Component({
   selector: 'app-part-basics-step',
@@ -58,65 +59,70 @@ export class PartBasicsStepComponent {
     description: new FormControl('', [Validators.maxLength(2000)]),
   });
 
-  /** Suppresses the auto-save effect while we're patching the form from input. */
-  private suppressDispatch = false;
-
   constructor() {
-    // When the bound entity changes, re-hydrate the form (without dispatching saves).
+    // When the bound entity changes (initial load, or after a save round-trip
+    // refreshes it), re-hydrate the form. Skip emitEvent to avoid a feedback
+    // loop with any subsequent valueChanges listeners callers may attach.
     effect(() => {
       const part = this.entity() as PartDetail | null;
       if (!part) return;
-      this.suppressDispatch = true;
       this.form.patchValue({
         name: part.name ?? '',
         description: part.description ?? '',
       }, { emitEvent: false });
-      this.suppressDispatch = false;
     });
 
-    // Debounced auto-save on form changes.
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
-
-    // Register form with the shell so Continue gates on validity + the
-    // app-validation-button surfaces required-field violations.
-    this.workflowService.registerStepForm(this.form, {
-      name: this.translate.instant('parts.workflow.basics.nameLabel'),
-      description: this.translate.instant('parts.workflow.basics.descriptionLabel'),
-    });
+    // Register form with the shell so Continue gates on validity, the
+    // app-validation-button surfaces required-field violations, and
+    // saveCurrentStep() invokes our save callback before navigation.
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        name: this.translate.instant('parts.workflow.basics.nameLabel'),
+        description: this.translate.instant('parts.workflow.basics.descriptionLabel'),
+      },
+      () => this.save(),
+    );
     this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
-  private dispatchSave(): void {
+  /**
+   * Persist the current form to the workflow's PatchWorkflowStep endpoint,
+   * then refetch the entity so the rail's gate predicates evaluate against
+   * fresh state. Returns Observable so the shell-parent can sequence
+   * "save then advance" — errors propagate back through saveCurrentStep
+   * which the parent uses to gate navigation.
+   *
+   * Skips the network call entirely when the form is pristine (no user
+   * edits to persist) — saves a round-trip on every Back/Jump that the
+   * user took without touching anything.
+   */
+  private save(): Observable<unknown> {
     const runId = this.runId();
-    if (runId == null) return;
+    if (runId == null) return of(null);
+    if (this.form.pristine) return of(null);
     const value = this.form.getRawValue();
     this.saving.set(true);
-    // Always patch through the workflow endpoint — it transparently
-    // materializes the entity on first call (when entityId is still null
-    // server-side) and applies field updates on subsequent calls. The
-    // returned run carries the now-stamped entityId; we re-fetch the
-    // entity so the rail's gate evaluation reflects current state.
-    this.workflowService.patchStep(runId, this.stepId(), {
+    return this.workflowService.patchStep(runId, this.stepId(), {
       name: value.name ?? undefined,
       description: value.description ?? '',
-    }).subscribe({
-      next: (run) => {
-        this.saving.set(false);
-        if (run.entityId == null) return;
-        this.partsService.getPartById(run.entityId).subscribe({
-          next: (detail) => this.workflowService.currentEntity.set(detail),
-        });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.basics.saveFailed'));
-      },
-    });
+    }).pipe(
+      switchMap((run) => {
+        if (run.entityId == null) return of(null);
+        return this.partsService.getPartById(run.entityId).pipe(
+          tap((detail) => this.workflowService.currentEntity.set(detail)),
+        );
+      }),
+      tap({
+        next: () => {
+          this.saving.set(false);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.basics.saveFailed'));
+        },
+      }),
+    );
   }
 }

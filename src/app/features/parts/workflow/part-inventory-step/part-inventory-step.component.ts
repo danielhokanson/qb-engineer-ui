@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { EntityPickerComponent } from '../../../../shared/components/entity-picker/entity-picker.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
@@ -17,6 +16,8 @@ import { PartsService } from '../../services/parts.service';
  * Pillar 6 follow-up — Inventory step. Captures stock thresholds (min /
  * reorder point / reorder qty / safety stock days), the stock UoM, and the
  * default bin id. Used by every non-Phantom combo.
+ *
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
  */
 @Component({
   selector: 'app-part-inventory-step',
@@ -69,13 +70,10 @@ export class PartInventoryStepComponent {
     defaultBinId: new FormControl<number | null>(null),
   });
 
-  private suppressDispatch = false;
-
   constructor() {
     effect(() => {
       const part = this.entity() as PartDetail | null;
       if (!part) return;
-      this.suppressDispatch = true;
       this.form.patchValue({
         minStockThreshold: part.minStockThreshold ?? null,
         reorderPoint: part.reorderPoint ?? null,
@@ -84,42 +82,53 @@ export class PartInventoryStepComponent {
         stockUomCode: part.stockUomCode ?? null,
         defaultBinId: part.defaultBinId ?? null,
       }, { emitEvent: false });
-      this.suppressDispatch = false;
     });
 
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        minStockThreshold: this.translate.instant('parts.workflow.inventory.minStockThresholdLabel'),
+        reorderPoint: this.translate.instant('parts.workflow.inventory.reorderPointLabel'),
+        reorderQuantity: this.translate.instant('parts.workflow.inventory.reorderQuantityLabel'),
+        safetyStockDays: this.translate.instant('parts.workflow.inventory.safetyStockDaysLabel'),
+        stockUomCode: this.translate.instant('parts.workflow.inventory.stockUomLabel'),
+        defaultBinId: this.translate.instant('parts.workflow.inventory.defaultBinLabel'),
+      },
+      () => this.save(),
+    );
+    this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
-  private dispatchSave(): void {
+  private save(): Observable<unknown> {
     const runId = this.runId();
-    if (runId == null) return;
+    if (runId == null) return of(null);
+    if (this.form.pristine) return of(null);
     const value = this.form.getRawValue();
     this.saving.set(true);
-    this.workflowService.patchStep(runId, this.stepId(), {
+    return this.workflowService.patchStep(runId, this.stepId(), {
       minStockThreshold: value.minStockThreshold ?? null,
       reorderPoint: value.reorderPoint ?? null,
       reorderQuantity: value.reorderQuantity ?? null,
       safetyStockDays: value.safetyStockDays ?? null,
       stockUomCode: value.stockUomCode ?? null,
       defaultBinId: value.defaultBinId ?? null,
-    }).subscribe({
-      next: (run) => {
-        this.saving.set(false);
-        if (run.entityId == null) return;
-        this.partsService.getPartById(run.entityId).subscribe({
-          next: (detail) => this.workflowService.currentEntity.set(detail),
-        });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.inventory.saveFailed'));
-      },
-    });
+    }).pipe(
+      switchMap((run) => {
+        if (run.entityId == null) return of(null);
+        return this.partsService.getPartById(run.entityId).pipe(
+          tap((detail) => this.workflowService.currentEntity.set(detail)),
+        );
+      }),
+      tap({
+        next: () => {
+          this.saving.set(false);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.inventory.saveFailed'));
+        },
+      }),
+    );
   }
 }

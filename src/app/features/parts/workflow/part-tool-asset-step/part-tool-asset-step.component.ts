@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { EntityPickerComponent } from '../../../../shared/components/entity-picker/entity-picker.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
@@ -18,6 +17,8 @@ import { PartsService } from '../../services/parts.service';
  * Pre-beta: dropped the legacy free-text `moldToolRef` fallback. Tooling is
  * now always represented as an Asset FK; if a Buy+Tool part has only a
  * vendor-side mold reference, capture it on the Asset row instead.
+ *
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
  */
 @Component({
   selector: 'app-part-tool-asset-step',
@@ -49,47 +50,50 @@ export class PartToolAssetStepComponent {
     toolingAssetId: new FormControl<number | null>(null),
   });
 
-  private suppressDispatch = false;
-
   constructor() {
     effect(() => {
       const part = this.entity() as PartDetail | null;
       if (!part) return;
-      this.suppressDispatch = true;
       this.form.patchValue({
         toolingAssetId: part.toolingAssetId ?? null,
       }, { emitEvent: false });
-      this.suppressDispatch = false;
     });
 
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        toolingAssetId: this.translate.instant('parts.workflow.toolAsset.toolingAssetLabel'),
+      },
+      () => this.save(),
+    );
+    this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
-  private dispatchSave(): void {
+  private save(): Observable<unknown> {
     const runId = this.runId();
-    if (runId == null) return;
+    if (runId == null) return of(null);
+    if (this.form.pristine) return of(null);
     const value = this.form.getRawValue();
     this.saving.set(true);
-    this.workflowService.patchStep(runId, this.stepId(), {
+    return this.workflowService.patchStep(runId, this.stepId(), {
       toolingAssetId: value.toolingAssetId ?? null,
-    }).subscribe({
-      next: (run) => {
-        this.saving.set(false);
-        if (run.entityId == null) return;
-        this.partsService.getPartById(run.entityId).subscribe({
-          next: (detail) => this.workflowService.currentEntity.set(detail),
-        });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.toolAsset.saveFailed'));
-      },
-    });
+    }).pipe(
+      switchMap((run) => {
+        if (run.entityId == null) return of(null);
+        return this.partsService.getPartById(run.entityId).pipe(
+          tap((detail) => this.workflowService.currentEntity.set(detail)),
+        );
+      }),
+      tap({
+        next: () => {
+          this.saving.set(false);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.toolAsset.saveFailed'));
+        },
+      }),
+    );
   }
 }
