@@ -1,0 +1,29 @@
+@use 'styles/variables' as *;
+
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: $sp-xs;
+}
+
+.completeness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 $sp-xs;
+  height: $icon-size-sm;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  border-radius: $border-radius;
+  font-size: $font-size-xxs;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.completeness-badge__icon {
+  font-size: 12px;
+}
+
+.completeness-badge__count {
+  font-variant-numeric: tabular-nums;
+}

@@ -2381,6 +2381,16 @@
     "create": "Crear pieza",
     "created": "Pieza «{{name}}» creada."
   },
+  "entityCompleteness": {
+    "loading": "Comprobando integridad…",
+    "ready": "Listo",
+    "incompleteFor": "Incompleto para {{count}}",
+    "badgeTooltip": "Incompleto para {{count}}: {{names}}",
+    "columnHeader": "Integridad",
+    "popover": {
+      "heading": "Requisitos faltantes"
+    }
+  },
   "shared": {
     "closeDialog": "Cerrar diálogo",
     "helpTour": "Tour de ayuda de la página",

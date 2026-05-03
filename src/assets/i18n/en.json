@@ -2605,6 +2605,16 @@
     "create": "Create part",
     "created": "Part “{{name}}” created."
   },
+  "entityCompleteness": {
+    "loading": "Checking completeness…",
+    "ready": "Ready",
+    "incompleteFor": "Incomplete for {{count}}",
+    "badgeTooltip": "Incomplete for {{count}}: {{names}}",
+    "columnHeader": "Completeness",
+    "popover": {
+      "heading": "Missing requirements"
+    }
+  },
   "shared": {
     "closeDialog": "Close dialog",
     "helpTour": "Page help tour",
