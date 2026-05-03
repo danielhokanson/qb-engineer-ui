@@ -1,5 +1,9 @@
-<div class="dialog-backdrop" role="button" tabindex="0" [attr.aria-label]="'shared.closeDialog' | translate" (click)="tryClose()" (keydown.enter)="tryClose()">
-  <div class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="title()" [style.width]="width()" [class.dialog--split]="splitLayout()" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+<!-- Backdrop is non-interactive — clicking it does NOT close the dialog
+     (per Dan, CDK overlay area should not dismiss work-in-progress).
+     Users close via the header X button or an explicit footer button.
+     The backdrop stays as a visual scrim only. -->
+<div class="dialog-backdrop">
+  <div class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="title()" [style.width]="width()" [class.dialog--split]="splitLayout()">
     <div class="dialog__header">
       <span class="dialog__title">{{ title() }}</span>
       @if (isDraftEnabled()) {
