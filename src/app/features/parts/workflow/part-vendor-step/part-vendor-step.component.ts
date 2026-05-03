@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { debounceTime } from 'rxjs/operators';
+import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { EntityPickerComponent } from '../../../../shared/components/entity-picker/entity-picker.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
@@ -16,6 +15,8 @@ import { PartsService } from '../../services/parts.service';
  * subcontract vendor that performs the operation. Lead time + per-vendor
  * terms live on the VendorPart row entered in the subsequent VendorParts
  * step; this step's only output is <c>preferredVendorId</c> on the Part.
+ *
+ * Save model: explicit save-on-Continue (registered with WorkflowService).
  */
 @Component({
   selector: 'app-part-vendor-step',
@@ -47,47 +48,50 @@ export class PartVendorStepComponent {
     preferredVendorId: new FormControl<number | null>(null),
   });
 
-  private suppressDispatch = false;
-
   constructor() {
     effect(() => {
       const part = this.entity() as PartDetail | null;
       if (!part) return;
-      this.suppressDispatch = true;
       this.form.patchValue({
         preferredVendorId: part.preferredVendorId ?? null,
       }, { emitEvent: false });
-      this.suppressDispatch = false;
     });
 
-    this.form.valueChanges
-      .pipe(debounceTime(600), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.suppressDispatch) return;
-        if (this.form.invalid) return;
-        this.dispatchSave();
-      });
+    this.workflowService.registerStepForm(
+      this.form,
+      {
+        preferredVendorId: this.translate.instant('parts.workflow.vendor.preferredVendorLabel'),
+      },
+      () => this.save(),
+    );
+    this.destroyRef.onDestroy(() => this.workflowService.unregisterStepForm());
   }
 
-  private dispatchSave(): void {
+  private save(): Observable<unknown> {
     const runId = this.runId();
-    if (runId == null) return;
+    if (runId == null) return of(null);
+    if (this.form.pristine) return of(null);
     const value = this.form.getRawValue();
     this.saving.set(true);
-    this.workflowService.patchStep(runId, this.stepId(), {
+    return this.workflowService.patchStep(runId, this.stepId(), {
       preferredVendorId: value.preferredVendorId ?? null,
-    }).subscribe({
-      next: (run) => {
-        this.saving.set(false);
-        if (run.entityId == null) return;
-        this.partsService.getPartById(run.entityId).subscribe({
-          next: (detail) => this.workflowService.currentEntity.set(detail),
-        });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackbar.error(this.translate.instant('parts.workflow.vendor.saveFailed'));
-      },
-    });
+    }).pipe(
+      switchMap((run) => {
+        if (run.entityId == null) return of(null);
+        return this.partsService.getPartById(run.entityId).pipe(
+          tap((detail) => this.workflowService.currentEntity.set(detail)),
+        );
+      }),
+      tap({
+        next: () => {
+          this.saving.set(false);
+          this.form.markAsPristine();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.snackbar.error(this.translate.instant('parts.workflow.vendor.saveFailed'));
+        },
+      }),
+    );
   }
 }

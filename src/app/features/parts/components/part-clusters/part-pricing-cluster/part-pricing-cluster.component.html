@@ -88,11 +88,11 @@
           [label]="'parts.pricing.unitPriceLabel' | translate"
           formControlName="unitPrice"
           [required]="true" />
-        <app-input
+        <app-select
           data-testid="part-price-currency"
           [label]="'parts.pricing.currencyLabel' | translate"
+          [options]="currencyOptions"
           formControlName="currency"
-          [maxlength]="3"
           [required]="true" />
       </div>
       <div class="cluster__form-row">

@@ -8,7 +8,8 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
-import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
+import { SelectComponent } from '../../../../shared/components/select/select.component';
+import { CURRENCY_OPTIONS } from '../../../../shared/models/currency.const';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
 import { EntityPickerComponent } from '../../../../shared/components/entity-picker/entity-picker.component';
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
@@ -58,16 +59,7 @@ export class PriceListEntryFormDialogComponent {
   protected readonly saving = signal(false);
   protected readonly isEdit = !!this.data.entry;
 
-  /** Static list of common ISO-4217 codes. Pillar 5 Phase 2 may make this admin-extensible. */
-  protected readonly currencyOptions: SelectOption[] = [
-    { value: 'USD', label: 'USD' },
-    { value: 'EUR', label: 'EUR' },
-    { value: 'GBP', label: 'GBP' },
-    { value: 'CAD', label: 'CAD' },
-    { value: 'MXN', label: 'MXN' },
-    { value: 'CNY', label: 'CNY' },
-    { value: 'JPY', label: 'JPY' },
-  ];
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
 
   protected readonly title = computed(() =>
     this.isEdit

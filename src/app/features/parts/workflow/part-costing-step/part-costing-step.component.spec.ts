@@ -5,6 +5,7 @@ import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { environment } from '../../../../../environments/environment';
+import { WorkflowService } from '../../../../shared/services/workflow.service';
 import { PartDetail } from '../../models/part-detail.model';
 import { mockSignalInputs } from '../../../../../testing/signal-input-harness';
 import { PartCostingStepComponent } from './part-costing-step.component';
@@ -48,8 +49,9 @@ function buildPart(overrides: Partial<PartDetail> = {}): PartDetail {
   };
 }
 
-describe('PartCostingStepComponent (Phase 5)', () => {
+describe('PartCostingStepComponent (Phase 5 — save-on-Continue)', () => {
   let httpMock: HttpTestingController;
+  let workflowService: WorkflowService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -61,6 +63,7 @@ describe('PartCostingStepComponent (Phase 5)', () => {
       ],
     }).compileComponents();
     httpMock = TestBed.inject(HttpTestingController);
+    workflowService = TestBed.inject(WorkflowService);
   });
 
   afterEach(() => httpMock.verify());
@@ -93,44 +96,63 @@ describe('PartCostingStepComponent (Phase 5)', () => {
     expect(c.mode()).toBe('flat'); // rejected
   });
 
-  it('dispatches PATCH with manualCostOverride after debounce', () => {
-    vi.useFakeTimers();
-    try {
-      const component = TestBed.runInInjectionContext(() => new PartCostingStepComponent());
-      mockSignalInputs(component, {
-        stepId: 'costing', componentName: 'PartCostingStepComponent',
-        entityId: 42, entity: buildPart(),
-      });
-      TestBed.flushEffects();
-      const form = (component as unknown as { form: { patchValue(v: unknown): void } }).form;
-      form.patchValue({ manualCostOverride: 99 });
-      vi.advanceTimersByTime(700);
-      const req = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
-      expect(req.request.method).toBe('PATCH');
-      expect(req.request.body.manualCostOverride).toBe(99);
-      req.flush(buildPart({ manualCostOverride: 99 }));
-    } finally {
-      vi.useRealTimers();
-    }
+  it('PATCHes /parts/:entityId with manualCostOverride when WorkflowService.saveCurrentStep() fires after a user edit', () => {
+    const component = TestBed.runInInjectionContext(() => new PartCostingStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'costing', componentName: 'PartCostingStepComponent',
+      entityId: 42, entity: buildPart(),
+    });
+    TestBed.flushEffects();
+
+    const form = (component as unknown as { form: { patchValue(v: unknown): void; markAsDirty(): void } }).form;
+    form.patchValue({ manualCostOverride: 99 });
+    form.markAsDirty();
+
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body.manualCostOverride).toBe(99);
+    req.flush(buildPart({ manualCostOverride: 99 }));
+
+    expect(saveResult).toEqual({ ok: true });
   });
 
   it('clearing manual override sends -1 sentinel', () => {
-    vi.useFakeTimers();
-    try {
-      const component = TestBed.runInInjectionContext(() => new PartCostingStepComponent());
-      mockSignalInputs(component, {
-        stepId: 'costing', componentName: 'PartCostingStepComponent',
-        entityId: 42, entity: buildPart({ manualCostOverride: 12 }),
-      });
-      TestBed.flushEffects();
-      const form = (component as unknown as { form: { patchValue(v: unknown): void } }).form;
-      form.patchValue({ manualCostOverride: null });
-      vi.advanceTimersByTime(700);
-      const req = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
-      expect(req.request.body.manualCostOverride).toBe(-1);
-      req.flush(buildPart({ manualCostOverride: null }));
-    } finally {
-      vi.useRealTimers();
-    }
+    const component = TestBed.runInInjectionContext(() => new PartCostingStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'costing', componentName: 'PartCostingStepComponent',
+      entityId: 42, entity: buildPart({ manualCostOverride: 12 }),
+    });
+    TestBed.flushEffects();
+
+    const form = (component as unknown as { form: { patchValue(v: unknown): void; markAsDirty(): void } }).form;
+    form.patchValue({ manualCostOverride: null });
+    form.markAsDirty();
+
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
+    expect(req.request.body.manualCostOverride).toBe(-1);
+    req.flush(buildPart({ manualCostOverride: null }));
+
+    expect(saveResult).toEqual({ ok: true });
+  });
+
+  it('does NOT round-trip when the form is pristine — Back/Jump on a never-touched step is a no-op', () => {
+    const component = TestBed.runInInjectionContext(() => new PartCostingStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'costing', componentName: 'PartCostingStepComponent',
+      entityId: 42, entity: buildPart(),
+    });
+    TestBed.flushEffects();
+
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
+
+    httpMock.verify();
+    expect(saveResult).toEqual({ ok: true });
   });
 });

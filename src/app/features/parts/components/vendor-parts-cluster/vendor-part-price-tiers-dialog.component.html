@@ -58,11 +58,11 @@
           [label]="'vendorPart.priceTiers.unitPrice' | translate"
           formControlName="unitPrice"
           [required]="true" />
-        <app-input
+        <app-select
           data-testid="price-tier-currency"
           [label]="'vendorPart.priceTiers.currency' | translate"
+          [options]="currencyOptions"
           formControlName="currency"
-          [maxlength]="3"
           [required]="true" />
       </div>
       <div class="dialog-row">
@@ -79,22 +79,27 @@
         data-testid="price-tier-notes"
         [label]="'vendorPart.notes' | translate"
         formControlName="notes" />
-
-      <div class="price-tiers-dialog__add-actions">
-        <app-validation-button [violations]="violations" [loading]="saving()">
-          <button class="action-btn action-btn--primary action-btn--sm"
-            data-testid="price-tier-add-btn"
-            [disabled]="form.invalid || saving()"
-            (click)="addTier()">
-            <span class="material-icons-outlined">add</span>
-            {{ 'vendorPart.priceTiers.addTier' | translate }}
-          </button>
-        </app-validation-button>
-      </div>
     </section>
   </div>
 
+  <!-- Footer: Close (secondary) on the left, Add Tier (primary) on the right.
+       Previously had a small in-form Add Tier button + a primary "Done" in the
+       footer, which violated the one-primary-per-surface rule and had testers
+       hitting Done expecting a save. Now: only one primary action visible
+       (Add Tier), and dismissing reads as "Close" rather than "Done" so users
+       don't think clicking it commits an unsaved row. -->
   <div dialog-footer>
-    <button class="action-btn action-btn--primary" (click)="close()">{{ 'common.done' | translate }}</button>
+    <button class="action-btn" data-testid="price-tier-close-btn" (click)="close()">
+      {{ 'common.close' | translate }}
+    </button>
+    <app-validation-button [violations]="violations" [loading]="saving()">
+      <button class="action-btn action-btn--primary"
+        data-testid="price-tier-add-btn"
+        [disabled]="form.invalid || saving()"
+        (click)="addTier()">
+        <span class="material-icons-outlined">add</span>
+        {{ 'vendorPart.priceTiers.addTier' | translate }}
+      </button>
+    </app-validation-button>
   </div>
 </app-dialog>

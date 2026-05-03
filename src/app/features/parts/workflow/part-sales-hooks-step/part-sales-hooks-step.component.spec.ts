@@ -5,6 +5,7 @@ import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { environment } from '../../../../../environments/environment';
+import { WorkflowService } from '../../../../shared/services/workflow.service';
 import { PartDetail } from '../../models/part-detail.model';
 import { mockSignalInputs } from '../../../../../testing/signal-input-harness';
 import { PartSalesHooksStepComponent } from './part-sales-hooks-step.component';
@@ -48,8 +49,9 @@ function buildPart(overrides: Partial<PartDetail> = {}): PartDetail {
   };
 }
 
-describe('PartSalesHooksStepComponent', () => {
+describe('PartSalesHooksStepComponent (Phase 5 — save-on-Continue)', () => {
   let httpMock: HttpTestingController;
+  let workflowService: WorkflowService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -61,6 +63,7 @@ describe('PartSalesHooksStepComponent', () => {
       ],
     }).compileComponents();
     httpMock = TestBed.inject(HttpTestingController);
+    workflowService = TestBed.inject(WorkflowService);
   });
 
   afterEach(() => {
@@ -77,34 +80,48 @@ describe('PartSalesHooksStepComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('dispatches a PATCH /workflows/:runId/step on form change after debounce', () => {
-    vi.useFakeTimers();
-    try {
-      const component = TestBed.runInInjectionContext(() => new PartSalesHooksStepComponent());
-      mockSignalInputs(component, {
-        stepId: 'salesHooks', componentName: 'PartSalesHooksStepComponent',
-        runId: 7, entityId: 42, entity: buildPart(),
-      });
-      TestBed.flushEffects();
+  it('PATCHes /workflows/:runId/step when WorkflowService.saveCurrentStep() fires after a user edit', () => {
+    const component = TestBed.runInInjectionContext(() => new PartSalesHooksStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'salesHooks', componentName: 'PartSalesHooksStepComponent',
+      runId: 7, entityId: 42, entity: buildPart(),
+    });
+    TestBed.flushEffects();
 
-      const form = (component as unknown as { form: { patchValue(v: unknown): void } }).form;
-      form.patchValue({ salesUomCode: 'box' });
+    const form = (component as unknown as { form: { patchValue(v: unknown): void; markAsDirty(): void } }).form;
+    form.patchValue({ salesUomCode: 'box' });
+    form.markAsDirty();
 
-      vi.advanceTimersByTime(700);
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
 
-      const req = httpMock.expectOne(`${environment.apiUrl}/workflows/7/step`);
-      expect(req.request.method).toBe('PATCH');
-      expect(req.request.body.stepId).toBe('salesHooks');
-      expect(req.request.body.fields.salesUomCode).toBe('box');
-      req.flush({
-        id: 7, entityType: 'Part', entityId: 42, definitionId: 'd', currentStepId: 'salesHooks',
-        mode: 'guided', startedAt: '', startedByUserId: 1, completedAt: null,
-        abandonedAt: null, abandonedReason: null, lastActivityAt: '', version: 1,
-      });
-      const partReq = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
-      partReq.flush(buildPart({ salesUomCode: 'box' }));
-    } finally {
-      vi.useRealTimers();
-    }
+    const req = httpMock.expectOne(`${environment.apiUrl}/workflows/7/step`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body.stepId).toBe('salesHooks');
+    expect(req.request.body.fields.salesUomCode).toBe('box');
+    req.flush({
+      id: 7, entityType: 'Part', entityId: 42, definitionId: 'd', currentStepId: 'salesHooks',
+      mode: 'guided', startedAt: '', startedByUserId: 1, completedAt: null,
+      abandonedAt: null, abandonedReason: null, lastActivityAt: '', version: 1,
+    });
+    const partReq = httpMock.expectOne(`${environment.apiUrl}/parts/42`);
+    partReq.flush(buildPart({ salesUomCode: 'box' }));
+
+    expect(saveResult).toEqual({ ok: true });
+  });
+
+  it('does NOT round-trip when the form is pristine — Back/Jump on a never-touched step is a no-op', () => {
+    const component = TestBed.runInInjectionContext(() => new PartSalesHooksStepComponent());
+    mockSignalInputs(component, {
+      stepId: 'salesHooks', componentName: 'PartSalesHooksStepComponent',
+      runId: 7, entityId: 42, entity: buildPart(),
+    });
+    TestBed.flushEffects();
+
+    let saveResult: { ok: boolean } | null = null;
+    workflowService.saveCurrentStep().subscribe((r) => (saveResult = r));
+
+    httpMock.verify();
+    expect(saveResult).toEqual({ ok: true });
   });
 });
