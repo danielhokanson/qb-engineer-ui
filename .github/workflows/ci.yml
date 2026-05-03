@@ -8,9 +8,14 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, main]
+    # `effort/*` branches are per-effort integration branches — feature PRs
+    # auto-merge into them after CI passes (per the branch model in the
+    # umbrella CLAUDE.md). Add them so the per-feature CI gates actually
+    # run; previously feature-into-effort PRs had 0 required checks and
+    # auto-merged immediately, defeating the lint:i18n + build + test gates.
+    branches: [develop, main, "effort/*"]
   push:
-    branches: [develop, main]
+    branches: [develop, main, "effort/*"]
 
 permissions:
   contents: read
