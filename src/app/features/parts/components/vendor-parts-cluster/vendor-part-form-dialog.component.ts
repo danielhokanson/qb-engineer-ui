@@ -97,8 +97,8 @@ export class VendorPartFormDialogComponent {
   });
 
   protected readonly violations = FormValidationService.getViolations(this.form, {
-    vendorId: this.translate.instant('vendors.title'),
-    partId: this.translate.instant('parts.title'),
+    vendorId: this.translate.instant('vendors.vendor'),
+    partId: this.translate.instant('parts.part'),
     vendorPartNumber: this.translate.instant('vendorPart.vendorPartNumber'),
     manufacturerName: this.translate.instant('vendorPart.manufacturerName'),
     vendorMpn: this.translate.instant('vendorPart.vendorMpn'),

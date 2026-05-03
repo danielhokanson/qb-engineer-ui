@@ -429,6 +429,8 @@
   },
   "parts": {
     "title": "Parts Catalog",
+    "part": "Part",
+    "searchByPartNumber": "Search by part number…",
     "subtitle": "Manage parts, BOMs, and specifications",
     "createPart": "New Part",
     "editPart": "Edit Part",
@@ -2888,6 +2890,8 @@
   },
   "vendors": {
     "title": "Vendors",
+    "vendor": "Vendor",
+    "searchByCompanyName": "Search by company name…",
     "subtitle": "Manage suppliers and vendor relationships",
     "newVendor": "New Vendor",
     "editVendor": "Edit Vendor",

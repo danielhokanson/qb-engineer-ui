@@ -19,7 +19,7 @@
           data-testid="part-detail-edit-toggle"
           (click)="editing() ? cancelEdit() : toggleEdit()"
           [attr.aria-label]="editing() ? ('common.cancel' | translate) : ('common.edit' | translate)">
-          <span class="material-icons-outlined">{{ editing() ? 'close' : 'edit' }}</span>
+          <span class="material-icons-outlined">{{ editing() ? 'cancel' : 'edit' }}</span>
         </button>
         <button class="icon-btn" [matTooltip]="'common.close' | translate" matTooltipPosition="above" (click)="closePanel()" aria-label="Close panel">
           <span class="material-icons-outlined">close</span>

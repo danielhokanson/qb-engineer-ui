@@ -5,7 +5,8 @@
       @if (showVendorPicker) {
         <app-entity-picker
           data-testid="vendor-part-vendor"
-          [label]="'vendors.companyName' | translate"
+          [label]="'vendors.vendor' | translate"
+          [placeholder]="'vendors.searchByCompanyName' | translate"
           entityType="vendors"
           displayField="companyName"
           formControlName="vendorId" />
@@ -21,7 +22,8 @@
       @if (showPartPicker) {
         <app-entity-picker
           data-testid="vendor-part-part"
-          [label]="'parts.partNumber' | translate"
+          [label]="'parts.part' | translate"
+          [placeholder]="'parts.searchByPartNumber' | translate"
           entityType="parts"
           displayField="partNumber"
           formControlName="partId" />
