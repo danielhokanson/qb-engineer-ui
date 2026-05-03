@@ -1,5 +1,6 @@
-<mat-form-field appearance="outline">
+<mat-form-field appearance="outline" class="entity-picker__field">
   <mat-label>{{ label() }}</mat-label>
+  <span matPrefix class="material-icons-outlined entity-picker__icon" aria-hidden="true">search</span>
   <input matInput
     [formControl]="searchControl"
     [matAutocomplete]="auto"
@@ -7,7 +8,6 @@
     [disabled]="disabled()"
     (input)="onInput()"
     (blur)="markTouched()" />
-  <span matSuffix class="material-icons-outlined entity-picker__icon">search</span>
   <mat-autocomplete #auto="matAutocomplete"
     [displayWith]="displayFn"
     (optionSelected)="onOptionSelected($event)">
