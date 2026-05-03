@@ -29,6 +29,7 @@ import { CustomerPricingTabComponent } from './tabs/customer-pricing-tab.compone
 import { CustomerIdentityClusterComponent } from '../../components/customer-clusters/customer-identity-cluster.component';
 import { CustomerActivityClusterComponent } from '../../components/customer-clusters/customer-activity-cluster.component';
 import { CurrencyDisplayComponent } from '../../../../shared/components/currency-display/currency-display.component';
+import { EntityCompletenessChipComponent } from '../../../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
 
 /**
  * Pillar 5 — Customer detail shell.
@@ -57,6 +58,7 @@ import { CurrencyDisplayComponent } from '../../../../shared/components/currency
     CustomerPricingTabComponent,
     CustomerIdentityClusterComponent, CustomerActivityClusterComponent,
     CurrencyDisplayComponent,
+    EntityCompletenessChipComponent,
   ],
   templateUrl: './customer-detail.component.html',
   styleUrl: './customer-detail.component.scss',

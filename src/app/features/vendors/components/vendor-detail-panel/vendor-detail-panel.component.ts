@@ -28,6 +28,7 @@ import { VendorPartPriceTiersDialogComponent, VendorPartPriceTiersDialogData } f
 import { VendorPartPriceTierHistoryDialogComponent, VendorPartPriceTierHistoryDialogData } from '../../../parts/components/vendor-parts-cluster/vendor-part-price-tier-history-dialog.component';
 import { VendorPartsService } from '../../../parts/services/vendor-parts.service';
 import { VendorPart } from '../../../parts/models/vendor-part.model';
+import { EntityCompletenessChipComponent } from '../../../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
 
 @Component({
   selector: 'app-vendor-detail-panel',
@@ -40,6 +41,7 @@ import { VendorPart } from '../../../parts/models/vendor-part.model';
     EmptyStateComponent, LoadingBlockDirective,
     VendorDialogComponent, EntityActivitySectionComponent, VendorScorecardTabComponent,
     VendorPartListPanelComponent,
+    EntityCompletenessChipComponent,
   ],
   templateUrl: './vendor-detail-panel.component.html',
   styleUrl: './vendor-detail-panel.component.scss',

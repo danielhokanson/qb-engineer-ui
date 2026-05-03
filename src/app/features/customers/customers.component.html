@@ -25,6 +25,7 @@
 
       <ng-template appColumnCell="name" let-row>
         <span class="customer-name">{{ row.name }}</span>
+        <app-entity-completeness-badge entityType="Customer" [entityId]="row.id" />
       </ng-template>
       <ng-template appColumnCell="companyName" let-row>
         <span class="text-muted">{{ row.companyName ?? '—' }}</span>
@@ -42,6 +43,9 @@
       </ng-template>
       <ng-template appColumnCell="createdAt" let-row>
         <span class="text-muted">{{ row.createdAt | date:'MM/dd/yyyy' }}</span>
+      </ng-template>
+      <ng-template appColumnCell="completeness" let-row>
+        <app-entity-completeness-chip entityType="Customer" [entityId]="row.id" />
       </ng-template>
     </app-data-table>
   </div>

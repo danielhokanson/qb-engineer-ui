@@ -1,0 +1,54 @@
+@if (state() !== null || loading()) {
+  <button #trigger
+    type="button"
+    class="completeness-chip"
+    [class.completeness-chip--ready]="ready()"
+    [class.completeness-chip--incomplete]="!ready() && !loading()"
+    [class.completeness-chip--loading]="loading()"
+    [matTooltip]="tooltipText()"
+    matTooltipPosition="above"
+    [attr.aria-label]="tooltipText()"
+    [attr.aria-expanded]="popoverOpen()"
+    [disabled]="failingCount() === 0"
+    (click)="togglePopover()">
+    @if (loading()) {
+      <span class="material-icons-outlined completeness-chip__icon completeness-chip__icon--spin">sync</span>
+    } @else if (ready()) {
+      <span class="material-icons-outlined completeness-chip__icon">check_circle</span>
+      <span class="completeness-chip__text">{{ 'entityCompleteness.ready' | translate }}</span>
+    } @else {
+      <span class="material-icons-outlined completeness-chip__icon">warning</span>
+      <span class="completeness-chip__text">{{ 'entityCompleteness.incompleteFor' | translate:{ count: failingCount() } }}</span>
+    }
+  </button>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayOpen]="popoverOpen()"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    (backdropClick)="closePopover()"
+    (detach)="closePopover()">
+    <div class="completeness-popover" role="dialog" [attr.aria-label]="'entityCompleteness.popover.heading' | translate">
+      <h4 class="completeness-popover__heading">{{ 'entityCompleteness.popover.heading' | translate }}</h4>
+      <ul class="completeness-popover__list">
+        @for (cap of failingCapabilities(); track cap.capabilityCode) {
+          <li class="completeness-popover__cap">
+            <div class="completeness-popover__cap-name">{{ cap.capabilityName }}</div>
+            <ul class="completeness-popover__missing">
+              @for (field of cap.missingFields; track field.requirementId) {
+                <li class="completeness-popover__missing-row"
+                    [matTooltip]="field.missingMessageKey | translate"
+                    matTooltipPosition="right">
+                  <span class="material-icons-outlined">arrow_right</span>
+                  <span>{{ field.displayNameKey | translate }}</span>
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+    </div>
+  </ng-template>
+}

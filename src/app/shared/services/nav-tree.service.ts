@@ -145,6 +145,7 @@ export class NavTreeService {
             { icon: 'toggle_on', label: 'Capabilities', i18nKey: 'admin.tabs.capabilities', route: '/admin/capabilities', allowedRoles: ['Admin'] },
             { icon: 'quiz', label: 'Discovery Wizard', i18nKey: 'admin.tabs.discovery', route: '/admin/discovery', allowedRoles: ['Admin'] },
             { icon: 'dashboard_customize', label: 'Presets', i18nKey: 'admin.tabs.presets', route: '/admin/presets', allowedRoles: ['Admin'] },
+            { icon: 'fact_check', label: 'Entity Completeness', i18nKey: 'admin.tabs.entityCompleteness', route: '/admin/entity-completeness', allowedRoles: ['Admin'] },
           ],
         },
         {

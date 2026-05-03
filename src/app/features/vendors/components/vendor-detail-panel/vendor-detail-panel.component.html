@@ -5,7 +5,10 @@
       <div class="detail-header__info">
         <span class="material-icons-outlined detail-icon">store</span>
         <div>
-          <div class="detail-name">{{ vendor.companyName }}</div>
+          <div class="detail-name">
+            {{ vendor.companyName }}
+            <app-entity-completeness-chip entityType="Vendor" [entityId]="vendor.id" />
+          </div>
           @if (vendor.contactName) {
             <div class="detail-contact">{{ vendor.contactName }}</div>
           }

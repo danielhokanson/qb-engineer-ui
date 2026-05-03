@@ -83,9 +83,11 @@
   },
   "common": {
     "save": "Save",
+    "saved": "Saved",
     "saveChanges": "Save Changes",
     "cancel": "Cancel",
     "delete": "Delete",
+    "deleted": "Deleted",
     "edit": "Edit",
     "create": "Create",
     "search": "Search",
@@ -1593,7 +1595,8 @@
       "capabilities": "Capabilities",
       "discovery": "Discovery Wizard",
       "presets": "Presets",
-      "roleTemplates": "Role Templates"
+      "roleTemplates": "Role Templates",
+      "entityCompleteness": "Entity Completeness"
     },
     "users": "Users",
     "addUser": "Add User",
@@ -1754,7 +1757,31 @@
     "lockPeriod": "Lock Period",
     "lockPeriodFailed": "Failed to lock period",
     "lockPeriodHint": "Lock a pay period to prevent further edits",
-    "payPeriod": "Pay Period"
+    "payPeriod": "Pay Period",
+    "entityCompleteness": {
+      "title": "Entity Completeness Requirements",
+      "subtitle": "Define which entity fields each capability requires.",
+      "newRequirement": "New requirement",
+      "col": {
+        "entityType": "Entity Type",
+        "capabilityCode": "Capability Code",
+        "requirementId": "Requirement Id",
+        "displayNameKey": "Display Name Key",
+        "missingMessageKey": "Missing Message Key",
+        "sortOrder": "Sort Order"
+      },
+      "dialog": {
+        "titleNew": "New Requirement",
+        "titleEdit": "Edit Requirement",
+        "predicateLabel": "Predicate (JSON)",
+        "predicateHelper": "JSON predicate evaluated server-side. Example: { \"type\": \"fieldPresent\", \"field\": \"taxId\" }",
+        "sortOrderLabel": "Sort Order"
+      },
+      "confirmDelete": {
+        "title": "Delete requirement?",
+        "message": "This will permanently remove requirement \"{{requirementId}}\". The completeness chip will refresh on next render."
+      }
+    }
   },
   "teamsPanel": {
     "teams": "teams",
@@ -2604,6 +2631,16 @@
     "hint": "Name, procurement, and inventory class — the minimum needed to reference this part. Finish the rest later from the part's detail page.",
     "create": "Create part",
     "created": "Part “{{name}}” created."
+  },
+  "entityCompleteness": {
+    "loading": "Checking completeness…",
+    "ready": "Ready",
+    "incompleteFor": "Incomplete for {{count}}",
+    "badgeTooltip": "Incomplete for {{count}}: {{names}}",
+    "columnHeader": "Completeness",
+    "popover": {
+      "heading": "Missing requirements"
+    }
   },
   "shared": {
     "closeDialog": "Close dialog",

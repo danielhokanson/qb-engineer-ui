@@ -37,6 +37,8 @@ import { DetailDialogService } from '../../shared/services/detail-dialog.service
 import { PartDetailDialogComponent, PartDetailDialogData } from './components/part-detail-dialog/part-detail-dialog.component';
 import { WorkflowService } from '../../shared/services/workflow.service';
 import { NewPartForkDialogComponent, NewPartForkResult } from './workflow/new-part-fork-dialog/new-part-fork-dialog.component';
+import { EntityCompletenessChipComponent } from '../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
+import { EntityCompletenessBadgeComponent } from '../../shared/components/entity-completeness-badge/entity-completeness-badge.component';
 
 type ViewMode = 'table' | 'cards';
 
@@ -51,6 +53,7 @@ type ViewMode = 'table' | 'cards';
     DataTableComponent, EntityPickerComponent, ColumnCellDirective, ValidationButtonComponent,
     LoadingBlockDirective, MatTooltipModule,
     PartsCardGridComponent,
+    EntityCompletenessChipComponent, EntityCompletenessBadgeComponent,
   ],
   templateUrl: './parts.component.html',
   styleUrl: './parts.component.scss',
@@ -133,6 +136,9 @@ export class PartsComponent {
     ]},
     { field: 'effectivePrice', header: this.translate.instant('parts.effectivePrice'), sortable: true, width: '110px', align: 'right' },
     { field: 'bomEntryCount', header: this.translate.instant('parts.bom'), width: '60px', align: 'center' },
+    // Hidden by default — power users opt in via column-manager. Renders the
+    // full completeness chip (click → popover with per-capability gaps).
+    { field: 'completeness', header: this.translate.instant('entityCompleteness.columnHeader'), width: '160px', align: 'center', visible: false },
   ];
 
   // ── Part Dialog ──

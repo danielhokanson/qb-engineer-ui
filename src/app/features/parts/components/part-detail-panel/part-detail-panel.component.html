@@ -4,7 +4,10 @@
       <div class="detail-header__info">
         <span class="material-icons-outlined detail-type-icon">{{ getTypeIcon(part.inventoryClass) }}</span>
         <div>
-          <div class="detail-part-number">{{ part.partNumber }}</div>
+          <div class="detail-part-number">
+            {{ part.partNumber }}
+            <app-entity-completeness-chip entityType="Part" [entityId]="part.id" />
+          </div>
           <div class="detail-description">{{ part.name }}</div>
           @if (part.description) {
             <div class="detail-notes">{{ part.description }}</div>

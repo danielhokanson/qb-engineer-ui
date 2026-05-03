@@ -1,0 +1,9 @@
+@if (failingCount() > 0) {
+  <span class="completeness-badge"
+    [matTooltip]="tooltipText()"
+    matTooltipPosition="above"
+    [attr.aria-label]="tooltipText()">
+    <span class="material-icons-outlined completeness-badge__icon" aria-hidden="true">warning</span>
+    <span class="completeness-badge__count">{{ failingCount() }}</span>
+  </span>
+}
