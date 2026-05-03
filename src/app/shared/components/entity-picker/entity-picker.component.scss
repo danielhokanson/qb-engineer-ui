@@ -4,8 +4,26 @@
   display: grid;
 }
 
+// Magnifier glyph sits in the matPrefix slot (left side of the input) so the
+// field reads as a search box at a glance — universal idiom that the previous
+// suffix placement (right side, easily mistaken for a clear-button) failed at.
+// Testers were typing free text into these fields and getting confused when
+// validation refused to accept unmatched values; the prefix glyph + the
+// background tint below are the two cues that fix that.
 .entity-picker__icon {
   font-size: $icon-size-sm;
   color: var(--text-muted);
   margin-right: $sp-sm;
+}
+
+// Subtle background tint distinguishes the picker from plain text inputs.
+// Uses color-mix on --primary at low alpha so it sits inside the project's
+// existing palette without introducing a new color. Light enough to not fight
+// the input text, dark enough to register as "different field type".
+.entity-picker__field ::ng-deep .mat-mdc-text-field-wrapper {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+[data-theme='dark'] .entity-picker__field ::ng-deep .mat-mdc-text-field-wrapper {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
