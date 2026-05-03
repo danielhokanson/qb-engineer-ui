@@ -24,6 +24,7 @@
     "training:verify:fix": "npx tsx e2e/training-verification/verify-training.ts --fix",
     "lint": "ng lint",
     "lint:a11y": "npx eslint \"src/**/*.html\" --no-error-on-unmatched-pattern",
+    "lint:i18n": "node scripts/lint-i18n.mjs",
     "test:a11y": "npx cypress run --spec cypress/e2e/accessibility/a11y.cy.ts",
     "test:api-smoke": "playwright test --config=e2e/playwright.config.ts --grep api-smoke --timeout 120000",
     "test:contract-drift": "playwright test --config=e2e/playwright.config.ts --grep contract-drift --timeout 60000",

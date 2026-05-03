@@ -431,6 +431,8 @@
     "title": "Catálogo de Piezas",
     "part": "Pieza",
     "searchByPartNumber": "Buscar por número de pieza…",
+    "allProcurementSources": "Todas las fuentes",
+    "allInventoryClasses": "Todas las clases",
     "procurementSource": {
       "Make": "Fabricar",
       "Buy": "Comprar",
