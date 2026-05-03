@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChildren } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
@@ -18,6 +18,10 @@ import { toIsoDate } from '../../../../shared/utils/date.utils';
 import { VendorPartsService } from '../../services/vendor-parts.service';
 import { VendorPart } from '../../models/vendor-part.model';
 import { VendorPartParentEntityType } from './vendor-part-list-panel.component';
+import { VendorQuickCreateDialogComponent, VendorQuickCreateDialogData } from '../../../vendors/components/vendor-quick-create-dialog/vendor-quick-create-dialog.component';
+import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
+import { PartQuickCreateDialogComponent, PartQuickCreateDialogData } from '../part-quick-create-dialog/part-quick-create-dialog.component';
+import { PartDetail } from '../../models/part-detail.model';
 
 export interface VendorPartFormDialogData {
   vendorPart: VendorPart | null;
@@ -51,8 +55,19 @@ export class VendorPartFormDialogComponent {
   private readonly vendorPartsService = inject(VendorPartsService);
   private readonly snackbar = inject(SnackbarService);
   private readonly translate = inject(TranslateService);
+  private readonly matDialog = inject(MatDialog);
   private readonly dialogRef = inject(MatDialogRef<VendorPartFormDialogComponent, VendorPart | null>);
   protected readonly data = inject<VendorPartFormDialogData>(MAT_DIALOG_DATA);
+
+  /**
+   * Inline-create wiring — when EntityPicker emits createNew, we open the
+   * matching quick-create dialog and on success drop the new entity's id
+   * into the form via the picker's setSelected(). The viewChildren handle
+   * lets us call setSelected after the modal's afterClosed resolves.
+   * Two pickers may exist (vendor + part) but in practice only one shows
+   * at a time per parentEntityType, so a non-empty array is safe to index.
+   */
+  private readonly entityPickers = viewChildren(EntityPickerComponent);
 
   protected readonly saving = signal(false);
   protected readonly isEdit = !!this.data.vendorPart;
@@ -112,6 +127,42 @@ export class VendorPartFormDialogComponent {
 
   close(): void {
     this.dialogRef.close(null);
+  }
+
+  /**
+   * Inline-create vendor — opens VendorQuickCreateDialog pre-filled with
+   * whatever the user typed in the picker, then on success drops the new
+   * vendor's id into the form via the picker's setSelected().
+   */
+  protected onCreateNewVendor(typedTerm: string): void {
+    this.matDialog.open<VendorQuickCreateDialogComponent, VendorQuickCreateDialogData, VendorListItem | null>(
+      VendorQuickCreateDialogComponent,
+      { width: '420px', data: { initialCompanyName: typedTerm } },
+    ).afterClosed().subscribe((created) => {
+      if (!created) return;
+      this.form.controls.vendorId.setValue(created.id);
+      const picker = this.entityPickers().find((p) => p.entityType() === 'vendors');
+      picker?.setSelected(created.id, created.companyName);
+    });
+  }
+
+  /**
+   * Inline-create part — opens PartQuickCreateDialog pre-filled with the
+   * typed term + ProcurementSource defaulted to 'Buy' (vendor-supplied
+   * parts are almost always Buy in this context). InventoryClass is
+   * intentionally NOT defaulted — Dan's call: user picks explicitly so
+   * a wrong default doesn't silently propagate.
+   */
+  protected onCreateNewPart(typedTerm: string): void {
+    this.matDialog.open<PartQuickCreateDialogComponent, PartQuickCreateDialogData, PartDetail | null>(
+      PartQuickCreateDialogComponent,
+      { width: '480px', data: { initialName: typedTerm, defaultProcurementSource: 'Buy' } },
+    ).afterClosed().subscribe((created) => {
+      if (!created) return;
+      this.form.controls.partId.setValue(created.id);
+      const picker = this.entityPickers().find((p) => p.entityType() === 'parts');
+      picker?.setSelected(created.id, created.partNumber);
+    });
   }
 
   save(): void {

@@ -1,0 +1,40 @@
+<app-dialog [title]="title()" width="480px" [dirty]="form.dirty" (closed)="close()">
+  <div [formGroup]="form" class="part-quick-create">
+    <p class="part-quick-create__hint">{{ 'partQuickCreate.hint' | translate }}</p>
+    <app-input
+      data-testid="part-quick-create-name"
+      [label]="'parts.workflow.basics.nameLabel' | translate"
+      formControlName="name"
+      [maxlength]="256"
+      [required]="true" />
+    <div class="dialog-row">
+      <app-select
+        data-testid="part-quick-create-procurement-source"
+        [label]="'parts.workflow.basics.procurementSourceLabel' | translate"
+        [options]="procurementSourceOptions"
+        formControlName="procurementSource"
+        [required]="true" />
+      <app-select
+        data-testid="part-quick-create-inventory-class"
+        [label]="'parts.workflow.basics.inventoryClassLabel' | translate"
+        [options]="inventoryClassOptions"
+        formControlName="inventoryClass"
+        [required]="true" />
+    </div>
+  </div>
+
+  <div dialog-footer>
+    <button class="action-btn" data-testid="part-quick-create-cancel-btn" (click)="close()">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <app-validation-button [violations]="violations" [loading]="saving()">
+      <button class="action-btn action-btn--create"
+        data-testid="part-quick-create-save-btn"
+        [disabled]="form.invalid || saving()"
+        (click)="save()">
+        <span class="material-icons-outlined">add</span>
+        {{ 'partQuickCreate.create' | translate }}
+      </button>
+    </app-validation-button>
+  </div>
+</app-dialog>

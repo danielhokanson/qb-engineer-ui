@@ -9,6 +9,8 @@
           [placeholder]="'vendors.searchByCompanyName' | translate"
           entityType="vendors"
           displayField="companyName"
+          [createNewLabel]="('vendors.vendor' | translate).toLowerCase()"
+          (createNew)="onCreateNewVendor($event)"
           formControlName="vendorId" />
       } @else if (data.parentEntityType === 'vendor' || isEdit) {
         <div class="vendor-part-form__locked-field">
@@ -26,6 +28,8 @@
           [placeholder]="'parts.searchByPartNumber' | translate"
           entityType="parts"
           displayField="partNumber"
+          [createNewLabel]="('parts.part' | translate).toLowerCase()"
+          (createNew)="onCreateNewPart($event)"
           formControlName="partId" />
       } @else if (data.parentEntityType === 'part' || isEdit) {
         <div class="vendor-part-form__locked-field">

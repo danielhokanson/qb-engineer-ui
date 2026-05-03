@@ -432,6 +432,20 @@
     "title": "Parts Catalog",
     "part": "Part",
     "searchByPartNumber": "Search by part number…",
+    "procurementSource": {
+      "Make": "Make",
+      "Buy": "Buy",
+      "Subcontract": "Subcontract",
+      "Phantom": "Phantom"
+    },
+    "inventoryClass": {
+      "Raw": "Raw Material",
+      "Component": "Component",
+      "Subassembly": "Subassembly",
+      "FinishedGood": "Finished Good",
+      "Consumable": "Consumable",
+      "Tool": "Tool"
+    },
     "subtitle": "Manage parts, BOMs, and specifications",
     "createPart": "New Part",
     "editPart": "Edit Part",
@@ -634,6 +648,8 @@
         "title": "Basics",
         "hint": "Name and a short description — the minimum to identify this part. The procurement and inventory axes were chosen on the previous screen.",
         "partTypeLabel": "Type",
+        "procurementSourceLabel": "Procurement Source",
+        "inventoryClassLabel": "Inventory Class",
         "nameLabel": "Name",
         "nameHelper": "Short canonical identifier (e.g., \"Sheath Mudkipper\").",
         "descriptionLabel": "Description",
@@ -2573,6 +2589,21 @@
     "poDeliveries": "PO Deliveries",
     "poDeliveriesCount": "{{count}} deliveries",
     "poLines": "PO Lines"
+  },
+  "entityPicker": {
+    "createNew": "+ Create new {{label}} “{{term}}”"
+  },
+  "vendorQuickCreate": {
+    "title": "Quick-create vendor",
+    "hint": "Just the company name — finish the rest later from the vendor's detail page.",
+    "create": "Create vendor",
+    "created": "Vendor “{{name}}” created."
+  },
+  "partQuickCreate": {
+    "title": "Quick-create part",
+    "hint": "Name, procurement, and inventory class — the minimum needed to reference this part. Finish the rest later from the part's detail page.",
+    "create": "Create part",
+    "created": "Part “{{name}}” created."
   },
   "shared": {
     "closeDialog": "Close dialog",
