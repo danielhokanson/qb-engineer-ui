@@ -9,6 +9,9 @@
       [label]="'parts.workflow.sourcing.preferredVendorLabel' | translate"
       entityType="vendors"
       displayField="companyName"
+      [createNewLabel]="('vendors.vendor' | translate).toLowerCase()"
+      [placeholder]="'vendors.searchByCompanyName' | translate"
+      (createNew)="onCreateNewVendor($event)"
       formControlName="preferredVendorId"
       data-testid="sourcing-preferred-vendor" />
   </form>
