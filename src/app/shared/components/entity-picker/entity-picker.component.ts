@@ -109,17 +109,39 @@ export class EntityPickerComponent implements ControlValueAccessor, OnInit {
     }
   }
 
+  /** Sentinel option value for the "+ Create new" row. Kept as a const so
+   *  the template, displayFn, and option-selected handler all agree. */
+  protected static readonly CREATE_NEW_SENTINEL = '__create_new__';
+  /** Template-accessible alias of {@link CREATE_NEW_SENTINEL} (statics
+   *  aren't reachable from Angular templates). */
+  protected readonly CREATE_NEW_SENTINEL = EntityPickerComponent.CREATE_NEW_SENTINEL;
+
+  /**
+   * Captured at mousedown on the create-new option, BEFORE Material's
+   * option-selection cycle runs displayFn and overwrites searchControl
+   * with the option's value. Reading searchControl in onOptionSelected
+   * is unsafe — Material may have already written the sentinel back.
+   * The captured term is what we hand to the consumer's quick-create
+   * dialog as the pre-fill value.
+   */
+  private capturedCreateNewTerm: string | null = null;
+
+  protected captureCreateNewTerm(): void {
+    this.capturedCreateNewTerm = (this.searchControl.value ?? '').toString().trim();
+  }
+
   protected onOptionSelected(event: MatAutocompleteSelectedEvent): void {
     const value = event.option.value;
-    // Sentinel value emitted by the "+ Create new" row — see template.
-    // Distinguishes the create-new affordance from a real entity option
-    // without overloading the entity shape with magic flags.
-    if (value === '__create_new__') {
-      const term = (this.searchControl.value ?? '').trim();
+    if (value === EntityPickerComponent.CREATE_NEW_SENTINEL) {
+      const term = this.capturedCreateNewTerm ?? '';
+      this.capturedCreateNewTerm = null;
+      // Defensive clear — even though displayFn returns '' for the sentinel,
+      // some Material versions still call setValue via writeValue. Setting
+      // explicitly here guarantees the user never sees __create_new__ in
+      // the input, which previously leaked into the quick-create dialog
+      // as the company name pre-fill (and ended up persisted in the DB).
+      this.searchControl.setValue('', { emitEvent: false });
       this.createNew.emit(term);
-      // Keep the typed term in the input — the consumer's quick-create
-      // dialog will use it as the initial value, and on cancel/dismiss
-      // the user shouldn't have to retype.
       return;
     }
     const entity = value as Record<string, unknown>;
@@ -151,7 +173,17 @@ export class EntityPickerComponent implements ControlValueAccessor, OnInit {
     this.onTouched();
   }
 
-  protected displayFn = (): string => {
+  /**
+   * Material Autocomplete calls displayFn(option.value) to compute what
+   * to show in the input after a selection. For the create-new sentinel,
+   * return empty string explicitly so the literal `__create_new__` never
+   * leaks into the input (and by extension into any consumer dialog
+   * pre-fill or downstream save). For real entity selections, fall back
+   * to whatever the user typed (we set the proper display in
+   * onOptionSelected after this).
+   */
+  protected displayFn = (val?: unknown): string => {
+    if (val === EntityPickerComponent.CREATE_NEW_SENTINEL) return '';
     return this.searchControl.value ?? '';
   };
 

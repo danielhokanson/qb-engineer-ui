@@ -15,7 +15,9 @@
       <mat-option [value]="entity">{{ getDisplayText(entity) }}</mat-option>
     }
     @if (canShowCreateNew()) {
-      <mat-option value="__create_new__" class="entity-picker__create-new">
+      <mat-option [value]="CREATE_NEW_SENTINEL"
+                  class="entity-picker__create-new"
+                  (mousedown)="captureCreateNewTerm()">
         <span class="material-icons-outlined entity-picker__create-icon" aria-hidden="true">add</span>
         <span>{{ 'entityPicker.createNew' | translate:{ label: createNewLabel(), term: searchControl.value } }}</span>
       </mat-option>
