@@ -3,10 +3,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   EventEmitter,
   inject,
   input,
   Output,
+  signal,
   Type,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -100,31 +102,75 @@ export class WorkflowComponent {
   });
 
   /**
-   * Per-step completion derived locally from the entity + validator catalog.
+   * Highest step index the user has reached during this run instance.
+   * Pointer-based fallback for completion: a step with NO declared
+   * completionGates counts as complete once the user has visited
+   * past it (i.e., its index is < maxReachedIndex).
+   *
+   * Initialized + updated via the effect below from the run's
+   * currentStepId. Resets on remount (component lifecycle, page refresh)
+   * — the server doesn't track "highest reached" today, so fresh-mount
+   * behavior is "everything before the server's currentStepId is past".
+   * Good enough for the UX bug this fixes: when the user navigates
+   * backward inside a session, gateless steps stay marked complete
+   * instead of flipping back to unvisited.
+   *
+   * Proper fix is option A (predicate-based gates declared on every
+   * step in the workflow definition); this fallback handles steps
+   * that don't yet have meaningful predicates.
+   */
+  private readonly maxReachedIndex = signal(0);
+
+  constructor() {
+    // Bump maxReachedIndex whenever currentStepIndex advances.
+    effect(() => {
+      const current = this.currentStepIndex();
+      if (current > this.maxReachedIndex()) {
+        this.maxReachedIndex.set(current);
+      }
+    });
+  }
+
+  /**
+   * Per-step completion. Two layers, evaluated per step:
+   *   1. PREDICATE-based — if `completionGates` are declared and the
+   *      entity is loaded, evaluate them. All must pass → complete.
+   *      All-pass takes precedence over the pointer-based fallback.
+   *   2. POINTER-based fallback — for steps with empty
+   *      `completionGates` (which is most of the part workflow today),
+   *      complete iff the user has navigated past it (idx < maxReached).
+   *      Handles back-navigation correctly because `maxReachedIndex` is
+   *      monotonic.
+   *
    * Evaluated inline (no service writes from a computed — that's NG0600).
    */
   protected readonly completionMap = computed<Map<string, boolean>>(() => {
     const def = this.definition();
     const entity = this.entity();
+    const maxReached = this.maxReachedIndex();
     const out = new Map<string, boolean>();
-    if (!def || !entity) return out;
+    if (!def) return out;
     const validatorsById = new Map<string, EntityValidator>();
     for (const v of this.validators()) validatorsById.set(v.validatorId, v);
-    for (const step of def.steps) {
-      if (step.completionGates.length === 0) {
-        out.set(step.id, false);
-        continue;
-      }
-      let allPass = true;
-      for (const gateId of step.completionGates) {
-        const v = validatorsById.get(gateId);
-        if (!v || !this.evaluator.evaluateJson(v.predicate, entity)) {
-          allPass = false;
-          break;
+    def.steps.forEach((step, idx) => {
+      // Layer 1: predicate-based.
+      if (step.completionGates.length > 0 && entity) {
+        let allPass = true;
+        for (const gateId of step.completionGates) {
+          const v = validatorsById.get(gateId);
+          if (!v || !this.evaluator.evaluateJson(v.predicate, entity)) {
+            allPass = false;
+            break;
+          }
+        }
+        if (allPass) {
+          out.set(step.id, true);
+          return;
         }
       }
-      out.set(step.id, allPass);
-    }
+      // Layer 2: pointer-based fallback.
+      out.set(step.id, idx < maxReached);
+    });
     return out;
   });
 
