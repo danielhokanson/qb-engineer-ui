@@ -54,6 +54,7 @@
     "masterData": "Master Data",
     "integrations": "Integrations",
     "workflow": "Workflow",
+    "capabilities": "Capabilities",
     "system": "System"
   },
   "header": {
@@ -1571,6 +1572,9 @@
       "integrationOutbox": "Integration Outbox",
       "autoPo": "Auto-PO",
       "expenses": "Expense Policy",
+      "capabilities": "Capabilities",
+      "discovery": "Discovery Wizard",
+      "presets": "Presets",
       "roleTemplates": "Role Templates"
     },
     "users": "Users",

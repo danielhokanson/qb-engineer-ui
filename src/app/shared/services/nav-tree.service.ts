@@ -140,6 +140,14 @@ export class NavTreeService {
           ],
         },
         {
+          icon: 'toggle_on', label: 'Capabilities', i18nKey: 'adminGroups.capabilities',
+          children: [
+            { icon: 'toggle_on', label: 'Capabilities', i18nKey: 'admin.tabs.capabilities', route: '/admin/capabilities', allowedRoles: ['Admin'] },
+            { icon: 'quiz', label: 'Discovery Wizard', i18nKey: 'admin.tabs.discovery', route: '/admin/discovery', allowedRoles: ['Admin'] },
+            { icon: 'dashboard_customize', label: 'Presets', i18nKey: 'admin.tabs.presets', route: '/admin/presets', allowedRoles: ['Admin'] },
+          ],
+        },
+        {
           icon: 'settings', label: 'System', i18nKey: 'adminGroups.system',
           children: [
             { icon: 'tune', label: 'Settings', i18nKey: 'admin.tabs.settings', route: '/admin/settings', allowedRoles: ['Admin'] },
