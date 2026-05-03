@@ -429,6 +429,20 @@
     "title": "Catálogo de Piezas",
     "part": "Pieza",
     "searchByPartNumber": "Buscar por número de pieza…",
+    "procurementSource": {
+      "Make": "Fabricar",
+      "Buy": "Comprar",
+      "Subcontract": "Subcontratar",
+      "Phantom": "Fantasma"
+    },
+    "inventoryClass": {
+      "Raw": "Materia Prima",
+      "Component": "Componente",
+      "Subassembly": "Subensamblaje",
+      "FinishedGood": "Producto Terminado",
+      "Consumable": "Consumible",
+      "Tool": "Herramienta"
+    },
     "subtitle": "Gestionar piezas, listas de materiales y especificaciones",
     "createPart": "Nueva Pieza",
     "editPart": "Editar Pieza",
@@ -614,6 +628,8 @@
         "title": "Básicos",
         "hint": "Tipo, nombre y material — lo mínimo para identificar la pieza.",
         "partTypeLabel": "Tipo",
+        "procurementSourceLabel": "Fuente de Procuración",
+        "inventoryClassLabel": "Clase de Inventario",
         "nameLabel": "Nombre",
         "nameHelper": "Identificador corto (p. ej., \"Sheath Mudkipper\").",
         "descriptionLabel": "Descripción",
@@ -2349,6 +2365,21 @@
     "poDeliveries": "Entregas de OC",
     "poDeliveriesCount": "{{count}} entregas",
     "poLines": "Líneas de OC"
+  },
+  "entityPicker": {
+    "createNew": "+ Crear nuevo {{label}} «{{term}}»"
+  },
+  "vendorQuickCreate": {
+    "title": "Crear proveedor rápido",
+    "hint": "Solo el nombre de la empresa — completa el resto después desde la página de detalle del proveedor.",
+    "create": "Crear proveedor",
+    "created": "Proveedor «{{name}}» creado."
+  },
+  "partQuickCreate": {
+    "title": "Crear pieza rápida",
+    "hint": "Nombre, procuración y clase de inventario — lo mínimo para referenciar esta pieza. Completa el resto después.",
+    "create": "Crear pieza",
+    "created": "Pieza «{{name}}» creada."
   },
   "shared": {
     "closeDialog": "Cerrar diálogo",

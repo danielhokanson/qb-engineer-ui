@@ -1,0 +1,13 @@
+@use 'styles/variables' as *;
+
+.part-quick-create {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-md;
+}
+
+.part-quick-create__hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: $font-size-sm;
+}

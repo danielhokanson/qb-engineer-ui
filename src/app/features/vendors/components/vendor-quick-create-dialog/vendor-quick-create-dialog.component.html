@@ -1,0 +1,26 @@
+<app-dialog [title]="title()" width="420px" [dirty]="form.dirty" (closed)="close()">
+  <div [formGroup]="form" class="vendor-quick-create">
+    <p class="vendor-quick-create__hint">{{ 'vendorQuickCreate.hint' | translate }}</p>
+    <app-input
+      data-testid="vendor-quick-create-company-name"
+      [label]="'vendors.companyName' | translate"
+      formControlName="companyName"
+      [maxlength]="200"
+      [required]="true" />
+  </div>
+
+  <div dialog-footer>
+    <button class="action-btn" data-testid="vendor-quick-create-cancel-btn" (click)="close()">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <app-validation-button [violations]="violations" [loading]="saving()">
+      <button class="action-btn action-btn--create"
+        data-testid="vendor-quick-create-save-btn"
+        [disabled]="form.invalid || saving()"
+        (click)="save()">
+        <span class="material-icons-outlined">add</span>
+        {{ 'vendorQuickCreate.create' | translate }}
+      </button>
+    </app-validation-button>
+  </div>
+</app-dialog>

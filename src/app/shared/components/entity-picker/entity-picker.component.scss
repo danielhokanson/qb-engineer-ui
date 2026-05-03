@@ -27,3 +27,18 @@
 [data-theme='dark'] .entity-picker__field ::ng-deep .mat-mdc-text-field-wrapper {
   background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
+
+// Create-new row in the autocomplete dropdown — sits below the search results
+// when [createNewLabel] is set on the consumer. Tinted with --primary so it
+// reads as an action distinct from the search-result rows above it.
+::ng-deep .entity-picker__create-new {
+  border-top: $border-width-thin solid var(--border);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.entity-picker__create-icon {
+  font-size: $icon-size-sm;
+  margin-right: $sp-sm;
+  vertical-align: middle;
+}
