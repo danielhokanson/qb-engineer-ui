@@ -1,18 +1,32 @@
 @if (run() && definition()) {
-  <app-workflow
-    data-testid="part-workflow-shell"
-    [run]="run()"
-    [definition]="definition()"
-    [entity]="part()"
-    [validators]="validators()"
-    [entityTitle]="entityTitle()"
-    (modeChanged)="onModeChanged($event)"
-    (stepJumped)="onStepJumped($event)"
-    (stepAdvanced)="onStepAdvanced($event)"
-    (stepBacked)="onStepBacked($event)"
-    (stepSkipped)="onStepSkipped($event)"
-    (completeRequested)="onCompleteRequested()"
-    (closed)="onClosed()" />
+  <!-- Card-on-scrim presentation: the workflow shell renders as a sized
+       card centered on a backdrop, instead of taking the entire viewport.
+       Continue/Back live inside the card — significantly closer to the
+       form controls than when the shell stretched full-page. Per Dan's
+       ask "in a dialog with a specific maximum size".
+
+       Implemented as fixed-position scrim + bounded card rather than
+       MatDialog because the route + URL-sync logic on this component
+       is the source of truth for run/step/mode state — wrapping it in
+       MatDialog would require either threading signals through
+       MAT_DIALOG_DATA or extracting state to a service. Visual effect
+       matches a dialog without the structural refactor. -->
+  <div class="part-workflow-page__shell">
+    <app-workflow
+      data-testid="part-workflow-shell"
+      [run]="run()"
+      [definition]="definition()"
+      [entity]="part()"
+      [validators]="validators()"
+      [entityTitle]="entityTitle()"
+      (modeChanged)="onModeChanged($event)"
+      (stepJumped)="onStepJumped($event)"
+      (stepAdvanced)="onStepAdvanced($event)"
+      (stepBacked)="onStepBacked($event)"
+      (stepSkipped)="onStepSkipped($event)"
+      (completeRequested)="onCompleteRequested()"
+      (closed)="onClosed()" />
+  </div>
 } @else {
   <div class="part-workflow-page__loading">
     {{ 'parts.workflow.page.loading' | translate }}
