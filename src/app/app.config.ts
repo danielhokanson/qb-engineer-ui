@@ -9,6 +9,7 @@ import { SankeyController, Flow } from 'chartjs-chart-sankey';
 import { provideMarkdown } from 'ngx-markdown';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
+import { MAT_DIALOG_DEFAULT_OPTIONS, MatDialogConfig } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 
 Chart.register(SankeyController, Flow);
@@ -53,6 +54,16 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: initTranslations,
       multi: true,
+    },
+    {
+      // App-wide dialog defaults: backdrop click + ESC do NOT auto-close.
+      // Per Dan: clicking the CDK overlay area shouldn't close a dialog
+      // out from under work in progress. Each dialog still owns its
+      // explicit cancel/close button. Individual dialogs that genuinely
+      // want backdrop-close (image lightbox, transient hint, etc.) opt
+      // out by passing `disableClose: false` to MatDialog.open().
+      provide: MAT_DIALOG_DEFAULT_OPTIONS,
+      useValue: { disableClose: true } satisfies MatDialogConfig,
     },
   ]
 };
