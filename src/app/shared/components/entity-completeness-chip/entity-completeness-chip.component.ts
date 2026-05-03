@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -44,7 +44,11 @@ export class EntityCompletenessChipComponent {
   protected readonly state = signal<EntityCompleteness | null>(null);
   protected readonly loading = signal(false);
   protected readonly popoverOpen = signal(false);
-  protected readonly trigger = viewChild<ElementRef>('trigger');
+  // No `viewChild('trigger')` here — the template's `#trigger` reference
+  // shadowed a same-named signal in the binding context (causing
+  // `trigger()` in `[cdkConnectedOverlayOrigin]` to evaluate as a call on
+  // the HTMLButtonElement). The CDK overlay accepts the template ref
+  // directly, so we just bind to `trigger` without parens.
 
   protected readonly failingCapabilities = computed(() =>
     this.state()?.capabilities.filter(c => !c.ok) ?? [],

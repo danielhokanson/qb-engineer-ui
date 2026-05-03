@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import { EntityCompletenessService } from '../../services/entity-completeness.service';
 import { EntityCompleteness } from '../../models/entity-completeness.model';
@@ -26,7 +26,7 @@ import { EntityCompleteness } from '../../models/entity-completeness.model';
 @Component({
   selector: 'app-entity-completeness-badge',
   standalone: true,
-  imports: [MatTooltipModule, TranslatePipe],
+  imports: [MatTooltipModule],
   templateUrl: './entity-completeness-badge.component.html',
   styleUrl: './entity-completeness-badge.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
