@@ -145,6 +145,7 @@ export class NavTreeService {
             { icon: 'toggle_on', label: 'Capabilities', i18nKey: 'admin.tabs.capabilities', route: '/admin/capabilities', allowedRoles: ['Admin'] },
             { icon: 'quiz', label: 'Discovery Wizard', i18nKey: 'admin.tabs.discovery', route: '/admin/discovery', allowedRoles: ['Admin'] },
             { icon: 'dashboard_customize', label: 'Presets', i18nKey: 'admin.tabs.presets', route: '/admin/presets', allowedRoles: ['Admin'] },
+            { icon: 'fact_check', label: 'Entity Completeness', i18nKey: 'admin.tabs.entityCompleteness', route: '/admin/entity-completeness', allowedRoles: ['Admin'] },
           ],
         },
         {
@@ -154,10 +155,6 @@ export class NavTreeService {
             { icon: 'manage_search', label: 'Audit Log', i18nKey: 'admin.tabs.auditLog', route: '/admin/audit-log', allowedRoles: ['Admin'] },
             { icon: 'vpn_key', label: 'BI API Keys', i18nKey: 'admin.tabs.biApiKeys', route: '/admin/bi-api-keys', allowedRoles: ['Admin'] },
             { icon: 'edit_note', label: 'Time Corrections', i18nKey: 'admin.tabs.timeCorrections', route: '/admin/time-corrections', allowedRoles: ['Admin', 'Manager'] },
-            // TODO(#15): once the Capabilities admin sub-group lands, move
-            // this entry under it. For now it lives in System so the page is
-            // reachable from the sidebar.
-            { icon: 'fact_check', label: 'Entity Completeness', i18nKey: 'admin.tabs.entityCompleteness', route: '/admin/entity-completeness', allowedRoles: ['Admin'] },
           ],
         },
       ],
