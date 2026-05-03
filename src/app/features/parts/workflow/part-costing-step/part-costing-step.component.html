@@ -18,28 +18,45 @@
       </div>
     </label>
 
-    <label class="part-costing-step__mode part-costing-step__mode--disabled"
+    <label class="part-costing-step__mode"
+      [class.part-costing-step__mode--disabled]="!tier2Enabled()"
       data-testid="costing-mode-departmental"
-      [matTooltip]="'parts.workflow.costing.tier2Tooltip' | translate"
+      [matTooltip]="(tier2Enabled() ? '' : ('parts.workflow.costing.tier2Tooltip' | translate))"
       matTooltipPosition="right">
-      <input type="radio" name="costing-mode" disabled [checked]="false" />
+      <input type="radio" name="costing-mode"
+        [disabled]="!tier2Enabled()"
+        [checked]="mode() === 'departmental'"
+        (change)="setMode('departmental')" />
       <div class="part-costing-step__mode-body">
         <span class="part-costing-step__mode-title">{{ 'parts.workflow.costing.modeDepartmental' | translate }}</span>
         <span class="part-costing-step__mode-desc">{{ 'parts.workflow.costing.modeDepartmentalDesc' | translate }}</span>
       </div>
     </label>
 
-    <label class="part-costing-step__mode part-costing-step__mode--disabled"
+    <label class="part-costing-step__mode"
+      [class.part-costing-step__mode--disabled]="!tier3Enabled()"
       data-testid="costing-mode-abc"
-      [matTooltip]="'parts.workflow.costing.tier3Tooltip' | translate"
+      [matTooltip]="(tier3Enabled() ? '' : ('parts.workflow.costing.tier3Tooltip' | translate))"
       matTooltipPosition="right">
-      <input type="radio" name="costing-mode" disabled [checked]="false" />
+      <input type="radio" name="costing-mode"
+        [disabled]="!tier3Enabled()"
+        [checked]="mode() === 'abc'"
+        (change)="setMode('abc')" />
       <div class="part-costing-step__mode-body">
         <span class="part-costing-step__mode-title">{{ 'parts.workflow.costing.modeAbc' | translate }}</span>
         <span class="part-costing-step__mode-desc">{{ 'parts.workflow.costing.modeAbcDesc' | translate }}</span>
       </div>
     </label>
   </fieldset>
+
+  @if (mode() === 'departmental' || mode() === 'abc') {
+    <!-- Capability is enabled but the engine isn't built yet — be honest
+         about it rather than silently storing a tier the system can't act on. -->
+    <div class="part-costing-step__not-implemented" role="status">
+      <span class="material-icons-outlined">construction</span>
+      <span>{{ 'parts.workflow.costing.tierNotImplemented' | translate }}</span>
+    </div>
+  }
 
   @if (isTier1()) {
     <form [formGroup]="form" class="part-costing-step__form">

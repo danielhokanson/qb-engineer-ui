@@ -5,6 +5,7 @@ import { Observable, of, tap } from 'rxjs';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { CapabilityService } from '../../../../shared/services/capability.service';
 import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
@@ -13,9 +14,12 @@ import { PartDetail } from '../../models/part-detail.model';
 import { PartsService } from '../../services/parts.service';
 
 /** Costing modes per the design doc D3 — Tier 1 always available, Tiers 2/3
- * gated by capability flags. v1 ships Tier 1 only; the radios for Tier 2/3
- * render disabled with explanatory tooltips so the user can see the
- * upgrade path without engaging it. */
+ * gated by `CAP-COSTING-TIER2-DEPTRATES` and `CAP-COSTING-TIER3-ABC`
+ * (registered in qb-engineer-server's CapabilityCatalog as of 2026-05-03).
+ * Both default OFF; admin enables via /admin/capabilities. The actual
+ * rate/driver/allocation engines are still pending — enabling the
+ * capability today reveals the radio + a "configuration coming soon"
+ * notice rather than a functional tier-switch. */
 type CostingMode = 'flat' | 'departmental' | 'abc';
 
 /**
@@ -46,6 +50,7 @@ export class PartCostingStepComponent {
   private readonly snackbar = inject(SnackbarService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly capabilities = inject(CapabilityService);
 
   readonly stepId = input<string>('costing');
   readonly componentName = input<string>('PartCostingStepComponent');
@@ -54,6 +59,13 @@ export class PartCostingStepComponent {
 
   protected readonly saving = signal(false);
   protected readonly mode = signal<CostingMode>('flat');
+
+  /** Capability gates for Tier 2/3. Read once at construction; the
+   *  capability snapshot is stable for the duration of a session unless
+   *  the admin toggles a flag (in which case a SignalR push refreshes it
+   *  and the next render picks it up). */
+  protected readonly tier2Enabled = computed(() => this.capabilities.isEnabled('CAP-COSTING-TIER2-DEPTRATES'));
+  protected readonly tier3Enabled = computed(() => this.capabilities.isEnabled('CAP-COSTING-TIER3-ABC'));
 
   protected readonly part = computed<PartDetail | null>(() => (this.entity() as PartDetail | null) ?? null);
 
@@ -89,7 +101,14 @@ export class PartCostingStepComponent {
   }
 
   protected setMode(mode: CostingMode): void {
-    if (mode !== 'flat') return; // Tier 2/3 disabled until capability lands.
+    // Capability-gate Tier 2/3 — the capability registers the user's
+    // INTENT to use the tier; the engines are still pending. Until they
+    // land, picking Tier 2/3 just stores the choice on the entity for
+    // future use; the manual override input stays the only functional
+    // value. The "configuration coming soon" notice rendered in the
+    // template explains this.
+    if (mode === 'departmental' && !this.tier2Enabled()) return;
+    if (mode === 'abc' && !this.tier3Enabled()) return;
     this.mode.set(mode);
   }
 

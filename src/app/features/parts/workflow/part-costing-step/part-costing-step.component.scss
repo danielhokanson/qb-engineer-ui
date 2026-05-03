@@ -7,6 +7,21 @@
   padding: $sp-lg;
   position: relative;
 
+  &__not-implemented {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    padding: $sp-sm $sp-md;
+    background: color-mix(in srgb, var(--warning) 12%, transparent);
+    color: var(--warning);
+    font-size: $font-size-sm;
+
+    .material-icons-outlined {
+      font-size: $icon-size-md;
+      flex: 0 0 auto;
+    }
+  }
+
   &__header {
     display: flex;
     flex-direction: column;
