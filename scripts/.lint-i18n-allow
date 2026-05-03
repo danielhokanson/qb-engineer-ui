@@ -1,0 +1,36 @@
+# lint-i18n allowlist — keys that the static scanner will see used in code
+# but are intentionally NOT in en.json. One per line. Trailing `*` matches
+# by prefix; no glob beyond that. Lines starting with `#` are comments.
+#
+# Categories:
+#   • Server-supplied labels: reference data dropdowns (admin authors the
+#     `code` field freely; labels render via terminology service, not i18n)
+#   • Dynamic key construction: the scanner can't statically resolve
+#     `translate.instant(`prefix.${variant}`)` calls
+#   • Settings / system config keys: `app.name`, `jobs.*` — these are
+#     persisted system_settings rows surfaced as labels, not i18n strings
+#
+# When adding an entry, leave a one-line comment explaining WHY so the next
+# reviewer knows whether to remove it later.
+
+# Server-supplied system_setting keys (rendered as labels in the admin
+# settings page; not real i18n strings). Add prefixes here as we add
+# settings.
+app.*
+jobs.auto_archive_days
+jobs.default_priority
+notifications.*
+storage.*
+ui.*
+auth.*
+mfa.*
+billing.*
+features.*
+demo.*
+integration.*
+tenant.*
+
+# Reference data group/code labels — admin-authored, surfaced via the
+# terminology service, never present in i18n.
+referenceData.*
+terminology.*

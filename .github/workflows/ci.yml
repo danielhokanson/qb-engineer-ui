@@ -44,6 +44,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Lint i18n keys
+        # Catches the recurring "{key.path} renders raw because en.json is missing it"
+        # bug class — tsc, ng build, and vitest all silently allow missing keys.
+        # Allowlist: scripts/.lint-i18n-allow for dynamic / server-supplied keys.
+        run: npm run lint:i18n
+
       - name: Build
         run: npm run build
 

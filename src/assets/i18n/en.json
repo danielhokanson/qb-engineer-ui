@@ -434,6 +434,8 @@
     "title": "Parts Catalog",
     "part": "Part",
     "searchByPartNumber": "Search by part number…",
+    "allProcurementSources": "All procurement sources",
+    "allInventoryClasses": "All inventory classes",
     "procurementSource": {
       "Make": "Make",
       "Buy": "Buy",
