@@ -111,7 +111,7 @@
     "cypress-axe": "^1.7.0",
     "eslint": "^10.0.3",
     "fake-indexeddb": "^6.2.5",
-    "jsdom": "^28.0.0",
+    "jsdom": "^29.1.1",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "~5.9.2",
