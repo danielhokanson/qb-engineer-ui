@@ -20,6 +20,7 @@
         (rowClick)="openVendorDetail($any($event))">
         <ng-template appColumnCell="companyName" let-row>
           <span class="vendor-name">{{ row.companyName }}</span>
+          <app-entity-completeness-badge entityType="Vendor" [entityId]="row.id" />
         </ng-template>
         <ng-template appColumnCell="contactName" let-row>
           <span class="text-muted">{{ row.contactName ?? '\u2014' }}</span>
@@ -37,6 +38,9 @@
         </ng-template>
         <ng-template appColumnCell="createdAt" let-row>
           <span class="text-muted">{{ row.createdAt | date:'MM/dd/yyyy' }}</span>
+        </ng-template>
+        <ng-template appColumnCell="completeness" let-row>
+          <app-entity-completeness-chip entityType="Vendor" [entityId]="row.id" />
         </ng-template>
       </app-data-table>
     </div>

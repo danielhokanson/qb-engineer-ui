@@ -47,6 +47,7 @@
           </ng-template>
           <ng-template appColumnCell="name" let-part>
             <span class="part-desc">{{ part.name }}</span>
+            <app-entity-completeness-badge entityType="Part" [entityId]="part.id" />
           </ng-template>
           <ng-template appColumnCell="procurementSource" let-part>
             <span class="type-chip">{{ part.procurementSource }}</span>
@@ -72,6 +73,9 @@
             } @else {
               <span class="text-muted">---</span>
             }
+          </ng-template>
+          <ng-template appColumnCell="completeness" let-part>
+            <app-entity-completeness-chip entityType="Part" [entityId]="part.id" />
           </ng-template>
         </app-data-table>
       }

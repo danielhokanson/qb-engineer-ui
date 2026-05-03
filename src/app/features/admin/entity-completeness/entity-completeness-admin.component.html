@@ -1,0 +1,60 @@
+<app-page-layout
+  [pageTitle]="'admin.entityCompleteness.title' | translate"
+  [pageSubtitle]="'admin.entityCompleteness.subtitle' | translate">
+
+  <ng-container toolbar>
+    <app-toolbar>
+      <app-select
+        [label]="'admin.entityCompleteness.col.entityType' | translate"
+        [formControl]="entityTypeFilterControl"
+        [options]="entityTypeOptions" />
+      <app-input
+        [label]="'admin.entityCompleteness.col.capabilityCode' | translate"
+        [formControl]="capabilityCodeFilterControl"
+        placeholder="CAP-..." />
+      <span appSpacer></span>
+      <button class="action-btn action-btn--create"
+        data-testid="ecr-new-btn"
+        (click)="openCreate()">
+        <span class="material-icons-outlined">add</span>
+        {{ 'admin.entityCompleteness.newRequirement' | translate }}
+      </button>
+    </app-toolbar>
+  </ng-container>
+
+  <ng-container content>
+    <div [appLoadingBlock]="loading()">
+      <app-data-table
+        tableId="admin-entity-completeness"
+        [columns]="columns"
+        [data]="rows()"
+        emptyIcon="fact_check"
+        [emptyMessage]="'admin.entityCompleteness.title' | translate">
+
+        <ng-template appColumnCell="actions" let-row>
+          <div class="table-actions">
+            <button class="icon-btn"
+              (click)="openEdit(row)"
+              [attr.aria-label]="'common.edit' | translate"
+              [matTooltip]="'common.edit' | translate" matTooltipPosition="above">
+              <span class="material-icons-outlined">edit</span>
+            </button>
+            <button class="icon-btn icon-btn--danger"
+              (click)="deleteRow(row)"
+              [attr.aria-label]="'common.delete' | translate"
+              [matTooltip]="'common.delete' | translate" matTooltipPosition="above">
+              <span class="material-icons-outlined">delete</span>
+            </button>
+          </div>
+        </ng-template>
+      </app-data-table>
+    </div>
+  </ng-container>
+</app-page-layout>
+
+@if (showDialog()) {
+  <app-entity-capability-requirement-dialog
+    [requirement]="editingRow()"
+    (closed)="closeDialog()"
+    (saved)="onSaved()" />
+}

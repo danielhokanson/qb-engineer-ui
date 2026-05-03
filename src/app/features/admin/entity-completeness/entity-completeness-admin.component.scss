@@ -1,0 +1,7 @@
+@use '../../../../styles/variables' as *;
+
+.table-actions {
+  display: flex;
+  gap: $sp-xs;
+  justify-content: flex-end;
+}

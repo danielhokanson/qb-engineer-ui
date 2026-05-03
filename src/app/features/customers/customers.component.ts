@@ -22,6 +22,8 @@ import { ValidationButtonComponent } from '../../shared/components/validation-bu
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { SnackbarService } from '../../shared/services/snackbar.service';
 import { LoadingBlockDirective } from '../../shared/directives/loading-block.directive';
+import { EntityCompletenessChipComponent } from '../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
+import { EntityCompletenessBadgeComponent } from '../../shared/components/entity-completeness-badge/entity-completeness-badge.component';
 
 @Component({
   selector: 'app-customers',
@@ -32,6 +34,7 @@ import { LoadingBlockDirective } from '../../shared/directives/loading-block.dir
     InputComponent, SelectComponent,
     DataTableComponent, ColumnCellDirective, ValidationButtonComponent,
     LoadingBlockDirective,
+    EntityCompletenessChipComponent, EntityCompletenessBadgeComponent,
   ],
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss',
@@ -121,6 +124,9 @@ export class CustomersComponent {
     { field: 'contactCount', header: this.translate.instant('customers.colContacts'), sortable: true, width: '90px', align: 'center' },
     { field: 'jobCount', header: this.translate.instant('customers.colJobs'), sortable: true, width: '70px', align: 'center' },
     { field: 'createdAt', header: this.translate.instant('customers.colCreated'), sortable: true, type: 'date', width: '110px' },
+    // Hidden by default — power users opt in via column-manager. Renders the
+    // full completeness chip (click → popover with per-capability gaps).
+    { field: 'completeness', header: this.translate.instant('entityCompleteness.columnHeader'), width: '160px', align: 'center', visible: false },
   ];
 
   constructor() {

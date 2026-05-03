@@ -1,0 +1,68 @@
+<app-dialog [title]="title()" width="560px" (closed)="close()">
+  <div [formGroup]="form">
+    <div class="dialog-row">
+      <app-select
+        [label]="'admin.entityCompleteness.col.entityType' | translate"
+        formControlName="entityType"
+        [options]="entityTypeOptions"
+        [required]="true"
+        data-testid="ecr-entity-type" />
+      <app-input
+        [label]="'admin.entityCompleteness.col.capabilityCode' | translate"
+        formControlName="capabilityCode"
+        placeholder="CAP-MD-VENDORS"
+        [required]="true"
+        data-testid="ecr-capability-code" />
+    </div>
+
+    <app-input
+      [label]="'admin.entityCompleteness.col.requirementId' | translate"
+      formControlName="requirementId"
+      placeholder="vendor-tax-id"
+      [required]="true"
+      data-testid="ecr-requirement-id" />
+
+    <app-textarea
+      [label]="'admin.entityCompleteness.dialog.predicateLabel' | translate"
+      formControlName="predicate"
+      [rows]="8"
+      placeholder='{ "type": "fieldPresent", "field": "..." }'
+      [hint]="'admin.entityCompleteness.dialog.predicateHelper' | translate"
+      data-testid="ecr-predicate" />
+
+    <div class="dialog-row">
+      <app-input
+        [label]="'admin.entityCompleteness.col.displayNameKey' | translate"
+        formControlName="displayNameKey"
+        placeholder="entityCompleteness.fields.taxId"
+        [required]="true"
+        data-testid="ecr-display-name-key" />
+      <app-input
+        [label]="'admin.entityCompleteness.col.missingMessageKey' | translate"
+        formControlName="missingMessageKey"
+        placeholder="entityCompleteness.messages.taxIdMissing"
+        [required]="true"
+        data-testid="ecr-missing-message-key" />
+    </div>
+
+    <app-input
+      [label]="'admin.entityCompleteness.dialog.sortOrderLabel' | translate"
+      type="number"
+      formControlName="sortOrder"
+      [required]="true"
+      data-testid="ecr-sort-order" />
+  </div>
+
+  <div dialog-footer>
+    <button class="action-btn" (click)="close()">{{ 'common.cancel' | translate }}</button>
+    <app-validation-button [violations]="violations()" [loading]="saving()">
+    <button class="action-btn action-btn--primary"
+      data-testid="ecr-save-btn"
+      [disabled]="form.invalid || saving()"
+      (click)="save()">
+      <span class="material-icons-outlined">save</span>
+      {{ 'common.save' | translate }}
+    </button>
+    </app-validation-button>
+  </div>
+</app-dialog>

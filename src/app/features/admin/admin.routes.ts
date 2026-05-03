@@ -60,5 +60,15 @@ export const ADMIN_ROUTES: Routes = [
     loadComponent: () =>
       import('./presets/preset-detail/preset-detail.component').then((m) => m.PresetDetailComponent),
   },
+  // Phase-4 entity-completeness — admin CRUD over the requirement-row catalog
+  // that drives the per-entity completeness chip + badge. Routed before the
+  // `:tab` catch-all so AdminComponent doesn't intercept the literal segment.
+  {
+    path: 'entity-completeness',
+    loadComponent: () =>
+      import('./entity-completeness/entity-completeness-admin.component').then(
+        (m) => m.EntityCompletenessAdminComponent,
+      ),
+  },
   { path: ':tab', component: AdminComponent },
 ];

@@ -17,6 +17,8 @@ import { ColumnCellDirective } from '../../shared/directives/column-cell.directi
 import { ColumnDef } from '../../shared/models/column-def.model';
 import { LoadingBlockDirective } from '../../shared/directives/loading-block.directive';
 import { DetailDialogService } from '../../shared/services/detail-dialog.service';
+import { EntityCompletenessChipComponent } from '../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
+import { EntityCompletenessBadgeComponent } from '../../shared/components/entity-completeness-badge/entity-completeness-badge.component';
 
 @Component({
   selector: 'app-vendors',
@@ -26,6 +28,7 @@ import { DetailDialogService } from '../../shared/services/detail-dialog.service
     PageHeaderComponent, InputComponent, SelectComponent,
     DataTableComponent, ColumnCellDirective,
     VendorDialogComponent, LoadingBlockDirective,
+    EntityCompletenessChipComponent, EntityCompletenessBadgeComponent,
     TranslatePipe,
   ],
   templateUrl: './vendors.component.html',
@@ -70,6 +73,9 @@ export class VendorsComponent {
     ], width: '80px' },
     { field: 'poCount', header: this.translate.instant('vendors.pos'), sortable: true, width: '70px', align: 'center' },
     { field: 'createdAt', header: this.translate.instant('common.createdAt'), sortable: true, type: 'date', width: '110px' },
+    // Hidden by default — power users opt in via column-manager. Renders the
+    // full completeness chip (click → popover with per-capability gaps).
+    { field: 'completeness', header: this.translate.instant('entityCompleteness.columnHeader'), width: '160px', align: 'center', visible: false },
   ];
 
   constructor() {

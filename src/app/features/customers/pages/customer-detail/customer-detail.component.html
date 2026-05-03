@@ -36,6 +36,7 @@
               {{ c.provider }}
             </span>
           }
+          <app-entity-completeness-chip entityType="Customer" [entityId]="c.id" />
         </div>
         @if (c.companyName) {
           <p class="cd-header__company">{{ c.companyName }}</p>

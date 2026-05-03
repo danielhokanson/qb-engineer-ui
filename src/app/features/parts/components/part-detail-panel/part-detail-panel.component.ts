@@ -61,6 +61,7 @@ import {
   PartDetailTabId,
   TabLayoutEntry,
 } from '../../services/part-detail-layout-resolver.service';
+import { EntityCompletenessChipComponent } from '../../../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
 
 type BomViewMode = 'table' | 'tree';
 
@@ -97,6 +98,7 @@ type BomViewMode = 'table' | 'tree';
     PartMaterialClusterComponent, PartUomClusterComponent, PartMrpClusterComponent,
     PartRoutingClusterComponent, PartAlternatesClusterComponent,
     PartQualityClusterComponent, PartPricingClusterComponent,
+    EntityCompletenessChipComponent,
   ],
   templateUrl: './part-detail-panel.component.html',
   styleUrl: './part-detail-panel.component.scss',

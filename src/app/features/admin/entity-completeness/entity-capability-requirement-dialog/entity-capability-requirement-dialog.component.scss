@@ -1,0 +1,7 @@
+@use '../../../../../styles/variables' as *;
+
+// The predicate textarea is the meat of this dialog — give it room.
+:host ::ng-deep textarea[formcontrolname='predicate'] {
+  font-family: $font-family-mono;
+  min-height: 200px;
+}
