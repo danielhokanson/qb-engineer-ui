@@ -54,6 +54,7 @@
     "masterData": "Datos Maestros",
     "integrations": "Integraciones",
     "workflow": "Flujo de Trabajo",
+    "capabilities": "Capacidades",
     "system": "Sistema"
   },
   "header": {
@@ -1537,7 +1538,10 @@
       "automations": "Automatizaciones",
       "integrationOutbox": "Bandeja de Integración",
       "expenses": "Política de Gastos",
-      "roleTemplates": "Plantillas de Rol"
+      "roleTemplates": "Plantillas de Rol",
+      "capabilities": "Capacidades",
+      "discovery": "Asistente de Descubrimiento",
+      "presets": "Preajustes"
     },
     "users": "Usuarios",
     "addUser": "Agregar Usuario",
