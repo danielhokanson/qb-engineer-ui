@@ -5,12 +5,16 @@ import {
   computed,
   DestroyRef,
   effect,
+  EventEmitter,
   inject,
   input,
+  Output,
   Signal,
   signal,
 } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+
+import { ViolationItem } from '../../services/form-validation.service';
 
 const OUTSIDE_CLICK_DEBOUNCE_MS = 150;
 const AUTO_CLOSE_AFTER_CLEAR_MS = 1200;
@@ -27,13 +31,41 @@ export class ValidationButtonComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly violations = input.required<Signal<string[]>>();
+  /**
+   * Optional richer signal carrying ViolationItem entries (controlName +
+   * message). When supplied, the popover renders each violation as a
+   * clickable button that emits (violationClicked) with the controlName
+   * — consumers wire that to focus / scroll to the offending field.
+   * Falls back to read-only string list when not supplied so the 50+
+   * existing consumers keep working unchanged.
+   */
+  readonly violationItems = input<Signal<ViolationItem[]> | null>(null);
   readonly loading = input<boolean, unknown>(false, { transform: (v: unknown) => !!v });
+
+  /** Emitted when the user clicks a violation entry in the popover. */
+  @Output() readonly violationClicked = new EventEmitter<string>();
 
   protected readonly open = signal(false);
 
-  protected readonly violationList = computed(() => this.violations()());
+  /**
+   * The displayed list. Prefer the richer items signal when supplied;
+   * otherwise wrap each plain message in a synthetic ViolationItem so
+   * the template renders the same shape (controlName empty for the
+   * legacy path, which simply means click-to-jump is a no-op).
+   */
+  protected readonly violationList = computed<ViolationItem[]>(() => {
+    const items = this.violationItems();
+    if (items) return items();
+    return this.violations()().map(message => ({ controlName: '', message }));
+  });
   protected readonly count = computed(() => this.violationList().length);
   protected readonly showTrigger = computed(() => this.count() > 0 && !this.loading());
+
+  protected onViolationClick(item: ViolationItem): void {
+    if (!item.controlName) return; // legacy plain-string path — no-op
+    this.violationClicked.emit(item.controlName);
+    this.close();
+  }
 
   protected readonly positions: ConnectedPosition[] = [
     { originX: 'start',  originY: 'center', overlayX: 'end',    overlayY: 'center', offsetX: -8 },

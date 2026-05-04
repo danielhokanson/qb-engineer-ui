@@ -88,18 +88,66 @@
 
 .validation-popover__list {
   margin: 0;
-  padding: 0 0 0 $sp-lg;
-  list-style: disc;
+  padding: 0;
+  list-style: none;
   color: var(--error);
 
   li {
     line-height: 1.6;
     color: var(--text);
+    padding-left: $sp-lg;
+    position: relative;
 
-    &::marker {
+    &::before {
+      content: '\2022';
       color: var(--error);
+      position: absolute;
+      left: $sp-sm;
+      top: 0;
     }
   }
+}
+
+// Clickable violation entry (when item carries a controlName).
+// Inline button styled as text so it reads as part of the list — the
+// arrow icon at the end signals it's interactive without competing
+// with the message itself.
+.validation-popover__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-sm;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: $sp-xxs 0;
+  cursor: pointer;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: var(--primary);
+
+    .validation-popover__jump-icon {
+      opacity: 1;
+      transform: translateX(2px);
+    }
+  }
+
+  &:focus-visible {
+    outline: $border-width solid var(--primary);
+    outline-offset: $sp-xxs;
+  }
+}
+
+.validation-popover__jump-icon {
+  font-size: $icon-size-sm;
+  opacity: 0.4;
+  transition: opacity $transition-fast, transform $transition-fast;
+  flex: 0 0 auto;
 }
 
 .validation-popover__cleared {
