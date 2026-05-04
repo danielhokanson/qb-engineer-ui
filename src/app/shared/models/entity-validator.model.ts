@@ -12,6 +12,18 @@ export interface EntityValidator {
   validatorId: string;
   /** Raw predicate JSON string from the DB. Parse before evaluating. */
   predicate: string;
+  /**
+   * Optional applicability check (DSL JSON). When non-null and the
+   * predicate against the entity returns false, this validator is
+   * treated as NOT applying to this record — the step's completionMap
+   * skips it (treats the gate as satisfied since there's nothing to
+   * gate on). Mirrors the server's EntityReadinessService applicability
+   * filter so client + server agree on completeness.
+   *
+   * NULL (default) = always-applicable; preserves pre-applicability
+   * behavior on every shipped validator.
+   */
+  applicabilityPredicate?: string | null;
   displayNameKey: string;
   missingMessageKey: string;
   isSeedData: boolean;
