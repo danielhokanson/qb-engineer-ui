@@ -60,10 +60,16 @@
     font-size: $font-size-sm;
     padding: $sp-xs $sp-md;
     cursor: pointer;
-    transition: $transition-fast;
+    transition: background-color $transition-fast, color $transition-fast,
+      opacity $transition-fast;
 
-    &:hover {
+    &:hover:not(:disabled) {
       color: var(--text);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     &--active {
@@ -71,6 +77,17 @@
       color: var(--surface);
       font-weight: 600;
     }
+  }
+
+  // Sub-label under each mode button — turns "Express / Guided" from
+  // jargon into a self-explanatory choice without needing a tour.
+  &__mode-btn-sublabel {
+    display: block;
+    font-size: $font-size-xxs;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 1px;
+    line-height: 1;
   }
 
   &__body {
@@ -120,6 +137,13 @@
     overflow-y: auto;
     padding: $sp-lg;
     @include custom-scrollbar(8px);
+
+    // Fade newly-mounted step content in so navigation feels like a
+    // soft swap rather than a hard pop. Keyed off ngComponentOutlet
+    // remounting the body; CSS animation re-fires every time.
+    > * {
+      animation: workflow-content-fade-in $transition-normal ease-out;
+    }
   }
 
   &__express {
@@ -130,16 +154,34 @@
     width: 100%;
     margin: 0 auto;
     @include custom-scrollbar(8px);
+
+    > * {
+      animation: workflow-content-fade-in $transition-normal ease-out;
+    }
   }
 
   &__footer {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: $sp-sm;
     padding: $sp-sm $sp-lg;
     border-top: $border-width-thin solid var(--border);
     background: var(--surface);
+  }
+
+  // Wrap groups inside the footer so Back can sit on the left while
+  // Skip + Continue cluster on the right — the conventional 'go back'
+  // vs. 'commit and proceed' split. Footer body is justify-content
+  // space-between; these groups are the two flex children.
+  &__footer-left,
+  &__footer-right {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+  }
+  &__footer-right {
+    margin-left: auto;
   }
 }
 
@@ -161,16 +203,26 @@
     font-size: $font-size-sm;
     text-align: left;
     cursor: pointer;
-    transition: $transition-fast;
+    transition: background-color $transition-fast, color $transition-fast,
+      border-left-color $transition-fast;
 
     &:hover:not(:disabled) {
       background: var(--bg);
       color: var(--text);
+
+      .workflow-step__indicator {
+        border-color: var(--text-secondary);
+      }
     }
 
     &:disabled {
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 0.55;
+    }
+
+    &:focus-visible {
+      outline: $border-width solid var(--primary);
+      outline-offset: -$border-width;
     }
   }
 
@@ -183,6 +235,8 @@
     border: $border-width-thin solid var(--border);
     background: var(--bg);
     flex: 0 0 auto;
+    transition: background-color $transition-normal, border-color $transition-normal,
+      color $transition-normal, transform $transition-fast;
 
     .material-icons-outlined {
       font-size: $icon-size-sm;
@@ -193,6 +247,7 @@
     font-size: $font-size-xs;
     font-weight: 600;
     color: var(--text-secondary);
+    transition: color $transition-fast;
   }
 
   &__label {
@@ -200,30 +255,63 @@
     @include truncate;
   }
 
+  // Optional badge — small chip-style indicator. Was just upper-cased
+  // muted text, easy to miss and visually tied to the label more than
+  // the row. Now renders as a pill so the user can skim down the rail
+  // and catch which steps are skippable without reading.
   &__optional {
     font-size: $font-size-xxs;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
     color: var(--text-muted);
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    padding: 1px $sp-sm;
+    line-height: 1.4;
     margin-left: auto;
+    flex: 0 0 auto;
   }
 
   &--current &__btn {
     border-left-color: var(--primary);
     color: var(--text);
     font-weight: 600;
-    background: var(--bg);
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
   }
 
+  &--current &__indicator {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  &--current &__index {
+    color: var(--primary);
+  }
+
+  // Completion state — animate the indicator settling into its
+  // success state instead of snapping. Triggered any time the gate
+  // flips to satisfied (validator effect re-renders the rail row
+  // with the --complete modifier).
   &--complete &__indicator {
-    background: var(--success-light, var(--success));
+    background: color-mix(in srgb, var(--success) 18%, transparent);
     border-color: var(--success);
     color: var(--success);
+    animation: workflow-step-complete-pop $transition-normal ease-out;
   }
 
   &--locked &__btn {
     cursor: not-allowed;
   }
+
+  &--locked &__indicator {
+    opacity: 0.6;
+  }
+}
+
+@keyframes workflow-step-complete-pop {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
 
 @include mobile {

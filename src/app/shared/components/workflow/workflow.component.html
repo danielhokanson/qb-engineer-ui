@@ -83,41 +83,48 @@
         </main>
 
         <footer class="workflow-shell__footer">
-          <button
-            type="button"
-            class="action-btn"
-            [disabled]="isFirstStep()"
-            data-testid="workflow-back"
-            (click)="back()">
-            {{ 'workflow.shell.actions.back' | translate }}
-          </button>
-
-          @if (currentStep(); as step) {
-            @if (!step.required) {
-              <button
-                type="button"
-                class="action-btn"
-                data-testid="workflow-skip"
-                (click)="skip()">
-                {{ 'workflow.shell.actions.skip' | translate }}
-              </button>
-            }
-          }
-
-          <app-validation-button class="validation-button--inline" [violations]="workflowService.currentStepViolations">
+          <div class="workflow-shell__footer-left">
             <button
               type="button"
-              class="action-btn action-btn--primary"
-              [disabled]="!workflowService.currentStepValid()"
-              data-testid="workflow-next"
-              (click)="next()">
-              @if (isLastStep()) {
-                {{ 'workflow.shell.actions.complete' | translate }}
-              } @else {
-                {{ 'workflow.shell.actions.continue' | translate }}
-              }
+              class="action-btn"
+              [disabled]="isFirstStep()"
+              data-testid="workflow-back"
+              (click)="back()">
+              <span class="material-icons-outlined">chevron_left</span>
+              {{ 'workflow.shell.actions.back' | translate }}
             </button>
-          </app-validation-button>
+          </div>
+
+          <div class="workflow-shell__footer-right">
+            @if (currentStep(); as step) {
+              @if (!step.required) {
+                <button
+                  type="button"
+                  class="action-btn"
+                  data-testid="workflow-skip"
+                  (click)="skip()">
+                  {{ 'workflow.shell.actions.skip' | translate }}
+                </button>
+              }
+            }
+
+            <app-validation-button class="validation-button--inline" [violations]="workflowService.currentStepViolations">
+              <button
+                type="button"
+                class="action-btn action-btn--primary"
+                [disabled]="!workflowService.currentStepValid()"
+                data-testid="workflow-next"
+                (click)="next()">
+                @if (isLastStep()) {
+                  <span class="material-icons-outlined">check</span>
+                  {{ 'workflow.shell.actions.complete' | translate }}
+                } @else {
+                  {{ 'workflow.shell.actions.continue' | translate }}
+                  <span class="material-icons-outlined">chevron_right</span>
+                }
+              </button>
+            </app-validation-button>
+          </div>
         </footer>
       </div>
     } @else {
