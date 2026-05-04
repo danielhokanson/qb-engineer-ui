@@ -30,6 +30,11 @@ export class TextareaComponent implements ControlValueAccessor {
   readonly maxlength = input<number | null>(null);
   readonly hint = input('');
   readonly placeholder = input('');
+  /** Read-only mode — see styles.scss .app-readonly-field for the
+   *  visual treatment. Keeps the Material chrome dimensions identical
+   *  to editable mode but strips the outlined border + interactive
+   *  affordances so the field reads as data, not as a control. */
+  readonly isReadonly = input<boolean>(false);
 
   protected readonly value = signal('');
   protected readonly disabled = signal(false);

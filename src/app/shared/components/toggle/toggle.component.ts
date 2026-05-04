@@ -25,6 +25,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 })
 export class ToggleComponent implements ControlValueAccessor {
   readonly label = input.required<string>();
+  readonly isReadonly = input<boolean>(false);
 
   protected readonly value = signal(false);
   protected readonly disabled = signal(false);

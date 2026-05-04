@@ -1,4 +1,4 @@
-<mat-form-field appearance="outline">
+<mat-form-field appearance="outline" [class.app-readonly-field]="isReadonly()">
   @if (label()) {
     <mat-label>{{ label() }}</mat-label>
   }
@@ -6,6 +6,7 @@
     [rows]="rows()"
     [attr.maxlength]="maxlength()"
     [attr.placeholder]="placeholder() || null"
+    [readonly]="isReadonly()"
     [disabled]="disabled()"
     [value]="value()"
     (input)="onInput($event)"

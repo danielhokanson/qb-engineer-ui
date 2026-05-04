@@ -1,11 +1,14 @@
-<mat-form-field appearance="outline" class="entity-picker__field">
+<mat-form-field appearance="outline" class="entity-picker__field" [class.app-readonly-field]="isReadonly()">
   <mat-label>{{ label() }}</mat-label>
-  <span matPrefix class="material-icons-outlined entity-picker__icon" aria-hidden="true">search</span>
+  @if (!isReadonly()) {
+    <span matPrefix class="material-icons-outlined entity-picker__icon" aria-hidden="true">search</span>
+  }
   <input matInput
     [formControl]="searchControl"
     [matAutocomplete]="auto"
     [placeholder]="placeholder()"
-    [disabled]="disabled()"
+    [disabled]="disabled() || isReadonly()"
+    [readonly]="isReadonly()"
     (input)="onInput()"
     (blur)="markTouched()" />
   <mat-autocomplete #auto="matAutocomplete"

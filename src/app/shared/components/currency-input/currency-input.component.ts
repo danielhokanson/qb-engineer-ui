@@ -51,6 +51,8 @@ export class CurrencyInputComponent implements ControlValueAccessor {
   readonly max = input<number | string | null>(null);
   readonly step = input<number | string>('0.01');
   readonly required = input<boolean>(false);
+  /** Read-only mode — see styles.scss .app-readonly-field treatment. */
+  readonly isReadonly = input<boolean>(false);
 
   protected readonly value = signal<number | string>('');
   protected readonly disabled = signal(false);

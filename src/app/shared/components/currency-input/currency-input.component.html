@@ -1,4 +1,4 @@
-<mat-form-field appearance="outline" class="currency-input">
+<mat-form-field appearance="outline" class="currency-input" [class.app-readonly-field]="isReadonly()">
   <mat-label>{{ label() }}</mat-label>
   <span matTextPrefix class="currency-input__symbol" aria-hidden="true">{{ currencySymbol() }}&nbsp;</span>
   <input matInput
@@ -6,6 +6,7 @@
     inputmode="decimal"
     [placeholder]="placeholder()"
     [required]="required()"
+    [readonly]="isReadonly()"
     [attr.min]="min()"
     [attr.max]="max()"
     [attr.step]="step()"

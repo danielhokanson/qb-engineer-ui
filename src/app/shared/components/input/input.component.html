@@ -1,4 +1,4 @@
-<mat-form-field appearance="outline">
+<mat-form-field appearance="outline" [class.app-readonly-field]="isReadonly()">
   <mat-label>{{ label() }}</mat-label>
   @if (prefix()) {
     @if (prefix().length <= 2) {

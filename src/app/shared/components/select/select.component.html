@@ -1,10 +1,10 @@
-<mat-form-field appearance="outline">
+<mat-form-field appearance="outline" [class.app-readonly-field]="isReadonly()">
   <mat-label>{{ label() }}</mat-label>
   <mat-select
     [value]="value()"
     [multiple]="multiple()"
     [placeholder]="placeholder()"
-    [disabled]="disabled()"
+    [disabled]="disabled() || isReadonly()"
     [required]="required()"
     (selectionChange)="onSelectionChange($event.value)"
     (blur)="markTouched()">

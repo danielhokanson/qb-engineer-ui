@@ -1,6 +1,8 @@
 <mat-slide-toggle
+  class="app-toggle"
+  [class.app-toggle--readonly]="isReadonly()"
   [checked]="value()"
-  [disabled]="disabled()"
+  [disabled]="disabled() || isReadonly()"
   (change)="onToggle($event.checked)"
   (blur)="markTouched()">
   {{ label() }}

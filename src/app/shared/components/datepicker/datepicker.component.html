@@ -1,13 +1,14 @@
-<mat-form-field appearance="outline">
+<mat-form-field appearance="outline" [class.app-readonly-field]="isReadonly()">
   <mat-label>{{ label() }}</mat-label>
   <input matInput
     [matDatepicker]="picker"
     [min]="min()"
     [max]="max()"
+    [readonly]="isReadonly()"
     [disabled]="disabled()"
     [value]="value()"
     (dateChange)="onDateChange($event.value)"
     (blur)="markTouched()" />
-  <mat-datepicker-toggle matSuffix [for]="picker" />
+  <mat-datepicker-toggle matSuffix [for]="picker" [disabled]="isReadonly() || disabled()" />
   <mat-datepicker #picker />
 </mat-form-field>

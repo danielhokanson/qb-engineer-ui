@@ -35,6 +35,11 @@ export class SelectComponent implements ControlValueAccessor {
   readonly multiple = input(false);
   readonly placeholder = input('');
   readonly required = input(false);
+  /** Read-only mode — see styles.scss .app-readonly-field treatment.
+   *  mat-select doesn't have a readonly attribute, so we set disabled
+   *  internally; the global readonly rule strips the disabled tint
+   *  and arrow so it visually reads as data, not a disabled control. */
+  readonly isReadonly = input<boolean>(false);
 
   protected readonly value = signal<unknown>(null);
   protected readonly disabled = signal(false);

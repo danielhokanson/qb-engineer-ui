@@ -98,6 +98,99 @@ html {
     display: none;
   }
 
+  // ─── Read-only field visual treatment (Option 1 — 2026-05-04) ───
+  //
+  // Goal: make a read-only form field occupy the SAME box as its
+  // editable twin (no layout shift when toggling edit mode) but
+  // visually read as data, not as a control. The shared form-control
+  // wrappers (<app-input>, <app-textarea>, <app-currency-input>,
+  // <app-datepicker>, <app-select>) add `.app-readonly-field` to their
+  // root <mat-form-field> when their `[isReadonly]` input is true; the
+  // rules below pick that up and strip the outlined border, mute the
+  // value text, and hide interaction affordances. The container
+  // dimensions stay identical so swapping editing mode doesn't reflow
+  // the surrounding grid.
+  .mat-mdc-form-field.app-readonly-field {
+    // Strip the outlined-field border parts. The notched-outline
+    // wraps the label cutout, leading edge, and trailing edge — all
+    // three need to go.
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border: 0 !important;
+    }
+
+    // Keep the value text readable. mat-select's "disabled" state
+    // would normally fade the value to ~40% opacity; we override that
+    // so a readonly select reads at full color (it's data, not a
+    // disabled control).
+    .mat-mdc-input-element,
+    .mat-mdc-select-value,
+    .mat-mdc-select-value-text,
+    .mat-mdc-form-field-input-control {
+      color: var(--text) !important;
+      opacity: 1 !important;
+      -webkit-text-fill-color: var(--text) !important;
+      caret-color: transparent;
+      cursor: default;
+    }
+
+    // The mat-form-field root applies a "disabled" class when the
+    // inner control is disabled (mat-select route). Restore the label
+    // color from the muted disabled state.
+    .mat-mdc-floating-label,
+    .mdc-floating-label {
+      color: var(--text-muted) !important;
+      -webkit-text-fill-color: var(--text-muted) !important;
+    }
+
+    // Force the floating label into its natural "float-above"
+    // position regardless of whether the field has a value. Without
+    // this, empty readonly fields show a centered full-size label and
+    // filled ones show a small floated label — that inconsistency
+    // reads as broken. The transform matrix matches what Material's
+    // MDC normally applies via `.mdc-floating-label--float-above`
+    // (translateY(-22.75px) scale(0.75)) so the label sits in the
+    // exact same notch position used in edit mode — preserves
+    // dimensional parity between modes.
+    .mdc-floating-label,
+    .mdc-floating-label--float-above {
+      transform: matrix(0.75, 0, 0, 0.75, 0, -22.75) !important;
+      transition: none !important;
+    }
+
+    // Native number-input spinner controls (▲▼) imply editability.
+    // Hide on Webkit (Chrome/Edge/Safari) and Firefox.
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type='number'] {
+      -moz-appearance: textfield;
+    }
+
+    // Hide affordances that imply interactivity. matSuffix icons,
+    // datepicker toggle (note: NOT the `mat-mdc-` prefix), select
+    // dropdown arrow.
+    .mat-mdc-form-field-icon-suffix,
+    .mat-datepicker-toggle,
+    .mat-mdc-select-arrow-wrapper {
+      display: none !important;
+    }
+
+    // Textarea resize handle reads as "you can drag this" — kill it.
+    textarea.mat-mdc-input-element {
+      resize: none;
+    }
+
+    // Hover / focus indicators don't apply to a non-interactive field.
+    &:hover .mdc-notched-outline > *,
+    &.mat-focused .mdc-notched-outline > * {
+      border: 0 !important;
+    }
+  }
+
   // ─── Menu item icons — consistent sizing and spacing ───
   .mat-mdc-menu-item .material-icons-outlined {
     font-size: 18px;

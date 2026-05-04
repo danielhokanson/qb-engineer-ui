@@ -42,12 +42,14 @@ export class EntityPickerComponent implements ControlValueAccessor, OnInit {
   readonly displayField = input<string>('name');
   readonly filters = input<Record<string, string>>({});
   readonly placeholder = input<string>('');
+  readonly isReadonly = input<boolean>(false);
   /**
    * Singular noun for the inline-create affordance — when set, the dropdown
-   * surfaces a "+ Create new {createNewLabel} '{typed query}'" option below
-   * the search results. Click emits {@link createNew} with the typed query
-   * so the consumer can pre-fill the quick-create dialog. Omit to disable
-   * the affordance entirely (most pickers stay typeahead-only).
+   * surfaces a "Create new {createNewLabel} '{typed query}'" option below
+   * the search results, prefixed by an `add` icon (the icon supplies the
+   * visual `+`; the label text does not repeat it). Click emits
+   * {@link createNew} with the typed query so the consumer can pre-fill
+   * the quick-create dialog. Omit to disable the affordance entirely.
    */
   readonly createNewLabel = input<string | null>(null);
   readonly createNew = output<string>();
@@ -55,7 +57,7 @@ export class EntityPickerComponent implements ControlValueAccessor, OnInit {
   protected readonly searchControl = new FormControl('');
   protected readonly results = signal<Record<string, unknown>[]>([]);
   protected readonly disabled = signal(false);
-  /** True when {@link createNewLabel} is set AND the user has typed >= 2 chars — controls the dropdown's "+ Create new" row visibility. */
+  /** True when {@link createNewLabel} is set AND the user has typed >= 2 chars — controls the dropdown's "Create new" row visibility. */
   protected readonly canShowCreateNew = signal(false);
   private selectedValue: unknown = null;
 
@@ -66,7 +68,7 @@ export class EntityPickerComponent implements ControlValueAccessor, OnInit {
     this.searchControl.valueChanges.pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(term => {
-      // Drives the "+ Create new" row visibility — needs to react before the
+      // Drives the "Create new" row visibility — needs to react before the
       // 300ms search debounce so the affordance appears as soon as the user
       // is past the 2-char threshold, not 300ms later.
       this.canShowCreateNew.set(
@@ -109,7 +111,7 @@ export class EntityPickerComponent implements ControlValueAccessor, OnInit {
     }
   }
 
-  /** Sentinel option value for the "+ Create new" row. Kept as a const so
+  /** Sentinel option value for the "Create new" row. Kept as a const so
    *  the template, displayFn, and option-selected handler all agree. */
   protected static readonly CREATE_NEW_SENTINEL = '__create_new__';
   /** Template-accessible alias of {@link CREATE_NEW_SENTINEL} (statics
