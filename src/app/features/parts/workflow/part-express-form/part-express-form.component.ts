@@ -74,10 +74,12 @@ export class PartExpressFormComponent {
     traceabilityType: new FormControl<TraceabilityType>('None', [Validators.required]),
     // Tier 0 — cycle-counting frequency tier. Optional (null = unclassified).
     abcClass: new FormControl<AbcClass | null>(null),
-    // Required because the express step's hasCost gate needs either
-    // manualCostOverride or currentCostCalculationId — only the override
-    // is reachable from this form, so it's required here.
-    manualCostOverride: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
+    // Optional. Manual override is one of two ways the server-side
+    // hasCost gate is satisfied (the other is a saved cost calc). If
+    // the user has neither, the express Save call gets a 409 from the
+    // promote step with a "missing cost" message — friendlier than
+    // blocking the form on a field the user may not be ready to fill.
+    manualCostOverride: new FormControl<number | null>(null, [Validators.min(0)]),
   });
 
   protected readonly traceabilityOptions: SelectOption[] = [
