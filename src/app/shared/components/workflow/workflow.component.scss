@@ -39,10 +39,30 @@
   }
 
   &__step-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: $sp-xs;
     font-size: $font-size-xxs;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted);
+  }
+
+  // Breadcrumb pieces — "Step 2 of 4 · Sourcing" — let the user orient
+  // themselves without counting rail dots.
+  &__step-counter {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  &__step-sep {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  &__step-name {
+    color: var(--text-secondary);
+    font-weight: 600;
   }
 
   &__mode-toggle {
@@ -58,7 +78,10 @@
     color: var(--text-secondary);
     font-family: inherit;
     font-size: $font-size-sm;
+    font-weight: 500;
     padding: $sp-xs $sp-md;
+    line-height: 1.2;
+    text-align: center;
     cursor: pointer;
     transition: background-color $transition-fast, color $transition-fast,
       opacity $transition-fast;
@@ -134,6 +157,9 @@
 
   &__step-content {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     overflow-y: auto;
     padding: $sp-lg;
     @include custom-scrollbar(8px);
@@ -141,7 +167,11 @@
     // Fade newly-mounted step content in so navigation feels like a
     // soft swap rather than a hard pop. Keyed off ngComponentOutlet
     // remounting the body; CSS animation re-fires every time.
+    // The width:100% + max-width pair lets each step claim the centered
+    // 760px column without each step needing its own align-items rule.
     > * {
+      width: 100%;
+      max-width: 760px;
       animation: workflow-content-fade-in $transition-normal ease-out;
     }
   }
@@ -326,6 +356,24 @@
       display: none;
     }
     .workflow-step__optional {
+      display: none;
+    }
+    // Mode toggle becomes icon-only at the smallest breakpoint to
+    // free header room for the truncated title. Keep accessible
+    // labels via aria-pressed + aria-label on the buttons.
+    &__mode-btn-sublabel {
+      display: none;
+    }
+  }
+}
+
+// Footer button labels go icon-only on the narrowest screens so the
+// chevrons remain useful and the validation chip + Continue still fit
+// without wrapping. Keep aria labels for screen readers.
+@media (max-width: 480px) {
+  .workflow-shell__footer .action-btn {
+    padding-inline: $sp-sm;
+    span:not(.material-icons-outlined) {
       display: none;
     }
   }

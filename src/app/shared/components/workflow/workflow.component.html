@@ -4,7 +4,15 @@
       @if (entityTitle(); as title) {
         <h1 class="workflow-shell__title">{{ title }}</h1>
       }
-      @if (currentStep(); as step) {
+      @if (mode() === 'guided' && currentStep(); as step) {
+        <span class="workflow-shell__step-label" data-testid="workflow-step-breadcrumb">
+          <span class="workflow-shell__step-counter">{{
+            'workflow.shell.stepCounter' | translate: { current: currentStepIndex() + 1, total: steps().length }
+          }}</span>
+          <span class="workflow-shell__step-sep" aria-hidden="true">·</span>
+          <span class="workflow-shell__step-name">{{ step.labelKey | translate }}</span>
+        </span>
+      } @else if (currentStep(); as step) {
         <span class="workflow-shell__step-label">{{ step.labelKey | translate }}</span>
       }
     </div>
@@ -17,7 +25,8 @@
         [attr.aria-pressed]="mode() === 'express'"
         data-testid="workflow-mode-express"
         (click)="setMode('express')">
-        {{ 'workflow.shell.mode.express' | translate }}
+        <span>{{ 'workflow.shell.mode.express' | translate }}</span>
+        <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.expressSublabel' | translate }}</span>
       </button>
       <button
         type="button"
@@ -26,7 +35,8 @@
         [attr.aria-pressed]="mode() === 'guided'"
         data-testid="workflow-mode-guided"
         (click)="setMode('guided')">
-        {{ 'workflow.shell.mode.guided' | translate }}
+        <span>{{ 'workflow.shell.mode.guided' | translate }}</span>
+        <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.guidedSublabel' | translate }}</span>
       </button>
     </div>
 
@@ -88,10 +98,11 @@
               type="button"
               class="action-btn"
               [disabled]="isFirstStep()"
+              [attr.aria-label]="'workflow.shell.actions.back' | translate"
               data-testid="workflow-back"
               (click)="back()">
               <span class="material-icons-outlined">chevron_left</span>
-              {{ 'workflow.shell.actions.back' | translate }}
+              <span>{{ 'workflow.shell.actions.back' | translate }}</span>
             </button>
           </div>
 
@@ -103,7 +114,7 @@
                   class="action-btn"
                   data-testid="workflow-skip"
                   (click)="skip()">
-                  {{ 'workflow.shell.actions.skip' | translate }}
+                  <span>{{ 'workflow.shell.actions.skip' | translate }}</span>
                 </button>
               }
             }
@@ -113,13 +124,14 @@
                 type="button"
                 class="action-btn action-btn--primary"
                 [disabled]="!workflowService.currentStepValid()"
+                [attr.aria-label]="(isLastStep() ? 'workflow.shell.actions.complete' : 'workflow.shell.actions.continue') | translate"
                 data-testid="workflow-next"
                 (click)="next()">
                 @if (isLastStep()) {
                   <span class="material-icons-outlined">check</span>
-                  {{ 'workflow.shell.actions.complete' | translate }}
+                  <span>{{ 'workflow.shell.actions.complete' | translate }}</span>
                 } @else {
-                  {{ 'workflow.shell.actions.continue' | translate }}
+                  <span>{{ 'workflow.shell.actions.continue' | translate }}</span>
                   <span class="material-icons-outlined">chevron_right</span>
                 }
               </button>

@@ -11,9 +11,11 @@ import {
   signal,
   Type,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { MatDialog } from '@angular/material/dialog';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { ConfirmDialogComponent, ConfirmDialogData } from '../confirm-dialog/confirm-dialog.component';
 import { EntityValidator } from '../../models/entity-validator.model';
 import { WorkflowDefinition } from '../../models/workflow-definition.model';
 import { WorkflowRun } from '../../models/workflow-run.model';
@@ -54,6 +56,8 @@ import { WorkflowStepStubComponent } from './workflow-step-stub.component';
 export class WorkflowComponent {
   private readonly registry = inject(WorkflowStepRegistryService);
   private readonly evaluator = new PredicateEvaluator();
+  private readonly dialog = inject(MatDialog);
+  private readonly translate = inject(TranslateService);
   protected readonly workflowService = inject(WorkflowService);
 
   // ─── Inputs ─────────────────────────────────────────────────────────
@@ -270,6 +274,25 @@ export class WorkflowComponent {
 
   protected setMode(mode: 'express' | 'guided'): void {
     if (mode === this.mode()) return;
+    // Mid-flow switch with unsaved data on the current step → confirm
+    // before discarding, matching the dirty-form guard pattern used by
+    // the dialog component. Persist no data here; the parent's mode-
+    // change handler is what would round-trip to the server, and we
+    // only want to fire that event after the user confirms.
+    if (this.workflowService.currentStepDirty()) {
+      this.dialog.open(ConfirmDialogComponent, {
+        width: '400px',
+        data: {
+          title: this.translate.instant('workflow.shell.modeSwitch.confirmTitle'),
+          message: this.translate.instant('workflow.shell.modeSwitch.confirmMessage'),
+          confirmLabel: this.translate.instant('workflow.shell.modeSwitch.confirmAction'),
+          severity: 'warn',
+        } satisfies ConfirmDialogData,
+      }).afterClosed().subscribe(confirmed => {
+        if (confirmed) this.modeChanged.emit(mode);
+      });
+      return;
+    }
     this.modeChanged.emit(mode);
   }
 

@@ -53,6 +53,16 @@ export class WorkflowService {
    * Continue button reads this to gate progression on required fields. Defaults
    * to `true` so steps without a form (e.g. acknowledge-only) don't block.
    */
+  /**
+   * Tracks whether the currently-mounted step's reactive form has been
+   * touched / modified since its last save. Updated by registerStepForm()
+   * via the form's statusChanges (which fire on dirty marks too).
+   * Consumers: shell mode-toggle uses it to gate a 'discard unsaved
+   * changes?' confirmation when the user switches express ↔ guided
+   * mid-flow.
+   */
+  readonly currentStepDirty = signal<boolean>(false);
+
   readonly currentStepValid = signal<boolean>(true);
 
   /**
@@ -330,6 +340,7 @@ export class WorkflowService {
     this.unregisterStepForm();
     const refresh = (): void => {
       this.currentStepValid.set(form.valid);
+      this.currentStepDirty.set(form.dirty);
       this.currentStepViolations.set(FormValidationService.collectViolations(form, labels));
     };
     this.currentStepFormSub = form.statusChanges.pipe(startWith(form.status)).subscribe(refresh);
@@ -343,6 +354,7 @@ export class WorkflowService {
     this.currentStepFormSub = null;
     this.currentStepSaveCallback = null;
     this.currentStepValid.set(true);
+    this.currentStepDirty.set(false);
     this.currentStepViolations.set([]);
   }
 
