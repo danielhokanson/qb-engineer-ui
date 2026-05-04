@@ -1,0 +1,16 @@
+<div class="step-rationale" [class.step-rationale--expanded]="expanded()" data-testid="step-rationale">
+  <button type="button"
+    class="step-rationale__toggle"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-controls]="'step-rationale-' + i18nKey()"
+    (click)="toggle()">
+    <span class="material-icons-outlined step-rationale__icon" aria-hidden="true">info</span>
+    <span class="step-rationale__heading">{{ 'workflow.shell.rationale.heading' | translate }}</span>
+    <span class="material-icons-outlined step-rationale__chevron" aria-hidden="true">{{ expanded() ? 'expand_less' : 'expand_more' }}</span>
+  </button>
+  @if (expanded()) {
+    <div class="step-rationale__body" [id]="'step-rationale-' + i18nKey()">
+      <p [innerHTML]="i18nKey() | translate"></p>
+    </div>
+  }
+</div>

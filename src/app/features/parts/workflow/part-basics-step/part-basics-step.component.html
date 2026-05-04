@@ -4,6 +4,8 @@
     <p class="part-basics-step__hint">{{ 'parts.workflow.basics.hint' | translate }}</p>
   </header>
 
+  <app-step-rationale i18nKey="parts.workflow.basics.rationale" />
+
   <form [formGroup]="form" class="part-basics-step__form">
     <app-input
       [label]="'parts.workflow.basics.nameLabel' | translate"

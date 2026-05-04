@@ -1,0 +1,76 @@
+@use 'styles/variables' as *;
+
+// Soft info-tinted card matching the workflow shell's resume banner +
+// not-implemented notice family. Always visible header, expandable body.
+.step-rationale {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--info) 8%, transparent);
+  border-left: $border-width-accent solid var(--info);
+  font-size: $font-size-sm;
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: $sp-sm $sp-md;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    color: var(--info);
+    font-family: inherit;
+    font-size: $font-size-sm;
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background: color-mix(in srgb, var(--info) 14%, transparent);
+    }
+
+    &:focus-visible {
+      outline: $border-width solid var(--info);
+      outline-offset: -$border-width;
+    }
+  }
+
+  &__icon {
+    font-size: $icon-size-md;
+    flex: 0 0 auto;
+  }
+
+  &__heading {
+    flex: 1;
+    font-weight: 600;
+  }
+
+  &__chevron {
+    font-size: $icon-size-md;
+    flex: 0 0 auto;
+    opacity: 0.7;
+    transition: transform $transition-fast;
+  }
+
+  &--expanded &__chevron {
+    transform: none;
+  }
+
+  &__body {
+    padding: 0 $sp-md $sp-md ($sp-md + $icon-size-md + $sp-sm);
+    color: var(--text);
+    animation: step-rationale-expand 200ms ease-out;
+
+    p {
+      margin: 0 0 $sp-xs 0;
+      line-height: 1.55;
+
+      &:last-child { margin-bottom: 0; }
+    }
+  }
+}
+
+@keyframes step-rationale-expand {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

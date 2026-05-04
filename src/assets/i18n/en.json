@@ -674,7 +674,8 @@
         "abcClassA": "A — high value / tight control",
         "abcClassB": "B — moderate value",
         "abcClassC": "C — low value / loose control",
-        "saveFailed": "Couldn't save basics."
+        "saveFailed": "Couldn't save basics.",
+        "rationale": "<strong>Identity is everything else's foundation.</strong> The part number + name resolve every reference downstream — POs, work orders, BOM positions, ledger lines. <br><br>Skipping basics is impossible: no part exists until this step saves. The procurement source + inventory class chosen on the previous screen drive which steps follow this one and which gates fire at promotion time."
       },
       "bom": {
         "title": "Bill of Materials",
@@ -684,12 +685,14 @@
         "childPart": "Part",
         "saveFailed": "Couldn't save BOM entry.",
         "emptyMessage": "No components yet.",
-        "emptyHelp": "Add components from the parts catalog to define this assembly's BOM."
+        "emptyHelp": "Add components from the parts catalog to define this assembly's BOM.",
+        "rationale": "<strong>The BOM is the recipe.</strong> Without it, MRP can't explode demand into component requirements, cost roll-up has nothing to sum, and shop orders can't issue material. <br><br>Each row is a child part + quantity (with optional scrap factor). For Make + Subassembly / FinishedGood combos this step is required for promotion; for Make + Component it's optional (single-piece fab from raw stock is valid)."
       },
       "routing": {
         "title": "Routing",
         "hint": "Define the operation steps to manufacture this part.",
-        "refreshStatus": "Refresh status"
+        "refreshStatus": "Refresh status",
+        "rationale": "<strong>Routing is the build sequence.</strong> Operations + work centers + cycle/setup times feed work-order generation, capacity planning, labor cost roll-up, and shop-floor traveler printing. <br><br>Subcontract operations (mark a step as outsourced) automatically generate vendor POs at the right point in the sequence — no separate PO creation needed."
       },
       "costing": {
         "title": "Cost",
@@ -708,7 +711,8 @@
         "manualOverridePlaceholder": "0.00",
         "currentLabel": "Currently displayed cost",
         "notSet": "Not set",
-        "saveFailed": "Couldn't save costing."
+        "saveFailed": "Couldn't save costing.",
+        "rationale": "<strong>Cost drives every dollar downstream.</strong> Quote pricing, margin reporting, WIP valuation, and standard-vs-actual variance analysis all read from this number. <br><br>Tier 1 (manual override) is the simplest path: enter a number you trust. Tier 2 / Tier 3 add per-cost-center rates and activity-based pools — capability-gated and not implemented yet, so today the manual override is the working answer."
       },
       "alternates": {
         "title": "Alternates",
@@ -744,7 +748,8 @@
         "title": "Preferred Vendor",
         "hint": "Pick the default vendor for this part. Lead time, MOQ, pack size, OEM identity, and pricing are entered per-vendor on the next step.",
         "preferredVendorLabel": "Preferred Vendor",
-        "saveFailed": "Couldn't save sourcing."
+        "saveFailed": "Couldn't save sourcing.",
+        "rationale": "<strong>The preferred vendor is the default for new POs and RFQs.</strong> Buyers can override per-PO, but everything assumes this is the first call. <br><br>Without a preferred vendor, automated PO generation, MRP-driven planned orders, and lead-time-aware scheduling all stall — they need someone to ask. Backup vendors + tier pricing + per-vendor MOQ live on the next step."
       },
       "manufacturer": {
         "title": "Manufacturer",
@@ -765,11 +770,13 @@
         "stockUomNone": "— Not set —",
         "defaultBinLabel": "Default Bin (id)",
         "defaultBinHelper": "Numeric bin id. Replaced by a real bin picker in a later release.",
-        "saveFailed": "Couldn't save inventory settings."
+        "saveFailed": "Couldn't save inventory settings.",
+        "rationale": "<strong>Stock UoM is the unit every other inventory transaction uses.</strong> Receipts, issues, transfers, counts — all denominated here. Pick wrong and conversions ripple through every downstream report. <br><br>Min / reorder / safety-stock are policy: they drive when MRP fires planned orders or when manual reorder reports highlight a part. Defaults okay if you don't know yet — adjust later as demand patterns emerge."
       },
       "quality": {
         "title": "Quality",
         "hint": "Receiving inspection, traceability, ABC class, hazmat, and shelf life.",
+        "rationale": "<strong>Traceability mode is irreversible-ish — you can change it later but every prior transaction was recorded against the old setting.</strong> Lot or serial unlocks per-lot recall, expiration tracking, and per-unit warranty / RMA workflows. Bulk skips all of that. <br><br>ABC class drives cycle-counting cadence (A counted weekly, C yearly, etc.) and prioritization in stockout-resolution reports. Hazmat + shelf life only matter if regulated-industry capabilities are on for this install.",
         "traceabilityLabel": "Traceability",
         "traceabilityNone": "Bulk (no tracking)",
         "traceabilityLot": "By lot / batch",
@@ -5126,6 +5133,9 @@
         "confirmAction": "Switch and discard"
       },
       "optional": "Optional",
+      "rationale": {
+        "heading": "What does this step enable?"
+      },
       "readonlyLabel": "View only",
       "resumeBanner": "Picking up where you left off — last edited {{lastEdited}}.",
       "stepCounter": "Step {{current}} of {{total}}",
