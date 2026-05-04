@@ -4,6 +4,8 @@
     <p class="part-sourcing-step__hint">{{ 'parts.workflow.sourcing.hint' | translate }}</p>
   </header>
 
+  <app-step-rationale i18nKey="parts.workflow.sourcing.rationale" />
+
   <form [formGroup]="form" class="part-sourcing-step__form">
     <app-entity-picker
       [label]="'parts.workflow.sourcing.preferredVendorLabel' | translate"

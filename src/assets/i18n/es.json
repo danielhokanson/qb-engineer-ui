@@ -4820,6 +4820,9 @@
         "confirmAction": "Cambiar y descartar"
       },
       "optional": "Opcional",
+      "rationale": {
+        "heading": "¿Qué habilita este paso?"
+      },
       "readonlyLabel": "Solo vista",
       "resumeBanner": "Continuando donde lo dejaste — última edición {{lastEdited}}.",
       "stepCounter": "Paso {{current}} de {{total}}",
