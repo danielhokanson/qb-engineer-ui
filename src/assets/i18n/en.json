@@ -5125,6 +5125,7 @@
         "confirmAction": "Switch and discard"
       },
       "optional": "Optional",
+      "readonlyLabel": "View only",
       "resumeBanner": "Picking up where you left off — last edited {{lastEdited}}.",
       "stepCounter": "Step {{current}} of {{total}}",
       "stepErrors": {
