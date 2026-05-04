@@ -561,6 +561,19 @@
     align-items: flex-start;
   }
 
+  &__version {
+    color: var(--text);
+    font-size: $font-size-md;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  &__sha {
+    color: var(--text-muted);
+    font-size: $font-size-xxs;
+    line-height: 1;
+  }
+
   &__badge {
     display: inline-flex;
     align-items: center;

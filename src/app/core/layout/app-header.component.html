@@ -211,15 +211,16 @@
       <div class="about-dialog__meta">
         <div class="about-dialog__row">
           <span class="about-dialog__label">Your build</span>
-          <span class="about-dialog__value mono">
+          <span class="about-dialog__value about-dialog__value--stack">
             @if (versionService.local(); as v) {
               @if (v.sha === 'dev') {
-                <span class="about-dialog__sha">dev</span>
+                <span class="about-dialog__version">dev</span>
               } @else {
-                <span class="about-dialog__sha">{{ v.sha }}</span>
+                <span class="about-dialog__version">{{ v.version }}</span>
+                <span class="about-dialog__sha mono">{{ v.sha }}</span>
               }
             } @else {
-              dev
+              <span class="about-dialog__version">dev</span>
             }
           </span>
         </div>

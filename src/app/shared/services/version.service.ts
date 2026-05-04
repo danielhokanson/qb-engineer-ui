@@ -22,7 +22,14 @@ export class VersionService {
       .get<AppVersion>('/assets/version.json')
       .pipe(catchError(() => of(null)))
       .subscribe(v => {
-        this.local.set(v);
+        // Normalize SHA to the 7-char short form so the local value matches
+        // the format the GitHub API returns (and our slice below). The
+        // Dockerfile bakes in $github.sha which is the full 40-char hash.
+        if (v && v.sha && v.sha !== 'dev') {
+          this.local.set({ ...v, sha: v.sha.slice(0, 7) });
+        } else {
+          this.local.set(v);
+        }
         this.checkLatest();
       });
   }
