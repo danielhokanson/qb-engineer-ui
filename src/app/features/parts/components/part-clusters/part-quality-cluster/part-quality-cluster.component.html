@@ -1,49 +1,56 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.quality.title' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.quality.title' | translate }}</h3>
 
-    <app-toggle data-testid="part-quality-requires-inspection"
-      [label]="'parts.detail.quality.requiresInspection' | translate"
-      formControlName="requiresReceivingInspection" />
+  <app-toggle data-testid="part-quality-requires-inspection"
+    [label]="'parts.detail.quality.requiresInspection' | translate"
+    formControlName="requiresReceivingInspection"
+    [isReadonly]="!editing()" />
+
+  <div class="cluster__form-row">
+    <app-select data-testid="part-quality-frequency"
+      [label]="'parts.detail.quality.inspectionFrequency' | translate"
+      formControlName="inspectionFrequency"
+      [options]="inspectionFrequencyOptions"
+      [isReadonly]="!editing()" />
+    <app-input data-testid="part-quality-skip-after"
+      [label]="'parts.detail.quality.inspectionSkipAfter' | translate"
+      type="number"
+      formControlName="inspectionSkipAfterN"
+      [isReadonly]="!editing()" />
+  </div>
+
+  <div *appCap="'CAP-MD-PART-COMPLIANCE'" class="cluster__form-row">
+    <app-entity-picker
+      [label]="'parts.detail.quality.inspectionTemplate' | translate"
+      entityType="receiving-inspection-templates"
+      displayField="name"
+      formControlName="receivingInspectionTemplateId"
+      [isReadonly]="!editing()" />
+  </div>
+
+  @if (showCompliance()) {
+    <div class="cluster__form-row">
+      <app-input data-testid="part-quality-hazmat"
+        [label]="'parts.detail.quality.hazmatClass' | translate"
+        formControlName="hazmatClass"
+        [isReadonly]="!editing()" />
+      <app-input data-testid="part-quality-shelf-life"
+        [label]="'parts.detail.quality.shelfLifeDays' | translate"
+        type="number"
+        formControlName="shelfLifeDays"
+        [isReadonly]="!editing()" />
+    </div>
 
     <div class="cluster__form-row">
-      <app-select data-testid="part-quality-frequency"
-        [label]="'parts.detail.quality.inspectionFrequency' | translate"
-        formControlName="inspectionFrequency"
-        [options]="inspectionFrequencyOptions" />
-      <app-input data-testid="part-quality-skip-after"
-        [label]="'parts.detail.quality.inspectionSkipAfter' | translate"
-        type="number"
-        formControlName="inspectionSkipAfterN" />
+      <app-select data-testid="part-quality-backflush"
+        [label]="'parts.detail.quality.backflushPolicy' | translate"
+        formControlName="backflushPolicy"
+        [options]="backflushOptions"
+        [isReadonly]="!editing()" />
     </div>
+  }
 
-    <div *appCap="'CAP-MD-PART-COMPLIANCE'" class="cluster__form-row">
-      <app-entity-picker
-        [label]="'parts.detail.quality.inspectionTemplate' | translate"
-        entityType="receiving-inspection-templates"
-        displayField="name"
-        formControlName="receivingInspectionTemplateId" />
-    </div>
-
-    @if (showCompliance()) {
-      <div class="cluster__form-row">
-        <app-input data-testid="part-quality-hazmat"
-          [label]="'parts.detail.quality.hazmatClass' | translate"
-          formControlName="hazmatClass" />
-        <app-input data-testid="part-quality-shelf-life"
-          [label]="'parts.detail.quality.shelfLifeDays' | translate"
-          type="number"
-          formControlName="shelfLifeDays" />
-      </div>
-
-      <div class="cluster__form-row">
-        <app-select data-testid="part-quality-backflush"
-          [label]="'parts.detail.quality.backflushPolicy' | translate"
-          formControlName="backflushPolicy"
-          [options]="backflushOptions" />
-      </div>
-    }
-
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -56,46 +63,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.quality.requiresInspection' | translate }}</span>
-        <span class="cluster__value">{{ part().requiresReceivingInspection ? 'Yes' : 'No' }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.quality.inspectionFrequency' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!part().inspectionFrequency">
-          {{ part().inspectionFrequency ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.quality.inspectionSkipAfter' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().inspectionSkipAfterN === null || part().inspectionSkipAfterN === undefined">
-          {{ part().inspectionSkipAfterN ?? '---' }}
-        </span>
-      </div>
-      @if (showCompliance()) {
-        <div class="cluster__item">
-          <span class="cluster__label">{{ 'parts.detail.quality.hazmatClass' | translate }}</span>
-          <span class="cluster__value" [class.cluster__value--muted]="!part().hazmatClass">
-            {{ part().hazmatClass ?? '---' }}
-          </span>
-        </div>
-        <div class="cluster__item">
-          <span class="cluster__label">{{ 'parts.detail.quality.shelfLifeDays' | translate }}</span>
-          <span class="cluster__value" [class.cluster__value--muted]="part().shelfLifeDays === null">
-            {{ part().shelfLifeDays ?? '---' }}
-          </span>
-        </div>
-        <div class="cluster__item">
-          <span class="cluster__label">{{ 'parts.detail.quality.backflushPolicy' | translate }}</span>
-          <span class="cluster__value" [class.cluster__value--muted]="!part().backflushPolicy">
-            {{ part().backflushPolicy ?? '---' }}
-          </span>
-        </div>
-      }
-    </div>
-  </div>
-}
+  }
+</div>

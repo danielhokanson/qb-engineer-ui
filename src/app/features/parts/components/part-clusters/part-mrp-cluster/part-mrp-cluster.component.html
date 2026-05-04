@@ -1,50 +1,57 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.mrp.title' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.mrp.title' | translate }}</h3>
 
-    <app-toggle data-testid="part-mrp-isplanned"
-      [label]="'parts.detail.mrp.isMrpPlanned' | translate"
-      formControlName="isMrpPlanned" />
+  <app-toggle data-testid="part-mrp-isplanned"
+    [label]="'parts.detail.mrp.isMrpPlanned' | translate"
+    formControlName="isMrpPlanned"
+    [isReadonly]="!editing()" />
 
-    <div class="cluster__form-row">
-      <app-select data-testid="part-mrp-lotrule"
-        [label]="'parts.detail.mrp.lotSizingRule' | translate"
-        formControlName="lotSizingRule"
-        [options]="lotSizingOptions" />
-      @if (showFixedQty()) {
-        <app-input data-testid="part-mrp-fixedqty"
-          [label]="'parts.detail.mrp.fixedOrderQty' | translate"
-          type="number"
-          formControlName="fixedOrderQuantity" />
-      }
-    </div>
-
-    <div class="cluster__form-row">
-      <app-input data-testid="part-mrp-minqty"
-        [label]="'parts.detail.mrp.minOrderQty' | translate"
+  <div class="cluster__form-row">
+    <app-select data-testid="part-mrp-lotrule"
+      [label]="'parts.detail.mrp.lotSizingRule' | translate"
+      formControlName="lotSizingRule"
+      [options]="lotSizingOptions"
+      [isReadonly]="!editing()" />
+    @if (showFixedQty()) {
+      <app-input data-testid="part-mrp-fixedqty"
+        [label]="'parts.detail.mrp.fixedOrderQty' | translate"
         type="number"
-        formControlName="minimumOrderQuantity" />
-      @if (showOrderMultiple()) {
-        <app-input data-testid="part-mrp-multiple"
-          [label]="'parts.detail.mrp.orderMultiple' | translate"
-          type="number"
-          formControlName="orderMultiple" />
-      }
-    </div>
+        formControlName="fixedOrderQuantity"
+        [isReadonly]="!editing()" />
+    }
+  </div>
 
-    <div class="cluster__form-row">
-      <app-input data-testid="part-mrp-planning-fence"
-        [label]="'parts.detail.mrp.planningFence' | translate"
+  <div class="cluster__form-row">
+    <app-input data-testid="part-mrp-minqty"
+      [label]="'parts.detail.mrp.minOrderQty' | translate"
+      type="number"
+      formControlName="minimumOrderQuantity"
+      [isReadonly]="!editing()" />
+    @if (showOrderMultiple()) {
+      <app-input data-testid="part-mrp-multiple"
+        [label]="'parts.detail.mrp.orderMultiple' | translate"
         type="number"
-        formControlName="planningFenceDays" />
-      <app-input data-testid="part-mrp-demand-fence"
-        [label]="'parts.detail.mrp.demandFence' | translate"
-        type="number"
-        formControlName="demandFenceDays" />
-    </div>
+        formControlName="orderMultiple"
+        [isReadonly]="!editing()" />
+    }
+  </div>
 
-    <p class="cluster__value cluster__value--muted">{{ 'parts.detail.mrp.leadTimeNote' | translate }}</p>
+  <div class="cluster__form-row">
+    <app-input data-testid="part-mrp-planning-fence"
+      [label]="'parts.detail.mrp.planningFence' | translate"
+      type="number"
+      formControlName="planningFenceDays"
+      [isReadonly]="!editing()" />
+    <app-input data-testid="part-mrp-demand-fence"
+      [label]="'parts.detail.mrp.demandFence' | translate"
+      type="number"
+      formControlName="demandFenceDays"
+      [isReadonly]="!editing()" />
+  </div>
 
+  <p class="cluster__value cluster__value--muted">{{ 'parts.detail.mrp.leadTimeNote' | translate }}</p>
+
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -57,51 +64,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.isMrpPlanned' | translate }}</span>
-        <span class="cluster__value">{{ part().isMrpPlanned ? 'Yes' : 'No' }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.lotSizingRule' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!part().lotSizingRule">
-          {{ part().lotSizingRule ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.fixedOrderQty' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().fixedOrderQuantity === null || part().fixedOrderQuantity === undefined">
-          {{ part().fixedOrderQuantity ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.minOrderQty' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().minimumOrderQuantity === null || part().minimumOrderQuantity === undefined">
-          {{ part().minimumOrderQuantity ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.orderMultiple' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().orderMultiple === null || part().orderMultiple === undefined">
-          {{ part().orderMultiple ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.planningFence' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().planningFenceDays === null || part().planningFenceDays === undefined">
-          {{ part().planningFenceDays ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.mrp.demandFence' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().demandFenceDays === null || part().demandFenceDays === undefined">
-          {{ part().demandFenceDays ?? '---' }}
-        </span>
-      </div>
-    </div>
-    <p class="cluster__value cluster__value--muted">{{ 'parts.detail.mrp.leadTimeNote' | translate }}</p>
-  </div>
-}
+  }
+</div>

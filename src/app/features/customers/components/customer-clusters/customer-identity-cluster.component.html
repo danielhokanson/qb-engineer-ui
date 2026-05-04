@@ -1,61 +1,25 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'customers.detail.tabs.overview' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'customers.detail.tabs.overview' | translate }}</h3>
 
-    <div class="cluster__form-row">
-      <app-input data-testid="customer-identity-name" label="Name" formControlName="name" [required]="true" />
-      <app-input data-testid="customer-identity-company" label="Company Name" formControlName="companyName" />
-    </div>
-
-    <div class="cluster__form-row">
-      <app-input data-testid="customer-identity-email" label="Email" formControlName="email" type="email" />
-      <app-input data-testid="customer-identity-phone" label="Phone" formControlName="phone" mask="phone" />
-    </div>
-
-    <app-toggle data-testid="customer-identity-active" label="Active" formControlName="isActive" />
-
-    <div class="cluster__actions">
-      <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
-      <app-validation-button [violations]="violations" [loading]="saving()">
-        <button class="action-btn action-btn--primary" type="button"
-          data-testid="customer-identity-save"
-          [disabled]="form.invalid || saving()"
-          (click)="onSave()">
-          <span class="material-icons-outlined">save</span>
-          Save
-        </button>
-      </app-validation-button>
-    </div>
+  <!-- ─── Editable identity fields ──────────────────────────────── -->
+  <div class="cluster__form-row">
+    <app-input data-testid="customer-identity-name" label="Name" formControlName="name" [required]="true" [isReadonly]="!editing()" />
+    <app-input data-testid="customer-identity-company" label="Company Name" formControlName="companyName" [isReadonly]="!editing()" />
   </div>
-} @else {
-  <div class="cluster">
+
+  <div class="cluster__form-row">
+    <app-input data-testid="customer-identity-email" label="Email" formControlName="email" type="email" [isReadonly]="!editing()" />
+    <app-input data-testid="customer-identity-phone" label="Phone" formControlName="phone" mask="phone" [isReadonly]="!editing()" />
+  </div>
+
+  <app-toggle data-testid="customer-identity-active" label="Active" formControlName="isActive" [isReadonly]="!editing()" />
+
+  <!-- ─── Always-derived external-system fields ─────────────────
+       Provider and ExternalId aren't editable here (managed by the
+       accounting integration). Shown via cluster label/value pattern
+       so the layout doesn't reflow on Edit toggle. -->
+  @if (customer().provider || customer().externalId) {
     <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">Name</span>
-        <span class="cluster__value">{{ customer().name }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Status</span>
-        <span class="cluster__value">{{ customer().isActive ? 'Active' : 'Inactive' }}</span>
-      </div>
-      @if (customer().companyName) {
-        <div class="cluster__item">
-          <span class="cluster__label">Company Name</span>
-          <span class="cluster__value">{{ customer().companyName }}</span>
-        </div>
-      }
-      @if (customer().email) {
-        <div class="cluster__item">
-          <span class="cluster__label">Email</span>
-          <span class="cluster__value">{{ customer().email }}</span>
-        </div>
-      }
-      @if (customer().phone) {
-        <div class="cluster__item">
-          <span class="cluster__label">Phone</span>
-          <span class="cluster__value">{{ customer().phone }}</span>
-        </div>
-      }
       @if (customer().provider) {
         <div class="cluster__item">
           <span class="cluster__label">Provider</span>
@@ -69,5 +33,20 @@
         </div>
       }
     </div>
-  </div>
-}
+  }
+
+  @if (editing()) {
+    <div class="cluster__actions">
+      <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
+      <app-validation-button [violations]="violations" [loading]="saving()">
+        <button class="action-btn action-btn--primary" type="button"
+          data-testid="customer-identity-save"
+          [disabled]="form.invalid || saving()"
+          (click)="onSave()">
+          <span class="material-icons-outlined">save</span>
+          Save
+        </button>
+      </app-validation-button>
+    </div>
+  }
+</div>

@@ -1,16 +1,44 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.tabs.identity' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.tabs.identity' | translate }}</h3>
 
-    <div class="cluster__form-row">
-      <app-input data-testid="part-identity-name" label="Name" formControlName="name" [required]="true" />
-      <app-input data-testid="part-identity-revision" label="Revision" formControlName="revision" />
+  <!-- ─── Always-derived identifiers ─────────────────────────────
+       Part Number, Procurement Source, Inventory Class, and Item
+       Kind aren't editable here — they're shown in BOTH modes via
+       the cluster label/value pattern so the layout doesn't reflow
+       when toggling Edit. The classification axes are changed via
+       dedicated tools (workflow / migration helpers), not inline. -->
+  <div class="cluster__grid">
+    <div class="cluster__item">
+      <span class="cluster__label">Part Number</span>
+      <span class="cluster__value">{{ part().partNumber }}</span>
     </div>
+    <div class="cluster__item">
+      <span class="cluster__label">Procurement Source</span>
+      <span class="cluster__value">{{ procurementLabel() }}</span>
+    </div>
+    <div class="cluster__item">
+      <span class="cluster__label">Inventory Class</span>
+      <span class="cluster__value">{{ inventoryClassLabel() }}</span>
+    </div>
+    @if (part().itemKindLabel) {
+      <div class="cluster__item">
+        <span class="cluster__label">Item Kind</span>
+        <span class="cluster__value">{{ part().itemKindLabel }}</span>
+      </div>
+    }
+  </div>
 
-    <app-textarea data-testid="part-identity-description" label="Description" formControlName="description" [rows]="2" />
+  <!-- ─── Editable identity fields ──────────────────────────────── -->
+  <div class="cluster__form-row">
+    <app-input data-testid="part-identity-name" label="Name" formControlName="name" [required]="true" [isReadonly]="!editing()" />
+    <app-input data-testid="part-identity-revision" label="Revision" formControlName="revision" [isReadonly]="!editing()" />
+  </div>
 
-    <app-select data-testid="part-identity-status" label="Status" formControlName="status" [options]="statusOptions" [required]="true" />
+  <app-textarea data-testid="part-identity-description" label="Description" formControlName="description" [rows]="2" [isReadonly]="!editing()" />
 
+  <app-select data-testid="part-identity-status" label="Status" formControlName="status" [options]="statusOptions" [required]="true" [isReadonly]="!editing()" />
+
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -23,46 +51,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">Part Number</span>
-        <span class="cluster__value">{{ part().partNumber }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Revision</span>
-        <span class="cluster__value">{{ part().revision || '---' }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Name</span>
-        <span class="cluster__value">{{ part().name }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Status</span>
-        <span class="cluster__value">{{ part().status }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Procurement Source</span>
-        <span class="cluster__value">{{ procurementLabel() }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Inventory Class</span>
-        <span class="cluster__value">{{ inventoryClassLabel() }}</span>
-      </div>
-      @if (part().itemKindLabel) {
-        <div class="cluster__item">
-          <span class="cluster__label">Item Kind</span>
-          <span class="cluster__value">{{ part().itemKindLabel }}</span>
-        </div>
-      }
-    </div>
-    @if (part().description) {
-      <div class="cluster__item">
-        <span class="cluster__label">Description</span>
-        <span class="cluster__value">{{ part().description }}</span>
-      </div>
-    }
-  </div>
-}
+  }
+</div>

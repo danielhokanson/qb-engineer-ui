@@ -1,11 +1,28 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.tabs.cost' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.tabs.cost' | translate }}</h3>
 
-    <div class="cluster__form-row">
-      <app-currency-input label="Manual Cost Override" formControlName="manualCostOverride" />
+  <!-- ─── Editable cost field ───────────────────────────────────── -->
+  <div class="cluster__form-row">
+    <app-currency-input label="Manual Cost Override" formControlName="manualCostOverride" [isReadonly]="!editing()" />
+  </div>
+
+  <!-- ─── Always-derived cost identifiers ──────────────────────── -->
+  <div class="cluster__grid">
+    <div class="cluster__item">
+      <span class="cluster__label">Cost Calculation Id</span>
+      <span class="cluster__value" [class.cluster__value--muted]="part().currentCostCalculationId === null">
+        {{ part().currentCostCalculationId ?? '---' }}
+      </span>
     </div>
+    @if (part().valuationClassLabel) {
+      <div class="cluster__item">
+        <span class="cluster__label">Valuation Class</span>
+        <span class="cluster__value">{{ part().valuationClassLabel }}</span>
+      </div>
+    }
+  </div>
 
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -17,32 +34,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">Manual Cost Override</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().manualCostOverride === null">
-          @if (part().manualCostOverride !== null) {
-            <app-currency-display [value]="part().manualCostOverride!" />
-          } @else {
-            ---
-          }
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Cost Calculation Id</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().currentCostCalculationId === null">
-          {{ part().currentCostCalculationId ?? '---' }}
-        </span>
-      </div>
-      @if (part().valuationClassLabel) {
-        <div class="cluster__item">
-          <span class="cluster__label">Valuation Class</span>
-          <span class="cluster__value">{{ part().valuationClassLabel }}</span>
-        </div>
-      }
-    </div>
-  </div>
-}
+  }
+</div>

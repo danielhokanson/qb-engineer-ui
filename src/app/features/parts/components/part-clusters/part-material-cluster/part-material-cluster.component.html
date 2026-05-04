@@ -1,48 +1,54 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.material.title' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.material.title' | translate }}</h3>
 
-    <div class="cluster__form-row">
-      <app-select data-testid="part-material-spec"
-        [label]="'parts.detail.material.spec' | translate"
-        formControlName="materialSpecId"
-        [options]="materialSpecOptions()" />
-    </div>
+  <div class="cluster__form-row">
+    <app-select data-testid="part-material-spec"
+      [label]="'parts.detail.material.spec' | translate"
+      formControlName="materialSpecId"
+      [options]="materialSpecOptions()"
+      [isReadonly]="!editing()" />
+  </div>
 
-    <div class="cluster__form-row">
-      <app-input data-testid="part-material-weight"
-        [label]="'parts.detail.material.weight' | translate"
-        type="number"
-        formControlName="weight" />
-      <app-select data-testid="part-material-weight-unit"
-        label="Unit"
-        formControlName="weightDisplayUnit"
-        [options]="weightUnitOptions" />
-    </div>
+  <div class="cluster__form-row">
+    <app-input data-testid="part-material-weight"
+      [label]="'parts.detail.material.weight' | translate"
+      type="number"
+      formControlName="weight"
+      [isReadonly]="!editing()" />
+    <app-select data-testid="part-material-weight-unit"
+      label="Unit"
+      formControlName="weightDisplayUnit"
+      [options]="weightUnitOptions"
+      [isReadonly]="!editing()" />
+  </div>
 
-    <div class="cluster__form-row">
-      <app-input label="Length" type="number" formControlName="length" />
-      <app-input label="Width" type="number" formControlName="width" />
-    </div>
-    <div class="cluster__form-row">
-      <app-input label="Height" type="number" formControlName="height" />
-      <app-select data-testid="part-material-dim-unit"
-        label="Unit"
-        formControlName="dimensionDisplayUnit"
-        [options]="dimensionUnitOptions" />
-    </div>
+  <div class="cluster__form-row">
+    <app-input label="Length" type="number" formControlName="length" [isReadonly]="!editing()" />
+    <app-input label="Width" type="number" formControlName="width" [isReadonly]="!editing()" />
+  </div>
+  <div class="cluster__form-row">
+    <app-input label="Height" type="number" formControlName="height" [isReadonly]="!editing()" />
+    <app-select data-testid="part-material-dim-unit"
+      label="Unit"
+      formControlName="dimensionDisplayUnit"
+      [options]="dimensionUnitOptions"
+      [isReadonly]="!editing()" />
+  </div>
 
-    <div class="cluster__form-row">
-      <app-input data-testid="part-material-volume"
-        [label]="'parts.detail.material.volume' | translate"
-        type="number"
-        formControlName="volume" />
-      <app-select data-testid="part-material-volume-unit"
-        label="Unit"
-        formControlName="volumeDisplayUnit"
-        [options]="volumeUnitOptions" />
-    </div>
+  <div class="cluster__form-row">
+    <app-input data-testid="part-material-volume"
+      [label]="'parts.detail.material.volume' | translate"
+      type="number"
+      formControlName="volume"
+      [isReadonly]="!editing()" />
+    <app-select data-testid="part-material-volume-unit"
+      label="Unit"
+      formControlName="volumeDisplayUnit"
+      [options]="volumeUnitOptions"
+      [isReadonly]="!editing()" />
+  </div>
 
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -55,46 +61,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.material.spec' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!displayMaterial()">
-          {{ displayMaterial() ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.material.weight' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().weightEach === null">
-          @if (part().weightEach !== null) {
-            {{ part().weightEach }} g
-          } @else {
-            ---
-          }
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.material.dimensions' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().lengthMm === null && part().widthMm === null && part().heightMm === null">
-          @if (part().lengthMm !== null || part().widthMm !== null || part().heightMm !== null) {
-            {{ part().lengthMm ?? '?' }} × {{ part().widthMm ?? '?' }} × {{ part().heightMm ?? '?' }} mm
-          } @else {
-            ---
-          }
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.material.volume' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().volumeMl === null">
-          @if (part().volumeMl !== null) {
-            {{ part().volumeMl }} mL
-          } @else {
-            ---
-          }
-        </span>
-      </div>
-    </div>
-  </div>
-}
+  }
+</div>

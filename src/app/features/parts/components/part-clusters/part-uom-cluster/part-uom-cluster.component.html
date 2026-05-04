@@ -1,25 +1,30 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.uom.title' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.uom.title' | translate }}</h3>
+  @if (editing()) {
     <p class="cluster__value cluster__value--muted">{{ 'parts.detail.uom.helper' | translate }}</p>
+  }
 
-    <div class="cluster__form-row">
-      <app-select data-testid="part-uom-stock"
-        [label]="'parts.detail.uom.stock' | translate"
-        formControlName="stockUomId"
-        [options]="uomOptions()" />
-      <app-select data-testid="part-uom-purchase"
-        [label]="'parts.detail.uom.purchase' | translate"
-        formControlName="purchaseUomId"
-        [options]="uomOptions()" />
-    </div>
-    <div class="cluster__form-row">
-      <app-select data-testid="part-uom-sales"
-        [label]="'parts.detail.uom.sales' | translate"
-        formControlName="salesUomId"
-        [options]="uomOptions()" />
-    </div>
+  <div class="cluster__form-row">
+    <app-select data-testid="part-uom-stock"
+      [label]="'parts.detail.uom.stock' | translate"
+      formControlName="stockUomId"
+      [options]="uomOptions()"
+      [isReadonly]="!editing()" />
+    <app-select data-testid="part-uom-purchase"
+      [label]="'parts.detail.uom.purchase' | translate"
+      formControlName="purchaseUomId"
+      [options]="uomOptions()"
+      [isReadonly]="!editing()" />
+  </div>
+  <div class="cluster__form-row">
+    <app-select data-testid="part-uom-sales"
+      [label]="'parts.detail.uom.sales' | translate"
+      formControlName="salesUomId"
+      [options]="uomOptions()"
+      [isReadonly]="!editing()" />
+  </div>
 
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -32,28 +37,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.uom.stock' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!part().stockUomId">
-          {{ resolveLabel(part().stockUomId) }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.uom.purchase' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!part().purchaseUomId">
-          {{ resolveLabel(part().purchaseUomId) }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">{{ 'parts.detail.uom.sales' | translate }}</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!part().salesUomId">
-          {{ resolveLabel(part().salesUomId) }}
-        </span>
-      </div>
-    </div>
-  </div>
-}
+  }
+</div>

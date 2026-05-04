@@ -1,22 +1,22 @@
-@if (editing()) {
-  <div class="cluster" [formGroup]="form">
-    <h3 class="cluster__title">{{ 'parts.detail.tabs.inventory' | translate }}</h3>
+<div class="cluster" [formGroup]="form">
+  <h3 class="cluster__title">{{ 'parts.detail.tabs.inventory' | translate }}</h3>
 
-    <div class="cluster__form-row">
-      <app-input label="Min Stock" type="number" formControlName="minStockThreshold" />
-      <app-input label="Reorder Point" type="number" formControlName="reorderPoint" />
-    </div>
-    <div class="cluster__form-row">
-      <app-input label="Reorder Quantity" type="number" formControlName="reorderQuantity" />
-      <app-input label="Safety Stock (days)" type="number" formControlName="safetyStockDays" />
-    </div>
-    <div class="cluster__form-row">
-      <app-select label="Traceability" formControlName="traceabilityType" [options]="traceabilityOptions" />
-    </div>
-    <div class="cluster__form-row">
-      <app-select label="ABC Class" formControlName="abcClass" [options]="abcOptions" />
-    </div>
+  <div class="cluster__form-row">
+    <app-input label="Min Stock" type="number" formControlName="minStockThreshold" [isReadonly]="!editing()" />
+    <app-input label="Reorder Point" type="number" formControlName="reorderPoint" [isReadonly]="!editing()" />
+  </div>
+  <div class="cluster__form-row">
+    <app-input label="Reorder Quantity" type="number" formControlName="reorderQuantity" [isReadonly]="!editing()" />
+    <app-input label="Safety Stock (days)" type="number" formControlName="safetyStockDays" [isReadonly]="!editing()" />
+  </div>
+  <div class="cluster__form-row">
+    <app-select label="Traceability" formControlName="traceabilityType" [options]="traceabilityOptions" [isReadonly]="!editing()" />
+  </div>
+  <div class="cluster__form-row">
+    <app-select label="ABC Class" formControlName="abcClass" [options]="abcOptions" [isReadonly]="!editing()" />
+  </div>
 
+  @if (editing()) {
     <div class="cluster__actions">
       <button class="action-btn" type="button" (click)="onCancel()">Cancel</button>
       <app-validation-button [violations]="violations" [loading]="saving()">
@@ -28,44 +28,5 @@
         </button>
       </app-validation-button>
     </div>
-  </div>
-} @else {
-  <div class="cluster">
-    <div class="cluster__grid">
-      <div class="cluster__item">
-        <span class="cluster__label">Min Stock</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().minStockThreshold === null">
-          {{ part().minStockThreshold ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Reorder Point</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().reorderPoint === null">
-          {{ part().reorderPoint ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Reorder Quantity</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().reorderQuantity === null">
-          {{ part().reorderQuantity ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Safety Stock (days)</span>
-        <span class="cluster__value" [class.cluster__value--muted]="part().safetyStockDays === null">
-          {{ part().safetyStockDays ?? '---' }}
-        </span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">Traceability</span>
-        <span class="cluster__value">{{ part().traceabilityType }}</span>
-      </div>
-      <div class="cluster__item">
-        <span class="cluster__label">ABC Class</span>
-        <span class="cluster__value" [class.cluster__value--muted]="!part().abcClass">
-          {{ part().abcClass ?? '---' }}
-        </span>
-      </div>
-    </div>
-  </div>
-}
+  }
+</div>
