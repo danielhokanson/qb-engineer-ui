@@ -434,6 +434,21 @@
     "title": "Parts Catalog",
     "part": "Part",
     "searchByPartNumber": "Search by part number…",
+    "draftIndicator": {
+      "label": "Draft",
+      "tooltip": "Workflow in progress — current step: {{step}}. Click to resume.",
+      "resume": "Resume workflow"
+    },
+    "drafts": {
+      "rowLabel": "Draft",
+      "unnamed": "(Unnamed draft)",
+      "lastEdited": "Last edited {{when}}",
+      "stepLabel": "Step: {{step}}",
+      "abandonAction": "Abandon",
+      "abandonConfirmTitle": "Abandon this draft?",
+      "abandonConfirmMessage": "The in-progress workflow will be discarded. This cannot be undone.",
+      "abandoned": "Draft abandoned."
+    },
     "allProcurementSources": "All procurement sources",
     "allInventoryClasses": "All inventory classes",
     "procurementSource": {
@@ -605,6 +620,7 @@
     "safetyStockDays": "Safety Stock Days",
     "workflow": {
       "startFailed": "Couldn't start the workflow.",
+      "abandonFailed": "Couldn't abandon the draft. Try again.",
       "fork": {
         "title": "How would you like to add this part?",
         "stepLabel": "Step {{current}} of {{total}}",
@@ -832,9 +848,10 @@
         "saveFailed": "Couldn't save vendor info."
       },
       "vendorParts": {
-        "title": "Vendor Parts",
-        "hint": "OEM identity (manufacturer + MPN + vendor SKU) and per-vendor pricing live on each (Part, Vendor) row. Add at least the preferred source; alternates can follow.",
-        "pendingMaterialization": "Save earlier steps first to enable vendor sources for this part."
+        "title": "Vendor Sources",
+        "hint": "Each vendor that supplies this part is its own group below — vendor-specific identifiers, lead time, MOQ, and price tiers. The preferred vendor (set on the previous step) shows first; add alternates as needed.",
+        "pendingMaterialization": "Save earlier steps first to enable vendor sources for this part.",
+        "rationale": "<strong>Vendor Sources is where pricing and per-vendor terms live.</strong> Purchase Order creation reads price tiers from here — without at least one tier on the chosen vendor, the system can't quote a price for the requested quantity and the PO line will block. <br><br>The preferred vendor (set on the prior step) is the default for new POs; you can override per-PO. Adding alternate vendors here gives buyers fallback options when the preferred is out of stock or over-MOQ for the situation."
       },
       "flags": {
         "title": "Flags",
@@ -947,6 +964,43 @@
       "confirmDelete": "Remove this price row from history?"
     }
   },
+  "vendorSources": {
+    "preferred": "Preferred",
+    "setAsPreferred": "Set as preferred",
+    "noTiersWarning": "No tiers — needs pricing",
+    "stubHint": "Fill in details to add this source",
+    "addAnother": "Add another vendor source",
+    "addTier": "Add tier",
+    "stubHintReadonly": "Source not yet configured",
+    "pickVendor": "Pick a vendor",
+    "priceTiers": "Price tiers",
+    "removed": "Vendor source removed",
+    "duplicate": "That vendor is already a source for this part.",
+    "noTiersInline": "No price tiers on this source yet.",
+    "saveFailed": "Couldn't save the vendor source.",
+    "tierSaveFailed": "Couldn't save the price tier.",
+    "tier": {
+      "minQty": "Min qty",
+      "unitPrice": "Unit price",
+      "currency": "Currency",
+      "effectiveFrom": "Effective from",
+      "remove": "Remove tier"
+    },
+    "removeTier": {
+      "confirmTitle": "Remove this price tier?",
+      "confirmMessage": "Removing the tier closes it for any future PO that would have read this price. Existing POs already in flight are unaffected."
+    },
+    "removeRow": {
+      "aria": "Remove vendor source for {{vendor}}",
+      "confirmTitle": "Remove vendor source?",
+      "confirmMessage": "Removes {{vendor}} as a source for this part, including its lead time, MOQ, and any price tiers. Existing POs already in flight are unaffected."
+    },
+    "empty": {
+      "message": "No vendor sources yet.",
+      "help": "Add a vendor that supplies this part to track lead time, MOQ, and pricing.",
+      "helpReadonly": "Click Edit to add a vendor source for this part."
+    }
+  },
   "vendorPart": {
     "vendorPartNumber": "Vendor Part # / External SKU",
     "manufacturerName": "Manufacturer",
@@ -962,6 +1016,7 @@
     "isPreferred": "Preferred Source",
     "isPreferredHelper": "Only one vendor per part can be the preferred source.",
     "lastQuotedDate": "Last Quoted",
+    "certifications": "Certifications",
     "notes": "Notes",
     "priceTiersLabel": "Price Tiers",
     "priceTiersCount": "{{count}} tier(s)",
@@ -2630,7 +2685,7 @@
     "poLines": "PO Lines"
   },
   "entityPicker": {
-    "createNew": "+ Create new {{label}} “{{term}}”"
+    "createNew": "Create new {{label}} “{{term}}”"
   },
   "vendorQuickCreate": {
     "title": "Quick-create vendor",
@@ -5100,7 +5155,7 @@
         "alternates": "Alternates",
         "expressForm": "Quick add",
         "sourcing": "Preferred Vendor",
-        "vendorParts": "Vendor Parts",
+        "vendorParts": "Vendor Sources",
         "inventory": "Inventory",
         "manufacturing": "Manufacturing",
         "quality": "Quality",
@@ -5132,9 +5187,10 @@
         "confirmMessage": "You have unsaved changes on this step. Switching modes will discard them.",
         "confirmAction": "Switch and discard"
       },
+      "contextPaneLabel": "Step context",
       "optional": "Optional",
       "rationale": {
-        "heading": "What does this step enable?"
+        "heading": "Why this step?"
       },
       "readonlyLabel": "View only",
       "resumeBanner": "Picking up where you left off — last edited {{lastEdited}}.",

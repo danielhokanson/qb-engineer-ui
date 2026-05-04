@@ -53,6 +53,76 @@
 // ─── Cell Styles ───
 .part-number { font-weight: 700; font-family: $font-family-mono; font-size: var(--font-size-xs); }
 .part-desc { @include truncate; max-width: 240px; }
+
+// Ghost rows for entity-less workflow drafts: synthetic rows prepended to
+// the parts table so drafts live in the user's natural scan path. Yellow
+// tint + left accent so they read as "in progress, not a real part yet".
+:host ::ng-deep tr.part-row--draft-ghost,
+.part-row--draft-ghost {
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface)) !important;
+  border-left: $border-width-accent solid var(--warning);
+
+  &:hover {
+    background: color-mix(in srgb, var(--warning) 14%, var(--surface)) !important;
+  }
+}
+
+.part-row__draft-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $sp-sm;
+  background: var(--warning);
+  color: var(--surface);
+  font-size: $font-size-xxs;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.part-desc--draft {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.part-row__draft-meta {
+  display: inline-block;
+  margin-left: $sp-sm;
+  color: var(--text-muted);
+  font-size: $font-size-xxs;
+}
+
+.part-row__draft-abandon {
+  margin-left: $sp-sm;
+}
+
+// In-progress workflow indicator on a part row. Inline chip-button — clicking
+// resumes the workflow at its last step. stopPropagation in the template keeps
+// the row's own click (open detail dialog) from firing.
+.part-row__resume-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-xs;
+  margin-left: $sp-sm;
+  padding: 2px $sp-sm;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning);
+  border: $border-width-thin solid var(--warning);
+  font-size: $font-size-xxs;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: color-mix(in srgb, var(--warning) 22%, transparent);
+  }
+
+  .material-icons-outlined {
+    font-size: $icon-size-xs;
+  }
+}
 .type-chip { @include uppercase-label(var(--font-size-xxs), 0.5px, 600); display: inline-flex; align-items: center; gap: $sp-xs; }
 .type-icon { font-size: var(--font-size-title); color: var(--text-muted); }
 

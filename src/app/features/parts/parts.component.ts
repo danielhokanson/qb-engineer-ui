@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -7,7 +8,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { PartsService } from './services/parts.service';
-import { PartListItem } from './models/part-list-item.model';
+import { PartListItem, PartListRow } from './models/part-list-item.model';
 import { PartDetail } from './models/part-detail.model';
 import { PartStatus } from './models/part-status.type';
 import { ProcurementSource } from './models/procurement-source.type';
@@ -17,6 +18,7 @@ import { AbcClass } from './models/abc-class.type';
 import { ScannerService } from '../../shared/services/scanner.service';
 import { UserPreferencesService } from '../../shared/services/user-preferences.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DialogComponent } from '../../shared/components/dialog/dialog.component';
 import { InputComponent } from '../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../shared/components/select/select.component';
@@ -35,6 +37,7 @@ import { LoadingBlockDirective } from '../../shared/directives/loading-block.dir
 import { PartsCardGridComponent } from './components/parts-card-grid/parts-card-grid.component';
 import { DetailDialogService } from '../../shared/services/detail-dialog.service';
 import { PartDetailDialogComponent, PartDetailDialogData } from './components/part-detail-dialog/part-detail-dialog.component';
+import { WorkflowRun } from '../../shared/models/workflow-run.model';
 import { WorkflowService } from '../../shared/services/workflow.service';
 import { NewPartForkDialogComponent, NewPartForkResult } from './workflow/new-part-fork-dialog/new-part-fork-dialog.component';
 import { EntityCompletenessChipComponent } from '../../shared/components/entity-completeness-chip/entity-completeness-chip.component';
@@ -46,6 +49,7 @@ type ViewMode = 'table' | 'cards';
   selector: 'app-parts',
   standalone: true,
   imports: [
+    DatePipe,
     ReactiveFormsModule, TranslatePipe,
     PageHeaderComponent, DialogComponent,
     InputComponent, SelectComponent, TextareaComponent,
@@ -73,6 +77,42 @@ export class PartsComponent {
 
   protected readonly loading = signal(false);
   protected readonly parts = signal<PartListItem[]>([]);
+  /**
+   * Entity-less workflow drafts the user has started but hasn't materialized
+   * a Part row for yet. Surfaced as color-coded ghost rows at the top of the
+   * parts table (see {@link combinedRows}) so they live in the user's natural
+   * scan path rather than a separate region.
+   */
+  protected readonly entitylessDrafts = signal<WorkflowRun[]>([]);
+
+  /**
+   * Parts list with entity-less workflow drafts prepended as synthetic
+   * "ghost" rows. Each ghost has `_draftRun` set so cell templates can
+   * branch on it; the rest of the PartListItem fields are filled with
+   * sentinel values that read as "not applicable" (`---`, etc.).
+   */
+  protected readonly combinedRows = computed<PartListRow[]>(() => {
+    const ghosts: PartListRow[] = this.entitylessDrafts().map(run => ({
+      // Negative id keeps it distinct from any real Part id and makes the
+      // type-cast in onRowClick unambiguous.
+      id: -run.id,
+      partNumber: '',
+      name: this.translate.instant('parts.drafts.unnamed'),
+      description: null,
+      revision: '',
+      status: 'Draft' as const,
+      procurementSource: 'Buy' as const,
+      inventoryClass: 'Component' as const,
+      bomEntryCount: 0,
+      createdAt: new Date(run.startedAt),
+      effectivePrice: 0,
+      effectivePriceCurrency: 'USD',
+      effectivePriceSource: 'Default' as const,
+      pendingWorkflow: null,
+      _draftRun: run,
+    }));
+    return [...ghosts, ...this.parts()];
+  });
   // Phase 3 F7-partial / WU-17 — surfaces server-side totalCount.
   protected readonly totalCount = signal<number>(0);
 
@@ -198,6 +238,7 @@ export class PartsComponent {
   constructor() {
     this.scanner.setContext('parts');
     this.loadParts();
+    this.loadEntitylessDrafts();
 
     effect(() => {
       const scan = this.scanner.lastScan();
@@ -308,6 +349,85 @@ export class PartsComponent {
     });
   }
 
+  /**
+   * Resume an in-progress workflow from the row indicator. The pendingWorkflow
+   * payload comes from the list projection (single-query LEFT JOIN on
+   * workflow_runs), so this navigates directly with no extra fetch.
+   */
+  protected resumeWorkflow(part: PartListItem): void {
+    const pw = part.pendingWorkflow;
+    if (!pw) return;
+    this.router.navigate(['/parts', part.id], {
+      queryParams: {
+        workflow: pw.definitionId,
+        step: pw.currentStepId ?? 'basics',
+        mode: pw.mode,
+        runId: pw.runId,
+      },
+    });
+  }
+
+  /**
+   * Load workflow runs that haven't materialized a Part row yet — these
+   * surface in the "Drafts in progress" section above the parts list, since
+   * they have no row to attach a per-row indicator to. Without this surface
+   * an abandoned wizard becomes orphaned data the user can never find.
+   */
+  protected loadEntitylessDrafts(): void {
+    this.workflowService.listActive().subscribe({
+      next: (runs) => {
+        const drafts = runs.filter(r =>
+          r.entityType === 'Part'
+          && r.entityId == null
+          && r.completedAt == null
+          && r.abandonedAt == null);
+        this.entitylessDrafts.set(drafts);
+      },
+      error: () => this.entitylessDrafts.set([]),
+    });
+  }
+
+  /** Resume an entity-less draft by routing to /parts/new with its runId. */
+  protected resumeEntitylessDraft(run: WorkflowRun): void {
+    this.router.navigate(['/parts', 'new'], {
+      queryParams: {
+        runId: run.id,
+        workflow: run.definitionId,
+        step: run.currentStepId ?? 'basics',
+        mode: run.mode,
+      },
+    });
+  }
+
+  /**
+   * Abandon a draft from the Drafts section. Confirms first because the
+   * action is destructive (run gets `abandonedAt` stamped, entity row
+   * soft-deleted if Draft). After success the row drops off the list.
+   */
+  protected abandonDraft(run: WorkflowRun): void {
+    this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: this.translate.instant('parts.drafts.abandonConfirmTitle'),
+        message: this.translate.instant('parts.drafts.abandonConfirmMessage'),
+        confirmLabel: this.translate.instant('parts.drafts.abandonAction'),
+        severity: 'danger',
+      } satisfies ConfirmDialogData,
+    }).afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.workflowService.abandonRun(run.id, 'user').subscribe({
+        next: () => {
+          this.snackbar.success(this.translate.instant('parts.drafts.abandoned'));
+          this.loadEntitylessDrafts();
+          // Refresh the parts list too in case the abandon soft-deleted a
+          // Draft row that was being shown as a row.
+          this.loadParts();
+        },
+        error: () => this.snackbar.error(this.translate.instant('parts.workflow.abandonFailed')),
+      });
+    });
+  }
+
   private openDetailDialog(partId: number): void {
     this.detailDialog.open<PartDetailDialogComponent, PartDetailDialogData, { action: string; part: PartDetail } | undefined>(
       'part', partId, PartDetailDialogComponent, { partId }
@@ -319,11 +439,37 @@ export class PartsComponent {
     });
   }
 
-  /** Phase 5: visual marker on Draft rows so they're easy to spot. */
+  /**
+   * Visual classifier for parts table rows. Synthetic draft rows
+   * (`_draftRun` set) get the bright `part-row--draft-ghost` tint so they
+   * read as "in progress, not a real part yet". Plain Draft-status parts
+   * keep the subtler legacy marker.
+   */
   protected readonly partRowClass = (row: unknown): string => {
-    const part = row as PartListItem;
+    const part = row as PartListRow;
+    if (part._draftRun) return 'part-row--draft-ghost';
     return part.status === 'Draft' ? 'part-row--draft' : '';
   };
+
+  /**
+   * Pin predicate for the data-table — draft ghost rows always render at
+   * the top of the table regardless of the user's active sort column.
+   */
+  protected readonly isDraftRow = (row: unknown): boolean =>
+    !!(row as PartListRow)._draftRun;
+
+  /**
+   * Row-click dispatcher. Real part rows go to the detail (or resume an
+   * existing entity-bound workflow); ghost draft rows resume the entity-less
+   * workflow run instead.
+   */
+  protected onRowClick(row: PartListRow): void {
+    if (row._draftRun) {
+      this.resumeEntitylessDraft(row._draftRun);
+      return;
+    }
+    this.openPartDetail(row.id);
+  }
 
   // ── Part CRUD ──
 

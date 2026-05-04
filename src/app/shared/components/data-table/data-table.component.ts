@@ -76,6 +76,13 @@ export class DataTableComponent implements OnInit {
   readonly clickableRows = input(false);
   readonly rowClass = input<((row: unknown) => string) | null>(null);
   readonly rowStyle = input<((row: unknown) => Record<string, string>) | null>(null);
+  /**
+   * Optional predicate for rows that should always render at the top of the
+   * table, ignoring the user's sort. Use for "drafts" / "pending" / "starred"
+   * affordances where in-progress items should stay in the user's scan path
+   * regardless of the active sort column. Returns true → row pins to top.
+   */
+  readonly pinPredicate = input<((row: unknown) => boolean) | null>(null);
 
   readonly rowClick = output<unknown>();
   readonly selectionChange = output<unknown[]>();
@@ -174,9 +181,22 @@ export class DataTableComponent implements OnInit {
   });
 
   protected readonly sortedData = computed(() => {
-    const data = [...this.filteredData()];
+    const allData = [...this.filteredData()];
     const sorts = this.sortStates();
-    if (!sorts.length) return data;
+    const pin = this.pinPredicate();
+
+    // Partition pinned rows out so they always render at the top regardless
+    // of the active sort. Pinned rows preserve their incoming order; the
+    // un-pinned rows go through the normal sort below.
+    const pinned: unknown[] = [];
+    const data: unknown[] = [];
+    if (pin) {
+      for (const row of allData) (pin(row) ? pinned : data).push(row);
+    } else {
+      data.push(...allData);
+    }
+
+    if (!sorts.length) return [...pinned, ...data];
 
     const columns = this.columns();
     const resolvers = new Map<string, (row: unknown) => unknown>();
@@ -192,7 +212,7 @@ export class DataTableComponent implements OnInit {
       }
     }
 
-    return data.sort((a, b) => {
+    const sorted = data.sort((a, b) => {
       for (const sort of sorts) {
         const resolve = resolvers.get(sort.field)!;
         const valA = resolve(a);
@@ -211,6 +231,8 @@ export class DataTableComponent implements OnInit {
       }
       return 0;
     });
+
+    return [...pinned, ...sorted];
   });
 
   protected readonly pagedData = computed(() => {

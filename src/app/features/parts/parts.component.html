@@ -6,6 +6,7 @@
 </app-page-header>
 
 <div class="parts-layout">
+
   <div class="parts-list-panel">
     <!-- Filters -->
     <div class="filters-bar">
@@ -39,15 +40,51 @@
           [selectedPartId]="null"
           (partClick)="openPartDetail($event.id)" />
       } @else {
-        <app-data-table tableId="parts" [columns]="partColumns" [data]="parts()"
+        <app-data-table tableId="parts" [columns]="partColumns" [data]="combinedRows()"
           emptyIcon="inventory_2" [emptyMessage]="'parts.noPartsFound' | translate" [emptyHelpText]="'parts.noPartsHelp' | translate"
-          [clickableRows]="true" [rowClass]="partRowClass" (rowClick)="openPartDetail($any($event).id)">
+          [clickableRows]="true" [rowClass]="partRowClass" [pinPredicate]="isDraftRow"
+          (rowClick)="onRowClick($any($event))">
           <ng-template appColumnCell="partNumber" let-part>
-            <span class="part-number">{{ part.partNumber }}</span>
+            @if (part._draftRun) {
+              <span class="part-row__draft-tag">{{ 'parts.drafts.rowLabel' | translate }}</span>
+            } @else {
+              <span class="part-number">{{ part.partNumber }}</span>
+            }
           </ng-template>
           <ng-template appColumnCell="name" let-part>
-            <span class="part-desc">{{ part.name }}</span>
-            <app-entity-completeness-badge entityType="Part" [entityId]="part.id" />
+            @if (part._draftRun) {
+              <!-- Synthetic draft row: a workflow run that hasn't materialized
+                   a Part yet. Click resumes; the X button (stopPropagation)
+                   abandons. Color-coded via .part-row--draft-ghost. -->
+              <span class="part-desc part-desc--draft">{{ part.name }}</span>
+              <span class="part-row__draft-meta">
+                {{ 'parts.drafts.stepLabel' | translate: { step: part._draftRun.currentStepId ?? '?' } }}
+                ·
+                {{ 'parts.drafts.lastEdited' | translate: { when: part._draftRun.lastActivityAt | date:'short' } }}
+              </span>
+              <button type="button" class="icon-btn icon-btn--danger part-row__draft-abandon"
+                [attr.data-testid]="'parts-drafts-abandon-' + part._draftRun.id"
+                [matTooltip]="'parts.drafts.abandonAction' | translate"
+                matTooltipPosition="above"
+                [attr.aria-label]="'parts.drafts.abandonAction' | translate"
+                (click)="$event.stopPropagation(); abandonDraft(part._draftRun)">
+                <span class="material-icons-outlined">close</span>
+              </button>
+            } @else {
+              <span class="part-desc">{{ part.name }}</span>
+              <app-entity-completeness-badge entityType="Part" [entityId]="part.id" />
+              @if (part.pendingWorkflow) {
+                <button type="button" class="part-row__resume-chip"
+                  [matTooltip]="'parts.draftIndicator.tooltip' | translate: { step: part.pendingWorkflow.currentStepId ?? '?' }"
+                  matTooltipPosition="above"
+                  [attr.data-testid]="'part-row-resume-' + part.id"
+                  [attr.aria-label]="'parts.draftIndicator.resume' | translate"
+                  (click)="$event.stopPropagation(); resumeWorkflow(part)">
+                  <span class="material-icons-outlined">edit_note</span>
+                  <span>{{ 'parts.draftIndicator.label' | translate }}</span>
+                </button>
+              }
+            }
           </ng-template>
           <ng-template appColumnCell="procurementSource" let-part>
             <span class="type-chip">{{ part.procurementSource }}</span>

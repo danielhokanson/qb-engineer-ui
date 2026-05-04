@@ -431,6 +431,21 @@
     "title": "Catálogo de Piezas",
     "part": "Pieza",
     "searchByPartNumber": "Buscar por número de pieza…",
+    "draftIndicator": {
+      "label": "Borrador",
+      "tooltip": "Flujo en progreso — paso actual: {{step}}. Haz clic para retomar.",
+      "resume": "Retomar flujo"
+    },
+    "drafts": {
+      "rowLabel": "Borrador",
+      "unnamed": "(Borrador sin nombre)",
+      "lastEdited": "Última edición {{when}}",
+      "stepLabel": "Paso: {{step}}",
+      "abandonAction": "Abandonar",
+      "abandonConfirmTitle": "¿Abandonar este borrador?",
+      "abandonConfirmMessage": "El flujo en progreso se descartará. Esto no se puede deshacer.",
+      "abandoned": "Borrador abandonado."
+    },
     "allProcurementSources": "Todas las fuentes",
     "allInventoryClasses": "Todas las clases",
     "procurementSource": {
@@ -585,6 +600,7 @@
     "safetyStockDays": "Días de Stock de Seguridad",
     "workflow": {
       "startFailed": "No se pudo iniciar el flujo.",
+      "abandonFailed": "No se pudo abandonar el borrador. Inténtalo de nuevo.",
       "fork": {
         "title": "How would you like to add this part?",
         "stepLabel": "Paso {{current}} de {{total}}",
@@ -915,6 +931,43 @@
       "confirmDelete": "¿Eliminar esta fila de precio del historial?"
     }
   },
+  "vendorSources": {
+    "preferred": "Preferido",
+    "setAsPreferred": "Marcar como preferido",
+    "noTiersWarning": "Sin niveles — falta precio",
+    "stubHint": "Completa los detalles para añadir este proveedor",
+    "addAnother": "Añadir otro proveedor",
+    "addTier": "Añadir nivel",
+    "stubHintReadonly": "Fuente aún no configurada",
+    "pickVendor": "Selecciona un proveedor",
+    "priceTiers": "Niveles de precio",
+    "removed": "Proveedor eliminado",
+    "duplicate": "Ese proveedor ya es una fuente de esta pieza.",
+    "noTiersInline": "Aún no hay niveles de precio en esta fuente.",
+    "saveFailed": "No se pudo guardar el proveedor.",
+    "tierSaveFailed": "No se pudo guardar el nivel de precio.",
+    "tier": {
+      "minQty": "Cant. mín.",
+      "unitPrice": "Precio unitario",
+      "currency": "Moneda",
+      "effectiveFrom": "Vigente desde",
+      "remove": "Eliminar nivel"
+    },
+    "removeTier": {
+      "confirmTitle": "¿Eliminar este nivel de precio?",
+      "confirmMessage": "Eliminar el nivel lo cierra para cualquier PO futura que hubiera leído este precio. Las POs en curso no se ven afectadas."
+    },
+    "removeRow": {
+      "aria": "Eliminar proveedor {{vendor}}",
+      "confirmTitle": "¿Eliminar este proveedor?",
+      "confirmMessage": "Elimina {{vendor}} como fuente de esta pieza, incluyendo plazo, MOQ y niveles de precio. Las POs en curso no se ven afectadas."
+    },
+    "empty": {
+      "message": "Aún no hay proveedores.",
+      "help": "Añade un proveedor que suministre esta pieza para rastrear plazo, MOQ y precios.",
+      "helpReadonly": "Haz clic en Editar para añadir un proveedor a esta pieza."
+    }
+  },
   "vendorPart": {
     "vendorPartNumber": "Pieza del proveedor",
     "vendorMpn": "MPN del proveedor",
@@ -929,6 +982,7 @@
     "isPreferred": "Proveedor preferente",
     "isPreferredHelper": "Solo un proveedor por pieza puede ser preferente.",
     "lastQuotedDate": "Última cotización",
+    "certifications": "Certificaciones",
     "notes": "Notas",
     "priceTiersLabel": "Niveles de precio",
     "priceTiersCount": "{{count}} nivel(es)",
@@ -2399,7 +2453,7 @@
     "poLines": "Líneas de OC"
   },
   "entityPicker": {
-    "createNew": "+ Crear nuevo {{label}} «{{term}}»"
+    "createNew": "Crear nuevo {{label}} «{{term}}»"
   },
   "vendorQuickCreate": {
     "title": "Crear proveedor rápido",
@@ -4786,7 +4840,7 @@
         "alternates": "Alternates",
         "expressForm": "Quick add",
         "sourcing": "Abastecimiento",
-        "vendorParts": "Piezas del Proveedor",
+        "vendorParts": "Proveedores",
         "manufacturer": "Fabricante",
         "inventory": "Inventario",
         "manufacturing": "Fabricación",
@@ -4819,9 +4873,10 @@
         "confirmMessage": "Tienes cambios sin guardar en este paso. Cambiar de modo los descartará.",
         "confirmAction": "Cambiar y descartar"
       },
+      "contextPaneLabel": "Contexto del paso",
       "optional": "Opcional",
       "rationale": {
-        "heading": "¿Qué habilita este paso?"
+        "heading": "¿Por qué este paso?"
       },
       "readonlyLabel": "Solo vista",
       "resumeBanner": "Continuando donde lo dejaste — última edición {{lastEdited}}.",
