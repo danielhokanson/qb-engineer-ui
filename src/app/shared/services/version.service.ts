@@ -30,7 +30,7 @@ export class VersionService {
   checkLatest(): void {
     this.checking.set(true);
     this.http
-      .get<{ sha: string }>('https://api.github.com/repos/danielhokanson/qb-engineer-wrapper/commits/main', {
+      .get<{ sha: string }>('https://api.github.com/repos/danielhokanson/qb-engineer-ui/commits/main', {
         headers: { Accept: 'application/vnd.github+json' },
       })
       .pipe(catchError(() => of(null)))

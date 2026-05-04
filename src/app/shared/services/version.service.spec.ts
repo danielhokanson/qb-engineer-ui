@@ -6,7 +6,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { AppVersion, VersionService } from './version.service';
 
 const GITHUB_COMMITS_URL =
-  'https://api.github.com/repos/danielhokanson/qb-engineer-wrapper/commits/main';
+  'https://api.github.com/repos/danielhokanson/qb-engineer-ui/commits/main';
 
 describe('VersionService', () => {
   let service: VersionService;
