@@ -185,7 +185,17 @@ export class WorkflowComponent {
         let allPass = true;
         for (const gateId of step.completionGates) {
           const v = validatorsById.get(gateId);
-          if (!v || !this.evaluator.evaluateJson(v.predicate, entity)) {
+          if (!v) { allPass = false; break; }
+          // Per-record applicability: when present, evaluate first.
+          // Non-applicable validators are treated as satisfied — there's
+          // nothing for them to gate on for this record. Mirrors the
+          // server's EntityReadinessService behavior so the rail
+          // matches the server's missing-validators answer.
+          if (v.applicabilityPredicate
+              && !this.evaluator.evaluateJson(v.applicabilityPredicate, entity)) {
+            continue;
+          }
+          if (!this.evaluator.evaluateJson(v.predicate, entity)) {
             allPass = false;
             break;
           }
