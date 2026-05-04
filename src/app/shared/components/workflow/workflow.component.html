@@ -1,3 +1,37 @@
+<!--
+  Workflow shell layout (Option C — adopted 2026-05-04 after the part-UX
+  research pass):
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Title · breadcrumb              [mode toggle] │ ×  ← header chrome  │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ rail │ form column (primary surface)        │ context pane (bg)   │
+  │ 240  │  ┌───────────────────────────┐       │ ┌─────────────────┐ │
+  │      │  │ resume banner / errors     │      │ │ Why this step   │ │
+  │      │  │ step body (component)      │      │ │ (rationale)     │ │
+  │      │  └───────────────────────────┘       │ └─────────────────┘ │
+  │      │  ┌─── footer (Back · Continue) ───┐ │ ┌─────────────────┐ │
+  │      │                                     │ │ Related record  │ │
+  │      │                                     │ │ (when present)  │ │
+  │      │                                     │ └─────────────────┘ │
+  └──────┴─────────────────────────────────────┴─────────────────────┘
+
+  Decisions:
+   • Close button + mode toggle live in the dialog HEADER, anchored
+     top-right; persistent regardless of step content height. (Material
+     dialog convention; matches Salesforce, Fiori, Business Central.)
+   • Step rail + context pane both sticky within the dialog body — they
+     don't scroll with the form column.
+   • Right context pane uses var(--bg) (page background) to visually
+     demote vs. the form's var(--surface). Polaris's primary/secondary
+     proportion convention.
+   • Below 1024px the right pane drops below the form as a collapsible
+     "Why this step" panel. NN/g wizard guideline 7 ("help next to the
+     wizard, not covering it") translated to small viewports.
+   • Footer stays inside the form column so the primary action anchors
+     to the user's working surface (Wroblewski). Not bottom-right of the
+     entire dialog.
+-->
 <div class="workflow-shell" [class.workflow-shell--guided]="mode() === 'guided'" [class.workflow-shell--express]="mode() === 'express'">
   <header class="workflow-shell__header">
     <div class="workflow-shell__title-block">
@@ -17,45 +51,55 @@
       }
     </div>
 
-    @if (!readonly()) {
-      <div class="workflow-shell__mode-toggle" role="group" [attr.aria-label]="'workflow.shell.mode.toggle' | translate">
-        <button
-          type="button"
-          class="workflow-shell__mode-btn"
-          [class.workflow-shell__mode-btn--active]="mode() === 'express'"
-          [attr.aria-pressed]="mode() === 'express'"
-          data-testid="workflow-mode-express"
-          (click)="setMode('express')">
-          <span>{{ 'workflow.shell.mode.express' | translate }}</span>
-          <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.expressSublabel' | translate }}</span>
-        </button>
-        <button
-          type="button"
-          class="workflow-shell__mode-btn"
-          [class.workflow-shell__mode-btn--active]="mode() === 'guided'"
-          [attr.aria-pressed]="mode() === 'guided'"
-          data-testid="workflow-mode-guided"
-          (click)="setMode('guided')">
-          <span>{{ 'workflow.shell.mode.guided' | translate }}</span>
-          <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.guidedSublabel' | translate }}</span>
-        </button>
-      </div>
-    } @else {
-      <span class="workflow-shell__readonly-chip" data-testid="workflow-readonly-chip">
-        <span class="material-icons-outlined">visibility</span>
-        {{ 'workflow.shell.readonlyLabel' | translate }}
-      </span>
-    }
+    <!--
+      Right-anchored controls. Always rendered in this order so the
+      close button is the absolute terminator (matches Material
+      conventions and screen-reader expectations). The mode toggle
+      and the readonly chip are mutually exclusive.
+    -->
+    <div class="workflow-shell__header-actions">
+      @if (!readonly()) {
+        <div class="workflow-shell__mode-toggle" role="group" [attr.aria-label]="'workflow.shell.mode.toggle' | translate">
+          <button
+            type="button"
+            class="workflow-shell__mode-btn"
+            [class.workflow-shell__mode-btn--active]="mode() === 'express'"
+            [attr.aria-pressed]="mode() === 'express'"
+            data-testid="workflow-mode-express"
+            (click)="setMode('express')">
+            <span>{{ 'workflow.shell.mode.express' | translate }}</span>
+            <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.expressSublabel' | translate }}</span>
+          </button>
+          <button
+            type="button"
+            class="workflow-shell__mode-btn"
+            [class.workflow-shell__mode-btn--active]="mode() === 'guided'"
+            [attr.aria-pressed]="mode() === 'guided'"
+            data-testid="workflow-mode-guided"
+            (click)="setMode('guided')">
+            <span>{{ 'workflow.shell.mode.guided' | translate }}</span>
+            <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.guidedSublabel' | translate }}</span>
+          </button>
+        </div>
+      } @else {
+        <span class="workflow-shell__readonly-chip" data-testid="workflow-readonly-chip">
+          <span class="material-icons-outlined">visibility</span>
+          {{ 'workflow.shell.readonlyLabel' | translate }}
+        </span>
+      }
 
-    <button
-      type="button"
-      class="icon-btn"
-      [attr.aria-label]="'workflow.shell.actions.close' | translate"
-      [matTooltip]="'workflow.shell.actions.close' | translate"
-      data-testid="workflow-close"
-      (click)="close()">
-      <span class="material-icons-outlined">close</span>
-    </button>
+      <span class="workflow-shell__header-divider" aria-hidden="true"></span>
+
+      <button
+        type="button"
+        class="icon-btn workflow-shell__close-btn"
+        [attr.aria-label]="'workflow.shell.actions.close' | translate"
+        [matTooltip]="'workflow.shell.actions.close' | translate"
+        data-testid="workflow-close"
+        (click)="close()">
+        <span class="material-icons-outlined">close</span>
+      </button>
+    </div>
   </header>
 
   <div class="workflow-shell__body">
@@ -99,12 +143,13 @@
 
       <div class="workflow-shell__main">
         <main class="workflow-shell__step-content" data-testid="workflow-step-content">
-          @if (isResumed() && run(); as r) {
-            <div class="workflow-shell__resume-banner" role="status" data-testid="workflow-resume-banner">
-              <span class="material-icons-outlined">history</span>
-              <span>{{ 'workflow.shell.resumeBanner' | translate: { lastEdited: r.lastActivityAt | date:'medium' } }}</span>
-            </div>
-          }
+          <!-- Resume affordance is now a list-level concern, not a page-level
+               banner: in-progress drafts surface as row indicators on the
+               parts list (entity-less runs in a "Drafts" section at the top).
+               Putting it inline here was confusing — it conflated "Add new"
+               (always fresh) with "resume", and triggered false-positives
+               whenever the run was loaded with a stale lastActivityAt. -->
+
           @if (currentStepErrors(); as errs) {
             @if (errs.length > 0) {
               <div class="workflow-shell__step-errors" role="alert" data-testid="workflow-step-errors">
@@ -172,6 +217,36 @@
         </footer>
         }
       </div>
+
+      <!--
+        Right context pane. Static rationale today + reserved slots for
+        related-record summary and AI suggestion (slot stays empty until
+        those features land — three-block ceiling per Section 4 of the
+        UX research). Below 1024px the pane drops beneath the form
+        (collapsed by default) via SCSS responsive rules.
+      -->
+      @if (currentStepRationaleKey(); as ratKey) {
+        <aside class="workflow-shell__context-pane"
+          [attr.aria-label]="'workflow.shell.contextPaneLabel' | translate"
+          data-testid="workflow-context-pane">
+          <button type="button"
+            class="workflow-shell__context-collapse"
+            [attr.aria-expanded]="contextPaneExpanded()"
+            data-testid="workflow-context-collapse"
+            (click)="toggleContextPane()">
+            <span class="material-icons-outlined">info</span>
+            <span class="workflow-shell__context-heading">{{ 'workflow.shell.rationale.heading' | translate }}</span>
+            <span class="material-icons-outlined workflow-shell__context-chevron">
+              {{ contextPaneExpanded() ? 'expand_less' : 'expand_more' }}
+            </span>
+          </button>
+          @if (contextPaneExpanded()) {
+            <div class="workflow-shell__context-body">
+              <p class="workflow-shell__context-text" [innerHTML]="ratKey | translate"></p>
+            </div>
+          }
+        </aside>
+      }
     } @else {
       <main class="workflow-shell__express" data-testid="workflow-express-content">
         <ng-container *ngComponentOutlet="expressComponent(); inputs: expressInputs()" />

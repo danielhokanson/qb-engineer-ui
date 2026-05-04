@@ -1,5 +1,6 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
@@ -16,6 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const layout = inject(LayoutService);
+  const dialog = inject(MatDialog);
   const token = authService.token();
   const isOwnApi = OWN_API_PATTERN.test(req.url);
 
@@ -26,6 +28,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   /** Redirect to login preserving the current route as returnUrl. */
   const redirectToLogin = () => {
     authService.clearAuth();
+    // Close any open MatDialog (detail dialogs, confirms, etc.) before
+    // navigating away — without this they overlay the /login page since
+    // the dialog overlay outlives the route change. Reported bug:
+    // expired-session leaves the part-detail dialog visible on top of
+    // the login form.
+    dialog.closeAll();
     const currentUrl = router.url;
     const queryParams: Record<string, string> = { reason: 'session_expired' };
     // Preserve current route so user returns here after re-login

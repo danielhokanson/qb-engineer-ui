@@ -240,19 +240,34 @@ export class WorkflowComponent {
   }
 
   /**
-   * "Resume" surface: true when the run has been touched outside the
-   * current page mount (lastActivityAt > 5 min ago). Below that threshold
-   * the user is in an active session and a "welcome back" banner reads
-   * as noise. Above it, we want a soft acknowledgement so the user
-   * understands they're picking up an in-flight session.
+   * i18n key for the right context pane's "Why this step" rationale,
+   * derived from the current step + the run's entity type. Convention:
+   * `{entityTypePluralLowercase}.workflow.{stepId}.rationale`. Returns
+   * null when the resolved key has no translation — the pane simply
+   * doesn't render rather than showing a raw key.
    */
-  protected readonly isResumed = computed<boolean>(() => {
-    const r = this.run();
-    if (!r) return false;
-    const last = Date.parse(r.lastActivityAt);
-    if (!Number.isFinite(last)) return false;
-    return Date.now() - last > 5 * 60 * 1000;
+  protected readonly currentStepRationaleKey = computed<string | null>(() => {
+    const step = this.currentStep();
+    const entity = this.run()?.entityType;
+    if (!step || !entity) return null;
+    const plural = entity.toLowerCase() + 's'; // parts.*, customers.*, etc.
+    const key = `${plural}.workflow.${step.id}.rationale`;
+    const resolved = this.translate.instant(key);
+    return resolved && resolved !== key ? key : null;
   });
+
+  /**
+   * Right context pane open/closed state. Default: open on desktop,
+   * SCSS responsive rules drop the pane under the form below 1024px
+   * with the same toggle controlling visibility there. Per-mount user
+   * state — does not persist across page remounts (Hess: defaults
+   * should be helpful, persistence adds complexity for marginal gain).
+   */
+  protected readonly contextPaneExpanded = signal<boolean>(true);
+
+  protected toggleContextPane(): void {
+    this.contextPaneExpanded.update(v => !v);
+  }
 
   protected readonly isFirstStep = computed(() => this.currentStepIndex() === 0);
   protected readonly isLastStep = computed(() => {

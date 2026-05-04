@@ -1,7 +1,19 @@
 @use 'styles/variables' as *;
 @use 'styles/mixins' as *;
 
-/* Workflow Pattern Phase 4 — generic shell layout. */
+/*
+ * Workflow shell layout (Option C — 2026-05-04 part-UX research pass).
+ *
+ * Guided mode is a three-column interior under a persistent header.
+ * The header anchors the close button + mode toggle to the upper right
+ * (Material dialog convention; matches Salesforce, Fiori, Business
+ * Central). The body uses CSS grid so the rail, form, and context
+ * pane all start at the same top edge and end at the same bottom edge
+ * regardless of which one's content is taller.
+ *
+ * Per-decision sources are noted inline. The full research synthesis
+ * lives in docs/part-ux-review-2026-05-04.md.
+ */
 
 .workflow-shell {
   display: flex;
@@ -15,10 +27,11 @@
     display: flex;
     align-items: center;
     gap: $sp-md;
-    padding: $sp-sm $sp-lg;
+    padding: $sp-sm $sp-md $sp-sm $sp-lg;
     border-bottom: $border-width-thin solid var(--border);
     background: var(--surface);
     min-height: $header-height;
+    flex: 0 0 auto;
   }
 
   &__title-block {
@@ -48,8 +61,7 @@
     color: var(--text-muted);
   }
 
-  // Breadcrumb pieces — "Step 2 of 4 · Sourcing" — let the user orient
-  // themselves without counting rail dots.
+  // Breadcrumb pieces — "Step 2 of 4 · Sourcing"
   &__step-counter {
     color: var(--text-muted);
     font-weight: 500;
@@ -65,10 +77,34 @@
     font-weight: 600;
   }
 
+  // Right-anchored chrome cluster: mode toggle, divider, close button.
+  // Anchored top-right of the dialog (Material dialog convention,
+  // Salesforce / Fiori / Business Central reference). The cluster sits
+  // OUTSIDE both the rail and the right context pane so it's
+  // persistent regardless of step content height.
+  &__header-actions {
+    display: flex;
+    align-items: stretch;
+    gap: $sp-sm;
+    flex: 0 0 auto;
+  }
+
+  &__header-divider {
+    width: $border-width-thin;
+    background: var(--border);
+    align-self: stretch;
+    margin-block: $sp-xs;
+  }
+
+  &__close-btn {
+    align-self: center;
+  }
+
   &__mode-toggle {
     display: inline-flex;
     border: $border-width-thin solid var(--border);
     background: var(--bg);
+    align-self: center;
   }
 
   &__mode-btn {
@@ -102,8 +138,6 @@
     }
   }
 
-  // Sub-label under each mode button — turns "Express / Guided" from
-  // jargon into a self-explanatory choice without needing a tour.
   &__mode-btn-sublabel {
     display: block;
     font-size: $font-size-xxs;
@@ -113,9 +147,6 @@
     line-height: 1;
   }
 
-  // Read-only chip — replaces the mode toggle when the shell is
-  // mounted via [readonly]="true". Quiet visual: small, muted,
-  // eyeball icon to signal "you're looking, not editing."
   &__readonly-chip {
     display: inline-flex;
     align-items: center;
@@ -125,21 +156,33 @@
     color: var(--text-muted);
     background: color-mix(in srgb, var(--text-muted) 10%, transparent);
     border: $border-width-thin solid var(--border);
+    align-self: center;
 
     .material-icons-outlined {
       font-size: $icon-size-sm;
     }
   }
 
+  // ─── Body — three-column grid in guided mode ───────────────────────
+  //
+  // Grid columns: 240px rail | flex form | 296px context pane.
+  // Form (1fr) takes whatever the dialog has after the two fixed sides
+  // — at the recommended 1280px guided dialog this is ~720px.
   &__body {
     display: flex;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
   }
 
+  &--guided &__body {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr) 296px;
+    grid-template-rows: 100%;
+    align-items: stretch;
+  }
+
   &__rail {
-    flex: 0 0 240px;
     border-right: $border-width-thin solid var(--border);
     background: var(--surface);
     overflow-y: auto;
@@ -155,49 +198,149 @@
     gap: $sp-xs;
   }
 
-  /*
-   * Step content + footer share a centered, max-width column so the form
-   * fields and their commit buttons stay visually paired instead of being
-   * stretched across a wide viewport. Footer sticks to the bottom of the
-   * column (not the viewport) — when the form is short the buttons sit
-   * just under the inputs; when the form is long the column scrolls and
-   * the footer stays glued to the bottom edge of the rail-less area.
-   */
+  // Form column — primary surface (Polaris primary/secondary).
+  // White-equivalent background, contains step content + footer.
   &__main {
-    flex: 1;
+    background: var(--surface);
     display: flex;
     flex-direction: column;
     min-width: 0;
-    width: 100%;
-    max-width: 880px;
-    margin: 0 auto;
+    min-height: 0;
   }
 
   &__step-content {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: $sp-md;
     overflow-y: auto;
     padding: $sp-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
     @include custom-scrollbar(8px);
 
     // Fade newly-mounted step content in so navigation feels like a
-    // soft swap rather than a hard pop. Keyed off ngComponentOutlet
-    // remounting the body; CSS animation re-fires every time.
-    // The width:100% + max-width pair lets each step claim the centered
-    // 760px column without each step needing its own align-items rule.
+    // soft swap rather than a hard pop.
     > * {
-      width: 100%;
-      max-width: 760px;
       animation: workflow-content-fade-in $transition-normal ease-out;
     }
   }
 
-  // Resume banner — soft acknowledgement when picking up an in-flight
-  // run hours or days later. Sits above the step body so it's the first
-  // thing the user reads on remount.
+  &__express {
+    flex: 1;
+    overflow-y: auto;
+    padding: $sp-lg;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    @include custom-scrollbar(8px);
+
+    > * {
+      animation: workflow-content-fade-in $transition-normal ease-out;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-sm;
+    padding: $sp-sm $sp-lg;
+    border-top: $border-width-thin solid var(--border);
+    background: var(--surface);
+    flex: 0 0 auto;
+  }
+
+  &__footer-left,
+  &__footer-right {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+  }
+  &__footer-right {
+    margin-left: auto;
+  }
+
+  // ─── Right context pane ────────────────────────────────────────────
+  //
+  // Hosts "Why this step" rationale + reserved slots for related-record
+  // summaries and AI suggestions (3-block ceiling — Salesforce / Odoo
+  // overload trap). Visually demoted using --bg vs. the form's
+  // --surface (Polaris primary/secondary). Independent scrollbar so
+  // long rationale doesn't push the form taller.
+  &__context-pane {
+    background: var(--bg);
+    border-left: $border-width-thin solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    @include custom-scrollbar(8px);
+  }
+
+  &__context-collapse {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    width: 100%;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-bottom: $border-width-thin solid var(--border);
+    padding: $sp-md $sp-md;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 4%, transparent);
+    }
+
+    &:focus-visible {
+      outline: $border-width solid var(--primary);
+      outline-offset: -$border-width;
+    }
+
+    .material-icons-outlined:first-child {
+      color: var(--info);
+      font-size: $icon-size-md;
+      flex: 0 0 auto;
+    }
+  }
+
+  &__context-heading {
+    flex: 1;
+    font-size: $font-size-xxs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  &__context-chevron {
+    font-size: $icon-size-md;
+    color: var(--text-muted);
+    flex: 0 0 auto;
+  }
+
+  &__context-body {
+    padding: $sp-md;
+    animation: workflow-content-fade-in $transition-normal ease-out;
+  }
+
+  &__context-text {
+    margin: 0;
+    font-size: $font-size-sm;
+    line-height: 1.55;
+    color: var(--text);
+
+    /* HTML inside the rationale (we use innerHTML for <strong>/<br>) */
+    strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+  }
+
+  // ─── Resume banner + step errors (rendered inside step content) ────
+
   &__resume-banner {
     display: flex;
     align-items: center;
@@ -214,10 +357,6 @@
     }
   }
 
-  // Inline step-error alert — sits at the top of the step body when
-  // the server's missing-validators payload fingers this step's gates.
-  // Style mirrors the not-implemented warning notice in the costing
-  // step; visually consistent with other 'pay attention' surfaces.
   &__step-errors {
     display: flex;
     flex-direction: column;
@@ -250,45 +389,9 @@
       line-height: 1.5;
     }
   }
-
-  &__express {
-    flex: 1;
-    overflow-y: auto;
-    padding: $sp-lg;
-    max-width: 880px;
-    width: 100%;
-    margin: 0 auto;
-    @include custom-scrollbar(8px);
-
-    > * {
-      animation: workflow-content-fade-in $transition-normal ease-out;
-    }
-  }
-
-  &__footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: $sp-sm;
-    padding: $sp-sm $sp-lg;
-    border-top: $border-width-thin solid var(--border);
-    background: var(--surface);
-  }
-
-  // Wrap groups inside the footer so Back can sit on the left while
-  // Skip + Continue cluster on the right — the conventional 'go back'
-  // vs. 'commit and proceed' split. Footer body is justify-content
-  // space-between; these groups are the two flex children.
-  &__footer-left,
-  &__footer-right {
-    display: flex;
-    align-items: center;
-    gap: $sp-sm;
-  }
-  &__footer-right {
-    margin-left: auto;
-  }
 }
+
+// ─── Step rail rows ─────────────────────────────────────────────────
 
 .workflow-step {
   margin: 0;
@@ -360,10 +463,6 @@
     @include truncate;
   }
 
-  // Optional badge — small chip-style indicator. Was just upper-cased
-  // muted text, easy to miss and visually tied to the label more than
-  // the row. Now renders as a pill so the user can skim down the rail
-  // and catch which steps are skippable without reading.
   &__optional {
     font-size: $font-size-xxs;
     font-weight: 600;
@@ -393,10 +492,6 @@
     color: var(--primary);
   }
 
-  // Completion state — animate the indicator settling into its
-  // success state instead of snapping. Triggered any time the gate
-  // flips to satisfied (validator effect re-renders the rail row
-  // with the --complete modifier).
   &--complete &__indicator {
     background: color-mix(in srgb, var(--success) 18%, transparent);
     border-color: var(--success);
@@ -412,9 +507,6 @@
     opacity: 0.6;
   }
 
-  // Server-reported missing-validator state. The user attempted to
-  // Mark Complete and the gate against this step's data failed; we
-  // need to draw the eye to which step is blocking promotion.
   &--has-error &__btn {
     color: var(--error);
   }
@@ -436,13 +528,62 @@
   100% { transform: scale(1); }
 }
 
+@keyframes workflow-content-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ─── Responsive collapse ────────────────────────────────────────────
+//
+// Below 1200px the right context pane shrinks; below 1024px it drops
+// out of the grid entirely and re-mounts under the form column as a
+// collapsible accordion (same component instance via the same template
+// branch — the SCSS does the visual reflow). Below 768px the rail
+// becomes icon-only; below 480px the entire dialog goes edge-to-edge
+// (rule lives on the page-level shell SCSS, not here).
+
+@media (max-width: 1200px) {
+  .workflow-shell--guided .workflow-shell__body {
+    grid-template-columns: 220px minmax(0, 1fr) 264px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .workflow-shell--guided .workflow-shell__body {
+    // Drop the right pane out of the grid and put it below the form.
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+  }
+
+  .workflow-shell--guided .workflow-shell__rail {
+    grid-row: 1 / -1;  // Rail spans both rows on the left.
+    grid-column: 1;
+  }
+
+  .workflow-shell--guided .workflow-shell__main {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .workflow-shell--guided .workflow-shell__context-pane {
+    grid-row: 2;
+    grid-column: 2;
+    border-left: 0;
+    border-top: $border-width-thin solid var(--border);
+    max-height: 40vh;  // Prevent it from dominating when expanded.
+  }
+}
+
 @include mobile {
   .workflow-shell {
     &__rail {
+      grid-row: auto;
       flex: 0 0 60px;
     }
     &__step-label {
-      display: none;
+      // Title block keeps the breadcrumb in the header even on mobile
+      // so the user always knows where they are. (Hess: provide
+      // signposts and cues.) Just narrow it via overflow handling.
     }
     .workflow-step__label {
       display: none;
@@ -450,18 +591,12 @@
     .workflow-step__optional {
       display: none;
     }
-    // Mode toggle becomes icon-only at the smallest breakpoint to
-    // free header room for the truncated title. Keep accessible
-    // labels via aria-pressed + aria-label on the buttons.
     &__mode-btn-sublabel {
       display: none;
     }
   }
 }
 
-// Footer button labels go icon-only on the narrowest screens so the
-// chevrons remain useful and the validation chip + Continue still fit
-// without wrapping. Keep aria labels for screen readers.
 @media (max-width: 480px) {
   .workflow-shell__footer .action-btn {
     padding-inline: $sp-sm;
