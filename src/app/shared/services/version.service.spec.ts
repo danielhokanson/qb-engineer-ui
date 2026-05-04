@@ -42,6 +42,32 @@ describe('VersionService', () => {
     expect(service.local()).toEqual(mockVersion);
   });
 
+  it('load() shortens a full 40-char SHA to 7 chars so it matches the remote slice', () => {
+    const fullSha = '8b07eb5bc23175111adb8ae3d8d397659a8d3a7';
+    service.load();
+
+    const versionReq = httpMock.expectOne('/assets/version.json');
+    versionReq.flush({ version: '0.0.6', sha: fullSha });
+
+    const ghReq = httpMock.expectOne(GITHUB_COMMITS_URL);
+    ghReq.flush({ sha: fullSha + 'xx' });
+
+    expect(service.local()?.sha).toBe('8b07eb5');
+    expect(service.upToDate()).toBe(true);
+  });
+
+  it('load() leaves the literal "dev" SHA untouched', () => {
+    service.load();
+
+    const versionReq = httpMock.expectOne('/assets/version.json');
+    versionReq.flush({ version: '0.0.0', sha: 'dev' });
+
+    const ghReq = httpMock.expectOne(GITHUB_COMMITS_URL);
+    ghReq.flush({ sha: 'abc1234xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' });
+
+    expect(service.local()?.sha).toBe('dev');
+  });
+
   it('load() handles error gracefully (sets local to null, still calls checkLatest())', () => {
     service.load();
 
