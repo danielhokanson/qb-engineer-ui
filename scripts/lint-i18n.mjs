@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 /*
  * lint-i18n — fail the build when an i18n key referenced from code/templates
- * isn't present in src/assets/i18n/en.json (and warn when es.json is behind).
+ * isn't present in public/assets/i18n/en.json (and warn when es.json is behind).
+ *
+ * IMPORTANT: i18n files are bundled from `public/assets/`, NOT `src/assets/`.
+ * The Angular CLI default migrated to `public/` at some point and `src/assets/`
+ * was kept around as a vestigial shadow. Editing the wrong file is silent in
+ * tsc, ng build, vitest (which uses a mocked TranslateLoader), AND used to be
+ * silent here — every key showed up at runtime as a raw `foo.bar` token. We
+ * caught it in a screenshot review on 2026-05-04 and consolidated everything
+ * to `public/assets/i18n/`. Don't reintroduce `src/assets/i18n/`.
  *
  * Bug class this prevents:
  *   • A new component renders {{ 'foo.bar' | translate }} but the developer
@@ -44,8 +52,8 @@ import { join, relative, resolve } from 'node:path';
 
 const REPO_ROOT = resolve(import.meta.dirname, '..');
 const SRC_DIR = join(REPO_ROOT, 'src');
-const EN_PATH = join(REPO_ROOT, 'src/assets/i18n/en.json');
-const ES_PATH = join(REPO_ROOT, 'src/assets/i18n/es.json');
+const EN_PATH = join(REPO_ROOT, 'public/assets/i18n/en.json');
+const ES_PATH = join(REPO_ROOT, 'public/assets/i18n/es.json');
 const ALLOWLIST_PATH = join(import.meta.dirname, '.lint-i18n-allow');
 
 // ─────────────────────────────────────────────────────────────────────
@@ -62,6 +70,51 @@ function flatten(obj, prefix = '', out = new Set()) {
     }
   }
   return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Trap-fail: src/assets/i18n must not contain meaningful content.
+// ─────────────────────────────────────────────────────────────────────
+//
+// Angular CLI's static-asset directory migrated from src/assets/ to public/.
+// This project keeps public/assets/i18n/ as the bundled source of truth
+// (per angular.json). Editing src/assets/i18n/ is a tar-pit:
+//   • tsc, ng build, ng test all green
+//   • lint:i18n was historically green (it used to read src/assets too)
+//   • runtime: every key shows as a raw `foo.bar` token because the bundled
+//     en.json (from public/) doesn't have the new keys
+//
+// We deleted src/assets/i18n/ on 2026-05-04 and added it to .gitignore so
+// IDE auto-save buffers can't sneak it back into the repo. This guard fires
+// when the directory exists AND contains content that isn't already in
+// public/assets/i18n/ — accidental empty placeholders from an editor buffer
+// don't trigger the trap, but a real divergent edit does.
+const FORBIDDEN_SRC_I18N = join(REPO_ROOT, 'src/assets/i18n');
+if (existsSync(FORBIDDEN_SRC_I18N)) {
+  for (const fname of readdirSync(FORBIDDEN_SRC_I18N)) {
+    if (!fname.endsWith('.json')) continue;
+    const phantomPath = join(FORBIDDEN_SRC_I18N, fname);
+    let phantomKeys;
+    try {
+      phantomKeys = flatten(JSON.parse(readFileSync(phantomPath, 'utf-8')));
+    } catch {
+      continue; // unparseable garbage — not a real translation file, ignore
+    }
+    if (phantomKeys.size === 0) continue; // empty placeholder, harmless
+    const canonicalPath = join(REPO_ROOT, 'public/assets/i18n', fname);
+    const canonicalKeys = existsSync(canonicalPath)
+      ? flatten(JSON.parse(readFileSync(canonicalPath, 'utf-8')))
+      : new Set();
+    const orphans = [...phantomKeys].filter(k => !canonicalKeys.has(k));
+    if (orphans.length > 0) {
+      console.error(`\nFAILED: src/assets/i18n/${fname} contains ${orphans.length} key(s) NOT in public/assets/i18n/${fname}.\n`);
+      console.error('  Angular bundles i18n from public/assets/i18n/ (per angular.json).');
+      console.error('  src/assets/i18n/ is NOT bundled — keys here will render as raw "foo.bar" at runtime.');
+      console.error('  Move your additions to public/assets/i18n/ and delete src/assets/i18n/.');
+      console.error(`  First few orphans: ${orphans.slice(0, 5).join(', ')}\n`);
+      process.exit(1);
+    }
+  }
 }
 
 const enRaw = JSON.parse(readFileSync(EN_PATH, 'utf-8'));

@@ -6,6 +6,14 @@
 /out-tsc
 /bazel-out
 
+# i18n trap — see scripts/lint-i18n.mjs and CLAUDE.md.
+# i18n files live at public/assets/i18n/ (the bundled location per
+# angular.json). src/assets/i18n/ is a vestigial path from before the
+# Angular CLI public/ migration. Editing it produces silent runtime
+# failures (raw "foo.bar" keys in the UI). Ignored so an IDE auto-save
+# or scaffolder mistake can never sneak it back into the repo.
+/src/assets/i18n/
+
 # Node
 /node_modules
 npm-debug.log

@@ -54,6 +54,7 @@
     "masterData": "Datos Maestros",
     "integrations": "Integraciones",
     "workflow": "Flujo de Trabajo",
+    "capabilities": "Capacidades",
     "system": "Sistema"
   },
   "header": {
@@ -82,9 +83,11 @@
   },
   "common": {
     "save": "Guardar",
+    "saved": "Guardado",
     "saveChanges": "Guardar Cambios",
     "cancel": "Cancelar",
     "delete": "Eliminar",
+    "deleted": "Eliminado",
     "edit": "Editar",
     "create": "Crear",
     "search": "Buscar",
@@ -426,6 +429,24 @@
   },
   "parts": {
     "title": "Catálogo de Piezas",
+    "part": "Pieza",
+    "searchByPartNumber": "Buscar por número de pieza…",
+    "allProcurementSources": "Todas las fuentes",
+    "allInventoryClasses": "Todas las clases",
+    "procurementSource": {
+      "Make": "Fabricar",
+      "Buy": "Comprar",
+      "Subcontract": "Subcontratar",
+      "Phantom": "Fantasma"
+    },
+    "inventoryClass": {
+      "Raw": "Materia Prima",
+      "Component": "Componente",
+      "Subassembly": "Subensamblaje",
+      "FinishedGood": "Producto Terminado",
+      "Consumable": "Consumible",
+      "Tool": "Herramienta"
+    },
     "subtitle": "Gestionar piezas, listas de materiales y especificaciones",
     "createPart": "Nueva Pieza",
     "editPart": "Editar Pieza",
@@ -566,6 +587,7 @@
       "startFailed": "No se pudo iniciar el flujo.",
       "fork": {
         "title": "How would you like to add this part?",
+        "stepLabel": "Paso {{current}} de {{total}}",
         "step1Title": "How is this part sourced?",
         "step1Make": "Made",
         "step1MakeDesc": "Produced in-house from raw stock or a BOM.",
@@ -611,6 +633,8 @@
         "title": "Básicos",
         "hint": "Tipo, nombre y material — lo mínimo para identificar la pieza.",
         "partTypeLabel": "Tipo",
+        "procurementSourceLabel": "Fuente de Procuración",
+        "inventoryClassLabel": "Clase de Inventario",
         "nameLabel": "Nombre",
         "nameHelper": "Identificador corto (p. ej., \"Sheath Mudkipper\").",
         "descriptionLabel": "Descripción",
@@ -657,8 +681,9 @@
         "modeDepartmentalDesc": "Porcentaje por centro de costos según la ruta.",
         "modeAbc": "Nivel 3 — Costeo basado en actividades",
         "modeAbcDesc": "Asignación por drivers (m², horas máquina, etc.).",
-        "tier2Tooltip": "Requiere capacidad CAP-COSTING-DEPARTMENTAL",
-        "tier3Tooltip": "Requiere capacidad CAP-COSTING-ABC",
+        "tier2Tooltip": "Habilita CAP-COSTING-TIER2-DEPTRATES en admin para usar",
+        "tier3Tooltip": "Habilita CAP-COSTING-TIER3-ABC en admin para usar",
+        "tierNotImplemented": "La capacidad está habilitada pero el motor de cálculo y pantallas de configuración aún están pendientes. La elección de nivel se guarda en la pieza para uso futuro; la sustitución manual debajo sigue siendo el valor activo.",
         "manualOverrideLabel": "Sustitución manual de costo",
         "manualOverridePlaceholder": "0.00",
         "currentLabel": "Costo mostrado actualmente",
@@ -680,6 +705,7 @@
       "page": {
         "loading": "Cargando flujo…",
         "loadingTitle": "Cargando…",
+        "newTitle": "Nueva pieza",
         "loadFailed": "No se pudo cargar.",
         "definitionMissing": "Definición de flujo no encontrada.",
         "startFailed": "No se pudo iniciar.",
@@ -860,6 +886,7 @@
         "requiresInspection": "Requiere Inspección de Recepción",
         "inspectionFrequency": "Frecuencia de Inspección",
         "inspectionSkipAfter": "Omitir Después de N Recepciones",
+        "inspectionTemplate": "Plantilla de Inspección de Recepción",
         "hazmatClass": "Clase de Materiales Peligrosos",
         "shelfLifeDays": "Vida Útil (días)",
         "backflushPolicy": "Política de Backflush"
@@ -1181,6 +1208,10 @@
     "notesHelper": "Por qué este precio (p. ej., negociado, contrato).",
     "dialogTitleCreate": "Agregar Entrada de Precio",
     "dialogTitleEdit": "Editar Entrada de Precio",
+    "cellEditTooltip": "Haz clic para editar",
+    "cellEditError": "No se pudo guardar — pulsa Esc para cancelar",
+    "cellEditInvalid": "Valor no válido",
+    "cellSaved": "Guardado",
     "bulkImport": {
       "label": "Importar CSV",
       "dialogTitle": "Importar entradas de lista de precios",
@@ -1530,7 +1561,11 @@
       "automations": "Automatizaciones",
       "integrationOutbox": "Bandeja de Integración",
       "expenses": "Política de Gastos",
-      "roleTemplates": "Plantillas de Rol"
+      "roleTemplates": "Plantillas de Rol",
+      "capabilities": "Capacidades",
+      "discovery": "Asistente de Descubrimiento",
+      "presets": "Preajustes",
+      "entityCompleteness": "Integridad de Entidades"
     },
     "users": "Usuarios",
     "addUser": "Agregar Usuario",
@@ -1691,7 +1726,31 @@
     "lockPeriod": "Bloquear Período",
     "lockPeriodFailed": "Error al bloquear período",
     "lockPeriodHint": "Bloquear un período de nómina para evitar ediciones",
-    "payPeriod": "Período de Nómina"
+    "payPeriod": "Período de Nómina",
+    "entityCompleteness": {
+      "title": "Requisitos de Integridad de Entidades",
+      "subtitle": "Define qué campos de entidad requiere cada capacidad.",
+      "newRequirement": "Nuevo requisito",
+      "col": {
+        "entityType": "Tipo de Entidad",
+        "capabilityCode": "Código de Capacidad",
+        "requirementId": "Id de Requisito",
+        "displayNameKey": "Clave de Nombre Visible",
+        "missingMessageKey": "Clave de Mensaje Faltante",
+        "sortOrder": "Orden"
+      },
+      "dialog": {
+        "titleNew": "Nuevo Requisito",
+        "titleEdit": "Editar Requisito",
+        "predicateLabel": "Predicado (JSON)",
+        "predicateHelper": "Predicado JSON evaluado en el servidor. Ejemplo: { \"type\": \"fieldPresent\", \"field\": \"taxId\" }",
+        "sortOrderLabel": "Orden"
+      },
+      "confirmDelete": {
+        "title": "¿Eliminar requisito?",
+        "message": "Esto eliminará permanentemente el requisito \"{{requirementId}}\". El indicador de integridad se actualizará en la próxima representación."
+      }
+    }
   },
   "teamsPanel": {
     "teams": "equipos",
@@ -2339,6 +2398,31 @@
     "poDeliveriesCount": "{{count}} entregas",
     "poLines": "Líneas de OC"
   },
+  "entityPicker": {
+    "createNew": "+ Crear nuevo {{label}} «{{term}}»"
+  },
+  "vendorQuickCreate": {
+    "title": "Crear proveedor rápido",
+    "hint": "Solo el nombre de la empresa — completa el resto después desde la página de detalle del proveedor.",
+    "create": "Crear proveedor",
+    "created": "Proveedor «{{name}}» creado."
+  },
+  "partQuickCreate": {
+    "title": "Crear pieza rápida",
+    "hint": "Nombre, procuración y clase de inventario — lo mínimo para referenciar esta pieza. Completa el resto después.",
+    "create": "Crear pieza",
+    "created": "Pieza «{{name}}» creada."
+  },
+  "entityCompleteness": {
+    "loading": "Comprobando integridad…",
+    "ready": "Listo",
+    "incompleteFor": "Incompleto para {{count}}",
+    "badgeTooltip": "Incompleto para {{count}}: {{names}}",
+    "columnHeader": "Integridad",
+    "popover": {
+      "heading": "Requisitos faltantes"
+    }
+  },
   "shared": {
     "closeDialog": "Cerrar diálogo",
     "helpTour": "Tour de ayuda de la página",
@@ -2652,6 +2736,8 @@
   },
   "vendors": {
     "title": "Proveedores",
+    "vendor": "Proveedor",
+    "searchByCompanyName": "Buscar por nombre de empresa…",
     "subtitle": "Gestionar proveedores y relaciones comerciales",
     "newVendor": "Nuevo Proveedor",
     "editVendor": "Editar Proveedor",
@@ -4700,6 +4786,7 @@
         "alternates": "Alternates",
         "expressForm": "Quick add",
         "sourcing": "Abastecimiento",
+        "vendorParts": "Piezas del Proveedor",
         "manufacturer": "Fabricante",
         "inventory": "Inventario",
         "manufacturing": "Fabricación",
@@ -4722,10 +4809,26 @@
       },
       "mode": {
         "express": "Express",
-        "guided": "Guided",
-        "toggle": "Mode"
+        "expressSublabel": "Todo a la vez",
+        "guided": "Guiado",
+        "guidedSublabel": "Paso a paso",
+        "toggle": "Modo"
       },
-      "optional": "Optional",
+      "modeSwitch": {
+        "confirmTitle": "¿Cambiar de modo?",
+        "confirmMessage": "Tienes cambios sin guardar en este paso. Cambiar de modo los descartará.",
+        "confirmAction": "Cambiar y descartar"
+      },
+      "optional": "Opcional",
+      "rationale": {
+        "heading": "¿Qué habilita este paso?"
+      },
+      "readonlyLabel": "Solo vista",
+      "resumeBanner": "Continuando donde lo dejaste — última edición {{lastEdited}}.",
+      "stepCounter": "Paso {{current}} de {{total}}",
+      "stepErrors": {
+        "heading": "Este paso necesita datos para completar el flujo"
+      },
       "steps": {
         "heading": "Steps"
       },
@@ -4767,7 +4870,11 @@
       "hasRouting": "Routing",
       "hasRoutingMissing": "Routing operations not yet defined.",
       "hasCost": "Cost",
-      "hasCostMissing": "Cost not yet set."
+      "hasCostMissing": "Cost not yet set.",
+      "hasSourcing": "Abastecimiento",
+      "hasSourcingMissing": "Aún no se ha seleccionado el proveedor preferido.",
+      "hasInventory": "Inventario",
+      "hasInventoryMissing": "Aún no se ha establecido la unidad de medida del stock."
     }
   }
 }

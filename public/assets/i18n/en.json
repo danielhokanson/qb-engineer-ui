@@ -54,6 +54,7 @@
     "masterData": "Master Data",
     "integrations": "Integrations",
     "workflow": "Workflow",
+    "capabilities": "Capabilities",
     "system": "System"
   },
   "header": {
@@ -82,9 +83,11 @@
   },
   "common": {
     "save": "Save",
+    "saved": "Saved",
     "saveChanges": "Save Changes",
     "cancel": "Cancel",
     "delete": "Delete",
+    "deleted": "Deleted",
     "edit": "Edit",
     "create": "Create",
     "search": "Search",
@@ -429,6 +432,24 @@
   },
   "parts": {
     "title": "Parts Catalog",
+    "part": "Part",
+    "searchByPartNumber": "Search by part number…",
+    "allProcurementSources": "All procurement sources",
+    "allInventoryClasses": "All inventory classes",
+    "procurementSource": {
+      "Make": "Make",
+      "Buy": "Buy",
+      "Subcontract": "Subcontract",
+      "Phantom": "Phantom"
+    },
+    "inventoryClass": {
+      "Raw": "Raw Material",
+      "Component": "Component",
+      "Subassembly": "Subassembly",
+      "FinishedGood": "Finished Good",
+      "Consumable": "Consumable",
+      "Tool": "Tool"
+    },
     "subtitle": "Manage parts, BOMs, and specifications",
     "createPart": "New Part",
     "editPart": "Edit Part",
@@ -586,6 +607,7 @@
       "startFailed": "Couldn't start the workflow.",
       "fork": {
         "title": "How would you like to add this part?",
+        "stepLabel": "Step {{current}} of {{total}}",
         "step1Title": "How is this part sourced?",
         "step1Make": "Made",
         "step1MakeDesc": "Produced in-house from raw stock or a BOM.",
@@ -629,8 +651,10 @@
       },
       "basics": {
         "title": "Basics",
-        "hint": "Type, name, and material — the minimum to identify this part.",
+        "hint": "Name and a short description — the minimum to identify this part. The procurement and inventory axes were chosen on the previous screen.",
         "partTypeLabel": "Type",
+        "procurementSourceLabel": "Procurement Source",
+        "inventoryClassLabel": "Inventory Class",
         "nameLabel": "Name",
         "nameHelper": "Short canonical identifier (e.g., \"Sheath Mudkipper\").",
         "descriptionLabel": "Description",
@@ -650,7 +674,8 @@
         "abcClassA": "A — high value / tight control",
         "abcClassB": "B — moderate value",
         "abcClassC": "C — low value / loose control",
-        "saveFailed": "Couldn't save basics."
+        "saveFailed": "Couldn't save basics.",
+        "rationale": "<strong>Identity is everything else's foundation.</strong> The part number + name resolve every reference downstream — POs, work orders, BOM positions, ledger lines. <br><br>Skipping basics is impossible: no part exists until this step saves. The procurement source + inventory class chosen on the previous screen drive which steps follow this one and which gates fire at promotion time."
       },
       "bom": {
         "title": "Bill of Materials",
@@ -660,12 +685,14 @@
         "childPart": "Part",
         "saveFailed": "Couldn't save BOM entry.",
         "emptyMessage": "No components yet.",
-        "emptyHelp": "Add components from the parts catalog to define this assembly's BOM."
+        "emptyHelp": "Add components from the parts catalog to define this assembly's BOM.",
+        "rationale": "<strong>The BOM is the recipe.</strong> Without it, MRP can't explode demand into component requirements, cost roll-up has nothing to sum, and shop orders can't issue material. <br><br>Each row is a child part + quantity (with optional scrap factor). For Make + Subassembly / FinishedGood combos this step is required for promotion; for Make + Component it's optional (single-piece fab from raw stock is valid)."
       },
       "routing": {
         "title": "Routing",
         "hint": "Define the operation steps to manufacture this part.",
-        "refreshStatus": "Refresh status"
+        "refreshStatus": "Refresh status",
+        "rationale": "<strong>Routing is the build sequence.</strong> Operations + work centers + cycle/setup times feed work-order generation, capacity planning, labor cost roll-up, and shop-floor traveler printing. <br><br>Subcontract operations (mark a step as outsourced) automatically generate vendor POs at the right point in the sequence — no separate PO creation needed."
       },
       "costing": {
         "title": "Cost",
@@ -677,13 +704,15 @@
         "modeDepartmentalDesc": "Per-cost-center percentage applied based on routing.",
         "modeAbc": "Tier 3 — Activity-based costing",
         "modeAbcDesc": "Cost pools allocated by drivers (square footage, machine hours, etc.).",
-        "tier2Tooltip": "Requires CAP-COSTING-DEPARTMENTAL capability",
-        "tier3Tooltip": "Requires CAP-COSTING-ABC capability",
+        "tier2Tooltip": "Enable CAP-COSTING-TIER2-DEPTRATES in admin to use",
+        "tier3Tooltip": "Enable CAP-COSTING-TIER3-ABC in admin to use",
+        "tierNotImplemented": "Capability is enabled but the calculation engine + configuration screens are still pending. Tier choice is stored on the part for future use; the manual override below remains the active value.",
         "manualOverrideLabel": "Manual cost override",
         "manualOverridePlaceholder": "0.00",
         "currentLabel": "Currently displayed cost",
         "notSet": "Not set",
-        "saveFailed": "Couldn't save costing."
+        "saveFailed": "Couldn't save costing.",
+        "rationale": "<strong>Cost drives every dollar downstream.</strong> Quote pricing, margin reporting, WIP valuation, and standard-vs-actual variance analysis all read from this number. <br><br>Tier 1 (manual override) is the simplest path: enter a number you trust. Tier 2 / Tier 3 add per-cost-center rates and activity-based pools — capability-gated and not implemented yet, so today the manual override is the working answer."
       },
       "alternates": {
         "title": "Alternates",
@@ -700,6 +729,7 @@
       "page": {
         "loading": "Loading workflow…",
         "loadingTitle": "Loading…",
+        "newTitle": "New part",
         "loadFailed": "Couldn't load this workflow.",
         "definitionMissing": "Workflow definition not found.",
         "startFailed": "Couldn't start the workflow.",
@@ -715,15 +745,11 @@
         "failed": "Couldn't promote this part."
       },
       "sourcing": {
-        "title": "Sourcing",
-        "hint": "Default vendor and ordering parameters. Per-vendor overrides go on the Sources tab.",
+        "title": "Preferred Vendor",
+        "hint": "Pick the default vendor for this part. Lead time, MOQ, pack size, OEM identity, and pricing are entered per-vendor on the next step.",
         "preferredVendorLabel": "Preferred Vendor",
-        "leadTimeDaysLabel": "Lead Time (days)",
-        "leadTimeDaysHelper": "Default value; per-vendor lead time set on the Sources tab.",
-        "minOrderQtyLabel": "Min Order Qty",
-        "packSizeLabel": "Pack Size",
-        "externalPartNumberLabel": "External Part #",
-        "saveFailed": "Couldn't save sourcing."
+        "saveFailed": "Couldn't save sourcing.",
+        "rationale": "<strong>The preferred vendor is the default for new POs and RFQs.</strong> Buyers can override per-PO, but everything assumes this is the first call. <br><br>Without a preferred vendor, automated PO generation, MRP-driven planned orders, and lead-time-aware scheduling all stall — they need someone to ask. Backup vendors + tier pricing + per-vendor MOQ live on the next step."
       },
       "manufacturer": {
         "title": "Manufacturer",
@@ -744,11 +770,13 @@
         "stockUomNone": "— Not set —",
         "defaultBinLabel": "Default Bin (id)",
         "defaultBinHelper": "Numeric bin id. Replaced by a real bin picker in a later release.",
-        "saveFailed": "Couldn't save inventory settings."
+        "saveFailed": "Couldn't save inventory settings.",
+        "rationale": "<strong>Stock UoM is the unit every other inventory transaction uses.</strong> Receipts, issues, transfers, counts — all denominated here. Pick wrong and conversions ripple through every downstream report. <br><br>Min / reorder / safety-stock are policy: they drive when MRP fires planned orders or when manual reorder reports highlight a part. Defaults okay if you don't know yet — adjust later as demand patterns emerge."
       },
       "quality": {
         "title": "Quality",
         "hint": "Receiving inspection, traceability, ABC class, hazmat, and shelf life.",
+        "rationale": "<strong>Traceability mode is irreversible-ish — you can change it later but every prior transaction was recorded against the old setting.</strong> Lot or serial unlocks per-lot recall, expiration tracking, and per-unit warranty / RMA workflows. Bulk skips all of that. <br><br>ABC class drives cycle-counting cadence (A counted weekly, C yearly, etc.) and prioritization in stockout-resolution reports. Hazmat + shelf life only matter if regulated-industry capabilities are on for this install.",
         "traceabilityLabel": "Traceability",
         "traceabilityNone": "Bulk (no tracking)",
         "traceabilityLot": "By lot / batch",
@@ -798,11 +826,15 @@
         "saveFailed": "Couldn't save source part."
       },
       "vendor": {
-        "title": "Vendor",
-        "hint": "Single subcontract vendor. MOQ and pack size live on the source-part downstream.",
+        "title": "Subcontract Vendor",
+        "hint": "Pick the subcontract vendor for this part. Lead time and per-vendor terms are entered on the next step.",
         "preferredVendorLabel": "Preferred Vendor",
-        "leadTimeDaysLabel": "Lead Time (days)",
         "saveFailed": "Couldn't save vendor info."
+      },
+      "vendorParts": {
+        "title": "Vendor Parts",
+        "hint": "OEM identity (manufacturer + MPN + vendor SKU) and per-vendor pricing live on each (Part, Vendor) row. Add at least the preferred source; alternates can follow.",
+        "pendingMaterialization": "Save earlier steps first to enable vendor sources for this part."
       },
       "flags": {
         "title": "Flags",
@@ -838,6 +870,7 @@
       "sourcesEmpty": "No vendor sources yet.",
       "sourcesEmptyHelp": "Add a vendor that supplies this part to track lead time, MOQ, and pricing.",
       "addVendorSource": "Add Vendor",
+      "addAlternateVendor": "Add alternate",
       "tabs": {
         "identity": "Identity",
         "sourcing": "Sources",
@@ -885,6 +918,7 @@
         "requiresInspection": "Requires Receiving Inspection",
         "inspectionFrequency": "Inspection Frequency",
         "inspectionSkipAfter": "Skip After N Receipts",
+        "inspectionTemplate": "Receiving Inspection Template",
         "hazmatClass": "Hazmat Class",
         "shelfLifeDays": "Shelf Life (days)",
         "backflushPolicy": "Backflush Policy"
@@ -914,9 +948,10 @@
     }
   },
   "vendorPart": {
-    "vendorPartNumber": "Vendor Part #",
-    "vendorMpn": "Vendor MPN",
-    "vendorMpnHelper": "If the vendor is a distributor and the manufacturer differs from the vendor itself.",
+    "vendorPartNumber": "Vendor Part # / External SKU",
+    "manufacturerName": "Manufacturer",
+    "vendorMpn": "Manufacturer Part #",
+    "vendorMpnHelper": "OEM identity as carried by this vendor. Different distributors of the same part can list different manufacturer names + MPNs.",
     "leadTimeDays": "Lead Time (days)",
     "minOrderQty": "Min Order Qty",
     "packSize": "Pack Size",
@@ -1211,6 +1246,10 @@
     "notesHelper": "Why this price (e.g., negotiated, contract).",
     "dialogTitleCreate": "Add Price Entry",
     "dialogTitleEdit": "Edit Price Entry",
+    "cellEditTooltip": "Click to edit",
+    "cellEditError": "Couldn't save — press Esc to cancel",
+    "cellEditInvalid": "Invalid value",
+    "cellSaved": "Saved",
     "bulkImport": {
       "label": "Import CSV",
       "dialogTitle": "Import price list entries",
@@ -1565,7 +1604,11 @@
       "integrationOutbox": "Integration Outbox",
       "autoPo": "Auto-PO",
       "expenses": "Expense Policy",
-      "roleTemplates": "Role Templates"
+      "capabilities": "Capabilities",
+      "discovery": "Discovery Wizard",
+      "presets": "Presets",
+      "roleTemplates": "Role Templates",
+      "entityCompleteness": "Entity Completeness"
     },
     "users": "Users",
     "addUser": "Add User",
@@ -1726,7 +1769,31 @@
     "lockPeriod": "Lock Period",
     "lockPeriodFailed": "Failed to lock period",
     "lockPeriodHint": "Lock a pay period to prevent further edits",
-    "payPeriod": "Pay Period"
+    "payPeriod": "Pay Period",
+    "entityCompleteness": {
+      "title": "Entity Completeness Requirements",
+      "subtitle": "Define which entity fields each capability requires.",
+      "newRequirement": "New requirement",
+      "col": {
+        "entityType": "Entity Type",
+        "capabilityCode": "Capability Code",
+        "requirementId": "Requirement Id",
+        "displayNameKey": "Display Name Key",
+        "missingMessageKey": "Missing Message Key",
+        "sortOrder": "Sort Order"
+      },
+      "dialog": {
+        "titleNew": "New Requirement",
+        "titleEdit": "Edit Requirement",
+        "predicateLabel": "Predicate (JSON)",
+        "predicateHelper": "JSON predicate evaluated server-side. Example: { \"type\": \"fieldPresent\", \"field\": \"taxId\" }",
+        "sortOrderLabel": "Sort Order"
+      },
+      "confirmDelete": {
+        "title": "Delete requirement?",
+        "message": "This will permanently remove requirement \"{{requirementId}}\". The completeness chip will refresh on next render."
+      }
+    }
   },
   "teamsPanel": {
     "teams": "teams",
@@ -2562,6 +2629,31 @@
     "poDeliveriesCount": "{{count}} deliveries",
     "poLines": "PO Lines"
   },
+  "entityPicker": {
+    "createNew": "+ Create new {{label}} “{{term}}”"
+  },
+  "vendorQuickCreate": {
+    "title": "Quick-create vendor",
+    "hint": "Just the company name — finish the rest later from the vendor's detail page.",
+    "create": "Create vendor",
+    "created": "Vendor “{{name}}” created."
+  },
+  "partQuickCreate": {
+    "title": "Quick-create part",
+    "hint": "Name, procurement, and inventory class — the minimum needed to reference this part. Finish the rest later from the part's detail page.",
+    "create": "Create part",
+    "created": "Part “{{name}}” created."
+  },
+  "entityCompleteness": {
+    "loading": "Checking completeness…",
+    "ready": "Ready",
+    "incompleteFor": "Incomplete for {{count}}",
+    "badgeTooltip": "Incomplete for {{count}}: {{names}}",
+    "columnHeader": "Completeness",
+    "popover": {
+      "heading": "Missing requirements"
+    }
+  },
   "shared": {
     "closeDialog": "Close dialog",
     "helpTour": "Page help tour",
@@ -2882,6 +2974,8 @@
   },
   "vendors": {
     "title": "Vendors",
+    "vendor": "Vendor",
+    "searchByCompanyName": "Search by company name…",
     "subtitle": "Manage suppliers and vendor relationships",
     "newVendor": "New Vendor",
     "editVendor": "Edit Vendor",
@@ -5005,15 +5099,15 @@
         "costing": "Cost",
         "alternates": "Alternates",
         "expressForm": "Quick add",
-        "sourcing": "Sourcing",
-        "manufacturer": "Manufacturer",
+        "sourcing": "Preferred Vendor",
+        "vendorParts": "Vendor Parts",
         "inventory": "Inventory",
         "manufacturing": "Manufacturing",
         "quality": "Quality",
         "shipping": "Shipping",
         "toolAsset": "Tooling Asset",
         "sourcePart": "Source Part",
-        "vendor": "Vendor",
+        "vendor": "Subcontract Vendor",
         "flags": "Flags",
         "salesHooks": "Sales Setup"
       }
@@ -5028,10 +5122,26 @@
       },
       "mode": {
         "express": "Express",
+        "expressSublabel": "All at once",
         "guided": "Guided",
+        "guidedSublabel": "Step by step",
         "toggle": "Mode"
       },
+      "modeSwitch": {
+        "confirmTitle": "Switch modes?",
+        "confirmMessage": "You have unsaved changes on this step. Switching modes will discard them.",
+        "confirmAction": "Switch and discard"
+      },
       "optional": "Optional",
+      "rationale": {
+        "heading": "What does this step enable?"
+      },
+      "readonlyLabel": "View only",
+      "resumeBanner": "Picking up where you left off — last edited {{lastEdited}}.",
+      "stepCounter": "Step {{current}} of {{total}}",
+      "stepErrors": {
+        "heading": "This step is missing data needed to complete the workflow"
+      },
       "steps": {
         "heading": "Steps"
       },
@@ -5073,7 +5183,11 @@
       "hasRouting": "Routing",
       "hasRoutingMissing": "Routing operations not yet defined.",
       "hasCost": "Cost",
-      "hasCostMissing": "Cost not yet set."
+      "hasCostMissing": "Cost not yet set.",
+      "hasSourcing": "Sourcing",
+      "hasSourcingMissing": "Preferred vendor not yet selected.",
+      "hasInventory": "Inventory",
+      "hasInventoryMissing": "Stock unit of measure not yet set."
     }
   }
 }
