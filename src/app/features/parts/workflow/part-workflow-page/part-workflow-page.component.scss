@@ -14,6 +14,16 @@
   padding: $sp-lg;
 }
 
+// Below the desktop breakpoint the scrim padding shrinks so the shell
+// can claim more usable space; below mobile it goes edge-to-edge so
+// users on narrow laptops / split windows aren't fighting the chrome.
+@media (max-width: 768px) {
+  :host { padding: $sp-md; }
+}
+@media (max-width: 480px) {
+  :host { padding: 0; }
+}
+
 .part-workflow-page {
   &__shell {
     width: 100%;
@@ -43,6 +53,18 @@
     &--express {
       max-width: 720px;
       max-height: min(90vh, 640px);
+    }
+  }
+
+  // Responsive: at and below the mobile breakpoint the shell goes
+  // edge-to-edge so the user gets every pixel for the form.
+  @media (max-width: 480px) {
+    &__shell,
+    &__shell--express {
+      max-width: 100%;
+      max-height: 100%;
+      height: 100%;
+      border: 0;
     }
   }
 

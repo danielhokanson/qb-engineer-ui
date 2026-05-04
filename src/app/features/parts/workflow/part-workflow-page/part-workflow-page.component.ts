@@ -408,11 +408,12 @@ export class PartWorkflowPageComponent {
   }
 
   protected onClosed(): void {
+    // Both /parts/new and /parts/:id map to this same workflow page, so
+    // just dropping the workflow query params would re-render the same
+    // route with nothing to show ("Loading workflow…" forever). Navigate
+    // fully back to the parts list instead — the user's intent on close
+    // is "I'm done with this", not "I want to stay on the same URL".
     this.workflowService.clearContext();
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { workflow: null, step: null, mode: null },
-      queryParamsHandling: 'merge',
-    });
+    this.router.navigate(['/parts']);
   }
 }

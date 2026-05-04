@@ -3,14 +3,20 @@
 .part-basics-step {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: $sp-lg;
   padding: $sp-lg;
   position: relative;
 
+  // Header + form share a centered column so the title sits flush above
+  // the inputs instead of one being left-aligned and the other centered.
+  // Width cap keeps reading-line length sane on wide dialogs.
   &__header {
     display: flex;
     flex-direction: column;
     gap: $sp-xs;
+    width: 100%;
+    max-width: 720px;
   }
 
   &__title {
@@ -29,6 +35,7 @@
     display: flex;
     flex-direction: column;
     gap: $sp-md;
+    width: 100%;
     max-width: 720px;
   }
 

@@ -4785,6 +4785,7 @@
         "alternates": "Alternates",
         "expressForm": "Quick add",
         "sourcing": "Abastecimiento",
+        "vendorParts": "Piezas del Proveedor",
         "manufacturer": "Fabricante",
         "inventory": "Inventario",
         "manufacturing": "Fabricación",
@@ -4807,10 +4808,18 @@
       },
       "mode": {
         "express": "Express",
-        "guided": "Guided",
-        "toggle": "Mode"
+        "expressSublabel": "Todo a la vez",
+        "guided": "Guiado",
+        "guidedSublabel": "Paso a paso",
+        "toggle": "Modo"
       },
-      "optional": "Optional",
+      "modeSwitch": {
+        "confirmTitle": "¿Cambiar de modo?",
+        "confirmMessage": "Tienes cambios sin guardar en este paso. Cambiar de modo los descartará.",
+        "confirmAction": "Cambiar y descartar"
+      },
+      "optional": "Opcional",
+      "stepCounter": "Paso {{current}} de {{total}}",
       "steps": {
         "heading": "Steps"
       },
@@ -4852,7 +4861,11 @@
       "hasRouting": "Routing",
       "hasRoutingMissing": "Routing operations not yet defined.",
       "hasCost": "Cost",
-      "hasCostMissing": "Cost not yet set."
+      "hasCostMissing": "Cost not yet set.",
+      "hasSourcing": "Abastecimiento",
+      "hasSourcingMissing": "Aún no se ha seleccionado el proveedor preferido.",
+      "hasInventory": "Inventario",
+      "hasInventoryMissing": "Aún no se ha establecido la unidad de medida del stock."
     }
   }
 }

@@ -97,14 +97,18 @@ function isAllowed(key) {
 // stub fixtures)
 // ─────────────────────────────────────────────────────────────────────
 
-function walk(dir, files = []) {
+function walk(dir, files = [], extensions) {
   for (const entry of readdirSync(dir)) {
-    if (entry === 'node_modules' || entry === '.git' || entry === 'dist') continue;
+    if (entry === 'node_modules' || entry === '.git' || entry === 'dist'
+        || entry === 'bin' || entry === 'obj') continue;
+    // Skip test directories on both sides — fixtures use synthetic keys
+    // ("validators.parts.tempCustom") that are NOT real i18n strings.
+    if (entry.endsWith('.tests') || entry === 'qb-engineer.tests') continue;
     const full = join(dir, entry);
     const st = statSync(full);
-    if (st.isDirectory()) walk(full, files);
+    if (st.isDirectory()) walk(full, files, extensions);
     else if (
-      (entry.endsWith('.ts') || entry.endsWith('.html')) &&
+      extensions.some(ext => entry.endsWith(ext)) &&
       !entry.endsWith('.spec.ts')
     ) {
       files.push(full);
@@ -113,7 +117,23 @@ function walk(dir, files = []) {
   return files;
 }
 
-const sourceFiles = walk(SRC_DIR);
+const sourceFiles = walk(SRC_DIR, [], ['.ts', '.html']);
+
+// Cross-repo: also scan the sibling server repo's seed code for label /
+// validator i18n keys. The server stamps these strings into the database
+// (workflow definition stepsJson, EntityReadinessValidator rows) and the
+// UI renders them via translate — but the bug class is identical to a
+// missing key in the UI source: silent in tsc/build, raw key in prod UI.
+//
+// We scan a fixed list of sibling-repo paths so the check works in
+// repos where the server isn't checked out (CI runs separately).
+const SERVER_DIRS = [
+  resolve(REPO_ROOT, '..', 'qb-engineer-server'),
+];
+const serverFiles = [];
+for (const dir of SERVER_DIRS) {
+  if (existsSync(dir)) walk(dir, serverFiles, ['.cs']);
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // Extract i18n key references
@@ -150,6 +170,31 @@ for (const file of sourceFiles) {
   }
 }
 
+// Server-side patterns for stamped labelKey / DisplayNameKey strings.
+// We only fire on a known-prefix allowlist so an arbitrary string like
+// "Customer.Type" doesn't get treated as an i18n key.
+const SERVER_KEY_PREFIXES = ['workflow.', 'validators.', 'terminology.'];
+const SERVER_PATTERNS = [
+  // C# string-literal labelKey / DisplayNameKey / MissingMessageKey:
+  //   labelKey: "workflow.parts.steps.basics"
+  //   DisplayNameKey: "validators.parts.hasBasics"
+  //   "labelKey":"workflow.parts.steps.basics"  (inline JSON in a verbatim string)
+  { name: 'cs-key', re: /"((?:workflow|validators|terminology)\.[a-zA-Z][\w]*(?:\.[\w]+)+)"/g },
+];
+for (const file of serverFiles) {
+  const content = readFileSync(file, 'utf-8');
+  for (const { name, re } of SERVER_PATTERNS) {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      const key = m[1];
+      if (!SERVER_KEY_PREFIXES.some(p => key.startsWith(p))) continue;
+      if (!usages.has(key)) usages.set(key, []);
+      usages.get(key).push({ file: relative(REPO_ROOT, file), pattern: name });
+    }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Compare and report
 // ─────────────────────────────────────────────────────────────────────
@@ -166,7 +211,7 @@ for (const [key, refs] of usages.entries()) {
 missingFromEn.sort((a, b) => a.key.localeCompare(b.key));
 missingFromEs.sort((a, b) => a.key.localeCompare(b.key));
 
-console.log(`lint-i18n: scanned ${sourceFiles.length} files, found ${usages.size} unique key references`);
+console.log(`lint-i18n: scanned ${sourceFiles.length} ui files + ${serverFiles.length} server files, found ${usages.size} unique key references`);
 console.log(`           en.json has ${enKeys.size} keys, es.json has ${esKeys.size} keys`);
 
 if (missingFromEn.length > 0) {
