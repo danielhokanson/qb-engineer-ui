@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { PlaceholderComponent } from './shared/components/placeholder/placeholder.component';
 import { LoginComponent } from './features/auth/login.component';
 import { SetupComponent } from './features/auth/setup.component';
 import { TokenSetupComponent } from './features/auth/token-setup.component';
