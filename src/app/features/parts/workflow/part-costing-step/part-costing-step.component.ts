@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CapabilityService } from '../../../../shared/services/capability.service';
 import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
+import { StepRationaleComponent } from '../../../../shared/components/step-rationale/step-rationale.component';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { WorkflowService } from '../../../../shared/services/workflow.service';
 import { PartDetail } from '../../models/part-detail.model';
@@ -39,6 +40,7 @@ type CostingMode = 'flat' | 'departmental' | 'abc';
   imports: [
     ReactiveFormsModule, TranslatePipe, MatTooltipModule,
     CurrencyInputComponent, LoadingBlockDirective,
+    StepRationaleComponent,
   ],
   templateUrl: './part-costing-step.component.html',
   styleUrl: './part-costing-step.component.scss',
