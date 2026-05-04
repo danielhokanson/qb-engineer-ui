@@ -11,7 +11,8 @@
        MatDialog would require either threading signals through
        MAT_DIALOG_DATA or extracting state to a service. Visual effect
        matches a dialog without the structural refactor. -->
-  <div class="part-workflow-page__shell">
+  <div class="part-workflow-page__shell"
+    [class.part-workflow-page__shell--express]="run()?.mode === 'express'">
     <app-workflow
       data-testid="part-workflow-shell"
       [run]="run()"

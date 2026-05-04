@@ -724,6 +724,7 @@
       "page": {
         "loading": "Loading workflow…",
         "loadingTitle": "Loading…",
+        "newTitle": "New part",
         "loadFailed": "Couldn't load this workflow.",
         "definitionMissing": "Workflow definition not found.",
         "startFailed": "Couldn't start the workflow.",

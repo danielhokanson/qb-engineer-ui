@@ -1,5 +1,8 @@
 @use 'styles/variables' as *;
 
+// Default: stretch with the parent flex row. Used by dialog footers that
+// pair Cancel + Save with equal widths — the wrapped button needs to
+// match the unwrapped one's flex-1 sizing.
 :host {
   display: flex;
   align-items: stretch;
@@ -12,6 +15,20 @@
 :host ::ng-deep > button {
   flex: 1;
   min-width: 0;
+}
+
+// Right-aligned action bars (page forms, express wizards) want the
+// wrapped button to size to its content instead of stretching to the
+// container. Add .validation-button--inline on the host element to opt
+// out of the dialog-footer behavior.
+:host(.validation-button--inline) {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+:host(.validation-button--inline) ::ng-deep > .action-btn,
+:host(.validation-button--inline) ::ng-deep > button {
+  flex: 0 0 auto;
 }
 
 .validation-button__anchor {

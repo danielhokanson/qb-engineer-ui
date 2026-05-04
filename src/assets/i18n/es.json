@@ -704,6 +704,7 @@
       "page": {
         "loading": "Cargando flujo…",
         "loadingTitle": "Cargando…",
+        "newTitle": "Nueva pieza",
         "loadFailed": "No se pudo cargar.",
         "definitionMissing": "Definición de flujo no encontrada.",
         "startFailed": "No se pudo iniciar.",
