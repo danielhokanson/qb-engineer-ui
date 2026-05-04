@@ -79,6 +79,19 @@ export class WorkflowComponent {
    */
   readonly missingValidators = input<MissingValidator[]>([]);
 
+  /**
+   * Read-only presentation. Used by the workflow-runs admin (b) and any
+   * future history-view surface that wants to show the rail + current
+   * step without form controls. When true:
+   *   • The shell hides the entire footer (Back / Skip / Continue).
+   *   • The mode toggle is hidden (no editing → no need to switch).
+   *   • Step components receive readonly: true via stepInputs and are
+   *     responsible for honoring it (disable form controls, hide their
+   *     own Save buttons). Step components opt in to the contract; the
+   *     shell trusts the input.
+   */
+  readonly readonly = input<boolean>(false);
+
   // ─── Outputs ────────────────────────────────────────────────────────
 
   @Output() readonly closed = new EventEmitter<void>();
@@ -254,6 +267,7 @@ export class WorkflowComponent {
       runId: r?.id ?? null,
       entityId: r?.entityId ?? null,
       entity: this.entity(),
+      readonly: this.readonly(),
     };
   });
 
@@ -281,6 +295,7 @@ export class WorkflowComponent {
       runId: r?.id ?? null,
       entityId: r?.entityId ?? null,
       entity: this.entity(),
+      readonly: this.readonly(),
     };
   });
 

@@ -17,28 +17,35 @@
       }
     </div>
 
-    <div class="workflow-shell__mode-toggle" role="group" [attr.aria-label]="'workflow.shell.mode.toggle' | translate">
-      <button
-        type="button"
-        class="workflow-shell__mode-btn"
-        [class.workflow-shell__mode-btn--active]="mode() === 'express'"
-        [attr.aria-pressed]="mode() === 'express'"
-        data-testid="workflow-mode-express"
-        (click)="setMode('express')">
-        <span>{{ 'workflow.shell.mode.express' | translate }}</span>
-        <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.expressSublabel' | translate }}</span>
-      </button>
-      <button
-        type="button"
-        class="workflow-shell__mode-btn"
-        [class.workflow-shell__mode-btn--active]="mode() === 'guided'"
-        [attr.aria-pressed]="mode() === 'guided'"
-        data-testid="workflow-mode-guided"
-        (click)="setMode('guided')">
-        <span>{{ 'workflow.shell.mode.guided' | translate }}</span>
-        <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.guidedSublabel' | translate }}</span>
-      </button>
-    </div>
+    @if (!readonly()) {
+      <div class="workflow-shell__mode-toggle" role="group" [attr.aria-label]="'workflow.shell.mode.toggle' | translate">
+        <button
+          type="button"
+          class="workflow-shell__mode-btn"
+          [class.workflow-shell__mode-btn--active]="mode() === 'express'"
+          [attr.aria-pressed]="mode() === 'express'"
+          data-testid="workflow-mode-express"
+          (click)="setMode('express')">
+          <span>{{ 'workflow.shell.mode.express' | translate }}</span>
+          <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.expressSublabel' | translate }}</span>
+        </button>
+        <button
+          type="button"
+          class="workflow-shell__mode-btn"
+          [class.workflow-shell__mode-btn--active]="mode() === 'guided'"
+          [attr.aria-pressed]="mode() === 'guided'"
+          data-testid="workflow-mode-guided"
+          (click)="setMode('guided')">
+          <span>{{ 'workflow.shell.mode.guided' | translate }}</span>
+          <span class="workflow-shell__mode-btn-sublabel">{{ 'workflow.shell.mode.guidedSublabel' | translate }}</span>
+        </button>
+      </div>
+    } @else {
+      <span class="workflow-shell__readonly-chip" data-testid="workflow-readonly-chip">
+        <span class="material-icons-outlined">visibility</span>
+        {{ 'workflow.shell.readonlyLabel' | translate }}
+      </span>
+    }
 
     <button
       type="button"
@@ -116,6 +123,7 @@
           <ng-container *ngComponentOutlet="currentStepComponent(); inputs: stepInputs()" />
         </main>
 
+        @if (!readonly()) {
         <footer class="workflow-shell__footer">
           <div class="workflow-shell__footer-left">
             <button
@@ -162,6 +170,7 @@
             </app-validation-button>
           </div>
         </footer>
+        }
       </div>
     } @else {
       <main class="workflow-shell__express" data-testid="workflow-express-content">

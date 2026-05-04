@@ -4819,6 +4819,7 @@
         "confirmAction": "Cambiar y descartar"
       },
       "optional": "Opcional",
+      "readonlyLabel": "Solo vista",
       "resumeBanner": "Continuando donde lo dejaste — última edición {{lastEdited}}.",
       "stepCounter": "Paso {{current}} de {{total}}",
       "stepErrors": {
