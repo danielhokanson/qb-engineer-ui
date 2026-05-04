@@ -12,12 +12,50 @@
   }
 
   &__heading {
+    display: flex;
+    align-items: baseline;
+    gap: $sp-xs;
     margin: 0;
     font-size: $font-size-xxs;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--text-muted);
+  }
+
+  // Breadcrumb pieces — same shape as the workflow shell so the fork
+  // dialog reads as part of the same family rather than a one-off.
+  &__step-counter {
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  &__step-sep {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  &__step-name {
+    color: var(--text-secondary);
+    font-weight: 700;
+  }
+
+  &__optional-chip {
+    margin-left: $sp-sm;
+    padding: 1px $sp-sm;
+    font-size: $font-size-xxs;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  // Reveal animation for steps that appear when the user picks the
+  // previous one. Soft fade + slide so the new section feels welcomed
+  // in rather than snapping into existence.
+  &__step--reveal {
+    animation: fork-step-reveal 250ms ease-out;
   }
 
   &__helper {
@@ -103,4 +141,26 @@
     padding: $sp-xxs $sp-sm;
     border: $border-width-thin solid var(--primary);
   }
+
+  // Selected card shows a check pseudo-element in the top-right corner
+  // so users get visual confirmation of their picks without having to
+  // re-read the highlighted background tint.
+  &__card--selected::after {
+    content: 'check';
+    font-family: 'Material Icons Outlined';
+    position: absolute;
+    top: $sp-xs;
+    right: $sp-xs;
+    font-size: $icon-size-sm;
+    color: var(--primary);
+  }
+
+  &__card {
+    position: relative;
+  }
+}
+
+@keyframes fork-step-reveal {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
 }

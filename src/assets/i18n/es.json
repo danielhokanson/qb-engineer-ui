@@ -587,6 +587,7 @@
       "startFailed": "No se pudo iniciar el flujo.",
       "fork": {
         "title": "How would you like to add this part?",
+        "stepLabel": "Paso {{current}} de {{total}}",
         "step1Title": "How is this part sourced?",
         "step1Make": "Made",
         "step1MakeDesc": "Produced in-house from raw stock or a BOM.",

@@ -3,7 +3,11 @@
 
     <!-- Step 1 — Procurement source -->
     <section class="new-part-fork__step" data-testid="fork-step-procurement">
-      <h3 class="new-part-fork__heading">{{ 'parts.workflow.fork.step1Title' | translate }}</h3>
+      <h3 class="new-part-fork__heading">
+        <span class="new-part-fork__step-counter">{{ 'parts.workflow.fork.stepLabel' | translate: { current: 1, total: 4 } }}</span>
+        <span class="new-part-fork__step-sep" aria-hidden="true">·</span>
+        <span class="new-part-fork__step-name">{{ 'parts.workflow.fork.step1Title' | translate }}</span>
+      </h3>
       <div class="new-part-fork__grid new-part-fork__grid--2col">
         @for (choice of procurementChoices; track choice.value) {
           <button
@@ -25,8 +29,12 @@
 
     <!-- Step 2 — Inventory class (filtered by Step 1) -->
     @if (procurement() !== null) {
-      <section class="new-part-fork__step" data-testid="fork-step-inventory-class">
-        <h3 class="new-part-fork__heading">{{ 'parts.workflow.fork.step2Title' | translate }}</h3>
+      <section class="new-part-fork__step new-part-fork__step--reveal" data-testid="fork-step-inventory-class">
+        <h3 class="new-part-fork__heading">
+          <span class="new-part-fork__step-counter">{{ 'parts.workflow.fork.stepLabel' | translate: { current: 2, total: 4 } }}</span>
+          <span class="new-part-fork__step-sep" aria-hidden="true">·</span>
+          <span class="new-part-fork__step-name">{{ 'parts.workflow.fork.step2Title' | translate }}</span>
+        </h3>
         <div class="new-part-fork__grid new-part-fork__grid--2col">
           @for (choice of inventoryChoices(); track choice.value) {
             <button
@@ -48,8 +56,13 @@
 
     <!-- Step 3 — Item kind (optional) -->
     @if (inventoryClass() !== null) {
-      <section class="new-part-fork__step" data-testid="fork-step-item-kind">
-        <h3 class="new-part-fork__heading">{{ 'parts.workflow.fork.step3Title' | translate }}</h3>
+      <section class="new-part-fork__step new-part-fork__step--reveal" data-testid="fork-step-item-kind">
+        <h3 class="new-part-fork__heading">
+          <span class="new-part-fork__step-counter">{{ 'parts.workflow.fork.stepLabel' | translate: { current: 3, total: 4 } }}</span>
+          <span class="new-part-fork__step-sep" aria-hidden="true">·</span>
+          <span class="new-part-fork__step-name">{{ 'parts.workflow.fork.step3Title' | translate }}</span>
+          <span class="new-part-fork__optional-chip">{{ 'workflow.shell.optional' | translate }}</span>
+        </h3>
         <p class="new-part-fork__helper">{{ 'parts.workflow.fork.step3Helper' | translate }}</p>
         <app-select
           data-testid="fork-item-kind"
@@ -61,8 +74,12 @@
 
     <!-- Step 4 — Mode -->
     @if (inventoryClass() !== null) {
-      <section class="new-part-fork__step" data-testid="fork-step-mode">
-        <h3 class="new-part-fork__heading">{{ 'parts.workflow.fork.step4Title' | translate }}</h3>
+      <section class="new-part-fork__step new-part-fork__step--reveal" data-testid="fork-step-mode">
+        <h3 class="new-part-fork__heading">
+          <span class="new-part-fork__step-counter">{{ 'parts.workflow.fork.stepLabel' | translate: { current: 4, total: 4 } }}</span>
+          <span class="new-part-fork__step-sep" aria-hidden="true">·</span>
+          <span class="new-part-fork__step-name">{{ 'parts.workflow.fork.step4Title' | translate }}</span>
+        </h3>
         <div class="new-part-fork__grid new-part-fork__grid--2col">
           <button
             type="button"

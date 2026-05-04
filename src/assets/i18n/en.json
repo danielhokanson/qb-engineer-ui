@@ -607,6 +607,7 @@
       "startFailed": "Couldn't start the workflow.",
       "fork": {
         "title": "How would you like to add this part?",
+        "stepLabel": "Step {{current}} of {{total}}",
         "step1Title": "How is this part sourced?",
         "step1Make": "Made",
         "step1MakeDesc": "Produced in-house from raw stock or a BOM.",
