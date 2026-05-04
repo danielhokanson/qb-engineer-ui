@@ -5125,7 +5125,11 @@
         "confirmAction": "Switch and discard"
       },
       "optional": "Optional",
+      "resumeBanner": "Picking up where you left off — last edited {{lastEdited}}.",
       "stepCounter": "Step {{current}} of {{total}}",
+      "stepErrors": {
+        "heading": "This step is missing data needed to complete the workflow"
+      },
       "steps": {
         "heading": "Steps"
       },

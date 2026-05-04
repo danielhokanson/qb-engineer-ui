@@ -4819,7 +4819,11 @@
         "confirmAction": "Cambiar y descartar"
       },
       "optional": "Opcional",
+      "resumeBanner": "Continuando donde lo dejaste — última edición {{lastEdited}}.",
       "stepCounter": "Paso {{current}} de {{total}}",
+      "stepErrors": {
+        "heading": "Este paso necesita datos para completar el flujo"
+      },
       "steps": {
         "heading": "Steps"
       },

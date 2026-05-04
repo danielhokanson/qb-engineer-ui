@@ -160,6 +160,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: $sp-md;
     overflow-y: auto;
     padding: $sp-lg;
     @include custom-scrollbar(8px);
@@ -173,6 +174,62 @@
       width: 100%;
       max-width: 760px;
       animation: workflow-content-fade-in $transition-normal ease-out;
+    }
+  }
+
+  // Resume banner — soft acknowledgement when picking up an in-flight
+  // run hours or days later. Sits above the step body so it's the first
+  // thing the user reads on remount.
+  &__resume-banner {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    padding: $sp-sm $sp-md;
+    background: color-mix(in srgb, var(--info) 12%, transparent);
+    color: var(--info);
+    font-size: $font-size-sm;
+    border-left: $border-width-accent solid var(--info);
+
+    .material-icons-outlined {
+      font-size: $icon-size-md;
+      flex: 0 0 auto;
+    }
+  }
+
+  // Inline step-error alert — sits at the top of the step body when
+  // the server's missing-validators payload fingers this step's gates.
+  // Style mirrors the not-implemented warning notice in the costing
+  // step; visually consistent with other 'pay attention' surfaces.
+  &__step-errors {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-xs;
+    padding: $sp-sm $sp-md;
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    color: var(--error);
+    border-left: $border-width-accent solid var(--error);
+  }
+
+  &__step-errors-heading {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    font-size: $font-size-sm;
+    font-weight: 600;
+
+    .material-icons-outlined {
+      font-size: $icon-size-md;
+    }
+  }
+
+  &__step-errors-list {
+    margin: 0;
+    padding-left: $sp-2xl;
+    font-size: $font-size-sm;
+    color: var(--text);
+
+    li {
+      line-height: 1.5;
     }
   }
 
@@ -335,6 +392,23 @@
 
   &--locked &__indicator {
     opacity: 0.6;
+  }
+
+  // Server-reported missing-validator state. The user attempted to
+  // Mark Complete and the gate against this step's data failed; we
+  // need to draw the eye to which step is blocking promotion.
+  &--has-error &__btn {
+    color: var(--error);
+  }
+
+  &--has-error &__indicator {
+    background: color-mix(in srgb, var(--error) 18%, transparent);
+    border-color: var(--error);
+    color: var(--error);
+  }
+
+  &--has-error &__index {
+    color: var(--error);
   }
 }
 
