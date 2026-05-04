@@ -17,6 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../confirm-dialog/confirm-dialog.component';
 import { EntityValidator } from '../../models/entity-validator.model';
+import { MissingValidator } from '../../models/workflow-missing-validator.model';
 import { WorkflowDefinition } from '../../models/workflow-definition.model';
 import { WorkflowRun } from '../../models/workflow-run.model';
 import { WorkflowStepDefinition } from '../../models/workflow-step-definition.model';
@@ -68,6 +69,15 @@ export class WorkflowComponent {
   readonly validators = input<EntityValidator[]>([]);
   /** Display title — entity-specific (e.g. "ASM-100" or "New Assembly"). */
   readonly entityTitle = input<string>('');
+  /**
+   * Server-reported missing validators from the most recent
+   * Mark Complete / Promote attempt. The shell uses this to:
+   *   • Highlight rail rows whose step owns a failed gate (red marker).
+   *   • Render an inline alert at the top of the current step body when
+   *     that step is the one blocking promotion.
+   * Empty list = no recent failure (or it was cleared).
+   */
+  readonly missingValidators = input<MissingValidator[]>([]);
 
   // ─── Outputs ────────────────────────────────────────────────────────
 
@@ -176,6 +186,49 @@ export class WorkflowComponent {
       out.set(step.id, idx < maxReached);
     });
     return out;
+  });
+
+  /**
+   * Map of stepId → list of MissingValidator entries reported against that
+   * step's completionGates. Drives both the rail's --has-error highlight
+   * and the inline error alert at the top of the step body.
+   */
+  protected readonly errorsByStepId = computed<Map<string, MissingValidator[]>>(() => {
+    const out = new Map<string, MissingValidator[]>();
+    const missing = this.missingValidators();
+    if (missing.length === 0) return out;
+    for (const step of this.steps()) {
+      if (step.completionGates.length === 0) continue;
+      const gateIds = new Set(step.completionGates.map(g => g.toLowerCase()));
+      const stepErrors = missing.filter(m => gateIds.has(m.validatorId.toLowerCase()));
+      if (stepErrors.length > 0) out.set(step.id, stepErrors);
+    }
+    return out;
+  });
+
+  protected readonly currentStepErrors = computed<MissingValidator[]>(() => {
+    const id = this.currentStepId();
+    if (!id) return [];
+    return this.errorsByStepId().get(id) ?? [];
+  });
+
+  protected hasError(step: WorkflowStepDefinition): boolean {
+    return this.errorsByStepId().has(step.id);
+  }
+
+  /**
+   * "Resume" surface: true when the run has been touched outside the
+   * current page mount (lastActivityAt > 5 min ago). Below that threshold
+   * the user is in an active session and a "welcome back" banner reads
+   * as noise. Above it, we want a soft acknowledgement so the user
+   * understands they're picking up an in-flight session.
+   */
+  protected readonly isResumed = computed<boolean>(() => {
+    const r = this.run();
+    if (!r) return false;
+    const last = Date.parse(r.lastActivityAt);
+    if (!Number.isFinite(last)) return false;
+    return Date.now() - last > 5 * 60 * 1000;
   });
 
   protected readonly isFirstStep = computed(() => this.currentStepIndex() === 0);

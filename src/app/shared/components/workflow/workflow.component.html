@@ -59,7 +59,8 @@
             <li class="workflow-step"
                 [class.workflow-step--current]="isCurrent(step)"
                 [class.workflow-step--complete]="isComplete(step)"
-                [class.workflow-step--locked]="isFutureStep(step)">
+                [class.workflow-step--locked]="isFutureStep(step)"
+                [class.workflow-step--has-error]="hasError(step)">
               <button
                 type="button"
                 class="workflow-step__btn"
@@ -69,7 +70,9 @@
                 [attr.data-testid]="'workflow-step-' + step.id"
                 (click)="jumpTo(step)">
                 <span class="workflow-step__indicator" aria-hidden="true">
-                  @if (isComplete(step)) {
+                  @if (hasError(step)) {
+                    <span class="material-icons-outlined">priority_high</span>
+                  } @else if (isComplete(step)) {
                     <span class="material-icons-outlined">check</span>
                   } @else if (isFutureStep(step)) {
                     <span class="material-icons-outlined">lock</span>
@@ -89,6 +92,27 @@
 
       <div class="workflow-shell__main">
         <main class="workflow-shell__step-content" data-testid="workflow-step-content">
+          @if (isResumed() && run(); as r) {
+            <div class="workflow-shell__resume-banner" role="status" data-testid="workflow-resume-banner">
+              <span class="material-icons-outlined">history</span>
+              <span>{{ 'workflow.shell.resumeBanner' | translate: { lastEdited: r.lastActivityAt | date:'medium' } }}</span>
+            </div>
+          }
+          @if (currentStepErrors(); as errs) {
+            @if (errs.length > 0) {
+              <div class="workflow-shell__step-errors" role="alert" data-testid="workflow-step-errors">
+                <div class="workflow-shell__step-errors-heading">
+                  <span class="material-icons-outlined">error_outline</span>
+                  {{ 'workflow.shell.stepErrors.heading' | translate }}
+                </div>
+                <ul class="workflow-shell__step-errors-list">
+                  @for (e of errs; track e.validatorId) {
+                    <li>{{ e.missingMessageKey | translate }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          }
           <ng-container *ngComponentOutlet="currentStepComponent(); inputs: stepInputs()" />
         </main>
 
