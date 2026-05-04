@@ -10,6 +10,19 @@ import {
   ServerValidationError,
 } from '../utils/server-validation.utils';
 
+/**
+ * Violation pair carrying both the human-readable message AND the
+ * source control name so the validation popover can render a
+ * click-to-jump that focuses the offending field. The legacy
+ * string[] shape stays on getViolations / collectViolations for
+ * backward compat with the 50+ existing consumers; this richer
+ * shape is opt-in via getViolationItems / collectViolationItems.
+ */
+export interface ViolationItem {
+  controlName: string;
+  message: string;
+}
+
 const ERROR_MESSAGES: Record<string, (label: string, error: unknown) => string> = {
   required: (label) => `${label} is required`,
   email: (label) => `${label} must be a valid email`,
@@ -52,7 +65,17 @@ export class FormValidationService {
   }
 
   static collectViolations(form: FormGroup, labels: Record<string, string>): string[] {
-    const violations: string[] = [];
+    return FormValidationService.collectViolationItems(form, labels).map(v => v.message);
+  }
+
+  /**
+   * Same scan as collectViolations but returns each violation alongside
+   * the control name that produced it. Powers the validation popover's
+   * click-to-jump so a click on a violation can scroll/focus the source
+   * field instead of leaving the user hunting.
+   */
+  static collectViolationItems(form: FormGroup, labels: Record<string, string>): ViolationItem[] {
+    const items: ViolationItem[] = [];
 
     for (const [key, control] of Object.entries(form.controls)) {
       const errors = (control as AbstractControl).errors;
@@ -62,24 +85,40 @@ export class FormValidationService {
 
       for (const [errorKey, errorValue] of Object.entries(errors)) {
         if (errorValue && typeof errorValue === 'object' && 'message' in errorValue) {
-          // Server-side errors and any other rich error envelope use this path.
-          // Prefix the label so a "Date is not valid" message reads as
-          // "Start Date: Date is not valid" — the field is otherwise
-          // unidentifiable in a popover that lists violations across the
-          // whole form.
           const message = (errorValue as { message: unknown }).message;
           if (typeof message === 'string') {
-            violations.push(errorKey === 'serverError' ? `${label}: ${message}` : message);
+            items.push({
+              controlName: key,
+              message: errorKey === 'serverError' ? `${label}: ${message}` : message,
+            });
           }
         } else if (ERROR_MESSAGES[errorKey]) {
-          violations.push(ERROR_MESSAGES[errorKey](label, errorValue));
+          items.push({ controlName: key, message: ERROR_MESSAGES[errorKey](label, errorValue) });
         } else {
-          violations.push(`${label} is invalid`);
+          items.push({ controlName: key, message: `${label} is invalid` });
         }
       }
     }
 
-    return violations;
+    return items;
+  }
+
+  /**
+   * Item-aware sibling of getViolations(). Returns a Signal of
+   * ViolationItem so consumers wiring click-to-jump can subscribe to a
+   * structured stream instead of stringly-typed messages.
+   */
+  static getViolationItems(
+    form: FormGroup,
+    labels: Record<string, string>,
+  ): Signal<ViolationItem[]> {
+    const items = signal<ViolationItem[]>([]);
+
+    form.statusChanges.pipe(startWith(form.status)).subscribe(() => {
+      items.set(FormValidationService.collectViolationItems(form, labels));
+    });
+
+    return items.asReadonly();
   }
 
   /**

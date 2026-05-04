@@ -35,8 +35,20 @@
     (keydown.escape)="close()">
     @if (count() > 0) {
       <ul class="validation-popover__list">
-        @for (msg of violationList(); track msg) {
-          <li>{{ msg }}</li>
+        @for (item of violationList(); track item.message) {
+          @if (item.controlName) {
+            <li>
+              <button type="button"
+                class="validation-popover__item"
+                data-testid="validation-popover-item"
+                (click)="onViolationClick(item)">
+                {{ item.message }}
+                <span class="validation-popover__jump-icon material-icons-outlined" aria-hidden="true">arrow_forward</span>
+              </button>
+            </li>
+          } @else {
+            <li>{{ item.message }}</li>
+          }
         }
       </ul>
     } @else {

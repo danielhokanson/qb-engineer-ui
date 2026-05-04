@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -95,13 +95,47 @@ export class PartExpressFormComponent {
     { value: 'C', label: this.translate.instant('parts.workflow.basics.abcClassC') },
   ];
 
-  protected readonly violations = FormValidationService.getViolations(this.form, {
+  private readonly violationLabels = {
     name: this.translate.instant('parts.workflow.basics.nameLabel'),
     description: this.translate.instant('parts.workflow.basics.descriptionLabel'),
     traceabilityType: this.translate.instant('parts.workflow.quality.traceabilityLabel'),
     abcClass: this.translate.instant('parts.workflow.quality.abcClassLabel'),
     manualCostOverride: this.translate.instant('parts.workflow.costing.manualOverrideLabel'),
-  });
+  };
+  protected readonly violations = FormValidationService.getViolations(this.form, this.violationLabels);
+  protected readonly violationItems = FormValidationService.getViolationItems(this.form, this.violationLabels);
+
+  /** Form host element — used to scope click-to-jump field lookups. */
+  private readonly formEl = viewChild<ElementRef<HTMLFormElement>>('formEl');
+
+  /**
+   * Validation popover click-to-jump handler. Resolves the offending
+   * field by data-testid (express-{controlName}) — every wrapper
+   * component already stamps a testid we can target — then scrolls
+   * it into view and focuses the inner control.
+   */
+  protected jumpToField(controlName: string): void {
+    const root = this.formEl()?.nativeElement;
+    if (!root) return;
+    const target = root.querySelector<HTMLElement>(`[data-testid="express-${this.testidFor(controlName)}"]`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusable = target.querySelector<HTMLElement>('input, textarea, select, [tabindex]:not([tabindex="-1"])');
+    focusable?.focus();
+  }
+
+  private testidFor(controlName: string): string {
+    // Map FormControl name → the data-testid suffix used in the template.
+    // Most match 1:1; cost is the one renamed legacy.
+    const map: Record<string, string> = {
+      name: 'name',
+      description: 'description',
+      traceabilityType: 'traceability',
+      abcClass: 'abc-class',
+      manualCostOverride: 'manual-override',
+    };
+    return map[controlName] ?? controlName;
+  }
 
   constructor() {
     // Re-hydrate from the bound entity when the workflow page resolves it

@@ -11,7 +11,7 @@
     }
   </header>
 
-  <form [formGroup]="form" class="part-express-form__form">
+  <form [formGroup]="form" class="part-express-form__form" #formEl>
     <app-input
       [label]="'parts.workflow.basics.nameLabel' | translate"
       formControlName="name"
@@ -52,7 +52,12 @@
   </form>
 
   <div class="part-express-form__actions">
-    <app-validation-button class="validation-button--inline" [violations]="violations" [loading]="saving()">
+    <app-validation-button
+      class="validation-button--inline"
+      [violations]="violations"
+      [violationItems]="violationItems"
+      [loading]="saving()"
+      (violationClicked)="jumpToField($event)">
       <button
         class="action-btn action-btn--primary"
         type="button"
