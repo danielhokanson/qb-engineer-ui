@@ -34,6 +34,16 @@
       flex: 1;
       min-width: 0;
     }
+
+    // Express mode has no rail and only a handful of fields. The 1100px
+    // dialog leaves a wide empty band beside the form (the screenshot
+    // that prompted this fix). Cap the dialog narrower so the form sits
+    // comfortably centered without a sea of dead space — and let it
+    // size to content vertically.
+    &--express {
+      max-width: 720px;
+      max-height: min(90vh, 640px);
+    }
   }
 
   &__loading {

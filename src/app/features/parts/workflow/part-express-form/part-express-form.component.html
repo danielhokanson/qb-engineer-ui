@@ -47,13 +47,12 @@
     <app-currency-input
       [label]="'parts.workflow.costing.manualOverrideLabel' | translate"
       formControlName="manualCostOverride"
-      [required]="true"
       [placeholder]="'parts.workflow.costing.manualOverridePlaceholder' | translate"
       data-testid="express-manual-override" />
   </form>
 
   <div class="part-express-form__actions">
-    <app-validation-button [violations]="violations" [loading]="saving()">
+    <app-validation-button class="validation-button--inline" [violations]="violations" [loading]="saving()">
       <button
         class="action-btn action-btn--primary"
         type="button"

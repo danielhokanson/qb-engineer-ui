@@ -1,5 +1,6 @@
-<ng-content />
-
+<!-- Warning trigger projects FIRST so it sits to the LEFT of the submit
+     button, per the validation-button stereotype documented in CLAUDE.md.
+     The :host flex direction is row, so DOM order = visual order. -->
 <span class="validation-button__anchor" cdkOverlayOrigin #trigger="cdkOverlayOrigin">
   @if (showTrigger()) {
     <button
@@ -15,6 +16,8 @@
     </button>
   }
 </span>
+
+<ng-content />
 
 <ng-template
   cdkConnectedOverlay
