@@ -34,10 +34,7 @@ import { ColumnDef } from '../../../../shared/models/column-def.model';
 import { BomTreeComponent } from '../bom-tree/bom-tree.component';
 import { BomRevisionHistoryComponent } from '../bom-revision-history/bom-revision-history.component';
 import { SerialNumbersTabComponent } from '../serial-numbers-tab/serial-numbers-tab.component';
-import { VendorPartListPanelComponent } from '../vendor-parts-cluster/vendor-part-list-panel.component';
-import { VendorPartFormDialogComponent, VendorPartFormDialogData } from '../vendor-parts-cluster/vendor-part-form-dialog.component';
-import { VendorPartPriceTiersDialogComponent, VendorPartPriceTiersDialogData } from '../vendor-parts-cluster/vendor-part-price-tiers-dialog.component';
-import { VendorPartPriceTierHistoryDialogComponent, VendorPartPriceTierHistoryDialogData } from '../vendor-parts-cluster/vendor-part-price-tier-history-dialog.component';
+import { VendorSourcesPanelComponent } from '../vendor-sources-panel/vendor-sources-panel.component';
 import { VendorPartsService } from '../../services/vendor-parts.service';
 import { VendorPart } from '../../models/vendor-part.model';
 import { PartIdentityClusterComponent } from '../part-clusters/part-identity-cluster.component';
@@ -92,7 +89,7 @@ type BomViewMode = 'table' | 'tree';
     StlViewerComponent, BarcodeInfoComponent,
     DataTableComponent, ColumnCellDirective,
     BomTreeComponent, BomRevisionHistoryComponent,
-    SerialNumbersTabComponent, VendorPartListPanelComponent,
+    SerialNumbersTabComponent, VendorSourcesPanelComponent,
     PartIdentityClusterComponent, PartInventoryClusterComponent, PartCostClusterComponent,
     PartActivityClusterComponent, PartFilesClusterComponent,
     PartMaterialClusterComponent, PartUomClusterComponent, PartMrpClusterComponent,
@@ -483,7 +480,13 @@ export class PartDetailPanelComponent {
     return inventoryClass === 'Subassembly' ? 'account_tree' : 'settings';
   }
 
-  // ── Sources Tab (Vendor Parts) ──
+  // ── Sources Tab (Vendor Sources) ──
+  // The cluster's CRUD lives entirely inside <app-vendor-sources-panel>
+  // now (inline grouped editor — see vendor-sources-panel.component.ts).
+  // The detail panel only needs to (a) keep its own vendorParts() signal
+  // in sync when the panel reports a change so the cached list stays
+  // current for any header-level summaries, and (b) update the part's
+  // preferredVendorId FK when the panel reports a preferred-vendor swap.
 
   protected loadVendorParts(): void {
     const p = this.part();
@@ -491,106 +494,27 @@ export class PartDetailPanelComponent {
     this.vendorPartsLoading.set(true);
     this.vendorPartsService.listForPart(p.id).subscribe({
       next: (list) => {
-        const sorted = [...list].sort((a, b) => {
-          if (a.isPreferred !== b.isPreferred) return a.isPreferred ? -1 : 1;
-          if (a.isApproved !== b.isApproved) return a.isApproved ? -1 : 1;
-          return a.vendorCompanyName.localeCompare(b.vendorCompanyName);
-        });
-        this.vendorParts.set(sorted);
+        this.vendorParts.set(list);
         this.vendorPartsLoading.set(false);
       },
       error: () => this.vendorPartsLoading.set(false),
     });
   }
 
-  protected openVendorPartCreate(): void {
+  /** Called by the panel after any internal mutation (row create / edit
+   *  / delete, tier add / delete). Keep our cached list fresh. */
+  protected reloadVendorParts(): void {
+    this.loadVendorParts();
+  }
+
+  /** Called by the panel when the user marks a different row as
+   *  preferred. Patch Part.preferredVendorId so the FK matches the
+   *  row's new isPreferred flag. */
+  protected onPreferredVendorChanged(vendorId: number): void {
     const p = this.part();
     if (!p) return;
-    // First-vendor shortcut: if this is the part's only source, default
-    // preferred=true so the user doesn't have to think about preference
-    // until an alternate actually exists.
-    const isFirstSource = this.vendorParts().length === 0;
-    this.dialog.open<
-      VendorPartFormDialogComponent,
-      VendorPartFormDialogData,
-      VendorPart | null
-    >(VendorPartFormDialogComponent, {
-      width: '600px',
-      data: {
-        vendorPart: null,
-        parentEntityType: 'part',
-        parentEntityId: p.id,
-        parentLabel: `${p.partNumber} — ${p.name}`,
-        defaultIsPreferred: isFirstSource,
-      },
-    }).afterClosed().subscribe(result => {
-      if (result) this.loadVendorParts();
-    });
-  }
-
-  protected openVendorPartEdit(vp: VendorPart): void {
-    const p = this.part();
-    if (!p) return;
-    this.dialog.open<
-      VendorPartFormDialogComponent,
-      VendorPartFormDialogData,
-      VendorPart | null
-    >(VendorPartFormDialogComponent, {
-      width: '600px',
-      data: {
-        vendorPart: vp,
-        parentEntityType: 'part',
-        parentEntityId: p.id,
-      },
-    }).afterClosed().subscribe(result => {
-      if (result) this.loadVendorParts();
-    });
-  }
-
-  protected deleteVendorPart(vp: VendorPart): void {
-    this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: this.translate.instant('vendorPart.removeVendor'),
-        message: this.translate.instant('vendorPart.confirmDelete'),
-        confirmLabel: this.translate.instant('common.delete'),
-        severity: 'danger',
-      } satisfies ConfirmDialogData,
-    }).afterClosed().subscribe(confirmed => {
-      if (!confirmed) return;
-      this.vendorPartsService.delete(vp.id).subscribe({
-        next: () => {
-          this.snackbar.success('Vendor source removed');
-          this.loadVendorParts();
-        },
-      });
-    });
-  }
-
-  protected toggleVendorPartPreferred(vp: VendorPart): void {
-    this.vendorPartsService.update(vp.id, { isPreferred: !vp.isPreferred }).subscribe({
-      next: () => this.loadVendorParts(),
-    });
-  }
-
-  protected openVendorPartTiers(vp: VendorPart): void {
-    this.dialog.open<
-      VendorPartPriceTiersDialogComponent,
-      VendorPartPriceTiersDialogData
-    >(VendorPartPriceTiersDialogComponent, {
-      width: '700px',
-      data: { vendorPart: vp },
-    }).afterClosed().subscribe(() => this.loadVendorParts());
-  }
-
-  /** Dispatch C — read-only tier history dialog. */
-  protected openVendorPartTierHistory(vp: VendorPart): void {
-    this.dialog.open<
-      VendorPartPriceTierHistoryDialogComponent,
-      VendorPartPriceTierHistoryDialogData
-    >(VendorPartPriceTierHistoryDialogComponent, {
-      width: '700px',
-      data: { vendorPart: vp },
+    this.partsService.updatePart(p.id, { preferredVendorId: vendorId }).subscribe({
+      next: () => this.loadDetail(p.id),
     });
   }
 }

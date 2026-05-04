@@ -1,0 +1,229 @@
+@use 'styles/variables' as *;
+@use 'styles/mixins' as *;
+
+.vendor-sources {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-md;
+  position: relative;
+
+  &__add {
+    appearance: none;
+    background: transparent;
+    border: $border-width-thin dashed var(--border);
+    color: var(--text-secondary);
+    padding: $sp-md;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: $font-size-sm;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $sp-sm;
+    transition: background-color $transition-fast, border-color $transition-fast,
+      color $transition-fast;
+
+    &:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 5%, transparent);
+    }
+
+    .material-icons-outlined {
+      font-size: $icon-size-sm;
+    }
+  }
+
+  &__add-picker {
+    display: flex;
+    align-items: flex-start;
+    gap: $sp-sm;
+    padding: $sp-md;
+    border: $border-width-thin dashed var(--primary);
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+
+    app-entity-picker {
+      flex: 1;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $sp-md;
+    padding-top: $sp-md;
+    border-top: $border-width-thin solid var(--border);
+  }
+}
+
+.vendor-source {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-md;
+  padding: $sp-md;
+  border: $border-width-thin solid var(--border);
+  background: var(--surface);
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &--preferred {
+    border-left: $border-width-accent solid var(--primary);
+  }
+
+  &--no-tiers {
+    background: color-mix(in srgb, var(--warning) 4%, var(--surface));
+  }
+
+  &--stub {
+    border-style: dashed;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    flex-wrap: wrap;
+    padding-bottom: $sp-xs;
+    border-bottom: $border-width-thin solid var(--border);
+  }
+
+  &__name {
+    font-size: $font-size-md;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-xs;
+    font-size: $font-size-xxs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px $sp-sm;
+    line-height: 1.4;
+
+    .material-icons-outlined {
+      font-size: $icon-size-xs;
+    }
+
+    &--preferred {
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      border: $border-width-thin solid var(--primary);
+    }
+
+    &--warn {
+      color: var(--warning);
+      background: color-mix(in srgb, var(--warning) 12%, transparent);
+      border: $border-width-thin solid var(--warning);
+    }
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $sp-sm $sp-md;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @include mobile {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__notes {
+    grid-column: 1 / -1;
+  }
+
+  &__tiers-empty {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  // ─── Tier sub-section ─────────────────────────────────────────────
+  &__tiers {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-sm;
+    padding-top: $sp-sm;
+    border-top: $border-width-thin solid var(--border);
+  }
+
+  &__tiers-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-sm;
+    font-size: $font-size-xxs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  &__tier-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-size-sm;
+
+    th {
+      text-align: left;
+      font-size: $font-size-xxs;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: $sp-xs $sp-sm;
+      border-bottom: $border-width-thin solid var(--border);
+    }
+
+    td {
+      padding: $sp-xs $sp-sm;
+      color: var(--text);
+      border-bottom: $border-width-thin solid var(--border);
+
+      &:first-child {
+        font-family: $font-family-mono;
+        font-weight: 600;
+      }
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+  }
+
+  &__tier-actions {
+    width: 32px;
+    text-align: right;
+  }
+
+  &__tier-add {
+    display: grid;
+    grid-template-columns: 1fr 1fr 80px auto;
+    gap: $sp-sm;
+    align-items: end;
+    padding: $sp-sm;
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+    border: $border-width-thin solid var(--primary);
+
+    @include mobile {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__tier-add-actions {
+    display: flex;
+    gap: $sp-sm;
+    justify-content: flex-end;
+  }
+}

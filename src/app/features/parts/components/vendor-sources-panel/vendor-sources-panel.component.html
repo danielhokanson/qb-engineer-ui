@@ -1,0 +1,294 @@
+<section class="vendor-sources" [class.vendor-sources--readonly]="!editing()" [appLoadingBlock]="loading()" data-testid="vendor-sources">
+
+  <!-- ─── Preferred-vendor stub ─────────────────────────────────────
+       Renders when Part.preferredVendorId is set but no VendorPart row
+       exists for that pairing yet. The same form is used in both edit
+       and read-only modes — the [isReadonly] propagation on every
+       <app-input> etc. handles the visual swap (no chrome, no caret,
+       muted action affordances) without changing layout dimensions. -->
+  @if (preferredStubVisible()) {
+    <article class="vendor-source vendor-source--preferred vendor-source--stub" data-testid="vendor-source-stub">
+      <header class="vendor-source__header">
+        <span class="vendor-source__name">{{ preferredVendorName() }}</span>
+        <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
+        @if (editing()) {
+          <span class="vendor-source__chip vendor-source__chip--warn">
+            <span class="material-icons-outlined">edit</span>
+            {{ 'vendorSources.stubHint' | translate }}
+          </span>
+        } @else {
+          <span class="vendor-source__chip vendor-source__chip--warn">
+            <span class="material-icons-outlined">info</span>
+            {{ 'vendorSources.stubHintReadonly' | translate }}
+          </span>
+        }
+      </header>
+      <ng-container *ngTemplateOutlet="rowFields; context: { row: null, form: formFor(null) }" />
+    </article>
+  }
+
+  <!-- ─── Existing rows (preferred first, then alpha) ──────────────── -->
+  @for (row of sortedRows(); track row.id) {
+    <article class="vendor-source"
+      [class.vendor-source--preferred]="row.isPreferred"
+      [class.vendor-source--no-tiers]="hasNoTiers(row)"
+      [attr.data-testid]="'vendor-source-' + row.id">
+
+      <header class="vendor-source__header">
+        <span class="vendor-source__name">{{ row.vendorCompanyName }}</span>
+        @if (row.isPreferred) {
+          <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
+        }
+        @if (hasNoTiers(row)) {
+          <span class="vendor-source__chip vendor-source__chip--warn">
+            <span class="material-icons-outlined">price_change</span>
+            {{ 'vendorSources.noTiersWarning' | translate }}
+          </span>
+        }
+        <span class="vendor-source__spacer"></span>
+        @if (editing() && !row.isPreferred) {
+          <button type="button" class="action-btn action-btn--sm"
+            [attr.data-testid]="'vendor-source-set-preferred-' + row.id"
+            (click)="setAsPreferred(row)">
+            <span class="material-icons-outlined">star</span>
+            <span>{{ 'vendorSources.setAsPreferred' | translate }}</span>
+          </button>
+        }
+        @if (editing()) {
+          <button type="button" class="icon-btn icon-btn--danger"
+            [attr.aria-label]="'vendorSources.removeRow.aria' | translate: { vendor: row.vendorCompanyName }"
+            [matTooltip]="'common.remove' | translate"
+            [attr.data-testid]="'vendor-source-remove-' + row.id"
+            (click)="removeRow(row)">
+            <span class="material-icons-outlined">delete</span>
+          </button>
+        }
+      </header>
+
+      <ng-container *ngTemplateOutlet="rowFields; context: { row: row, form: formFor(row) }" />
+
+      <!-- ─── Price tiers ───────────────────────────────────────── -->
+      <div class="vendor-source__tiers">
+        <header class="vendor-source__tiers-header">
+          <span>{{ 'vendorSources.priceTiers' | translate }}</span>
+          @if (editing() && newTierFor() !== row.id) {
+            <button type="button" class="action-btn action-btn--sm action-btn--create"
+              [attr.data-testid]="'vendor-source-add-tier-' + row.id"
+              (click)="showAddTier(row.id)">
+              <span class="material-icons-outlined">add</span>
+              <span>{{ 'vendorSources.addTier' | translate }}</span>
+            </button>
+          }
+        </header>
+
+        @if (row.priceTiers && row.priceTiers.length > 0) {
+          <table class="vendor-source__tier-table">
+            <thead>
+              <tr>
+                <th>{{ 'vendorSources.tier.minQty' | translate }}</th>
+                <th>{{ 'vendorSources.tier.unitPrice' | translate }}</th>
+                <th>{{ 'vendorSources.tier.currency' | translate }}</th>
+                <th>{{ 'vendorSources.tier.effectiveFrom' | translate }}</th>
+                @if (editing()) {
+                  <th class="vendor-source__tier-actions"></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (tier of row.priceTiers; track tier.id) {
+                <tr>
+                  <td>{{ tier.minQuantity }}+</td>
+                  <td>{{ currencySymbol(tier.currency) }}{{ tier.unitPrice }}</td>
+                  <td>{{ tier.currency }}</td>
+                  <td>{{ tier.effectiveFrom | date:'mediumDate' }}</td>
+                  @if (editing()) {
+                    <td class="vendor-source__tier-actions">
+                      <button type="button" class="icon-btn icon-btn--danger"
+                        [attr.aria-label]="'vendorSources.tier.remove' | translate"
+                        [matTooltip]="'common.remove' | translate"
+                        (click)="removeTier(row, tier)">
+                        <span class="material-icons-outlined">close</span>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else if (!editing()) {
+          <p class="vendor-source__tiers-empty">{{ 'vendorSources.noTiersInline' | translate }}</p>
+        }
+
+        @if (editing() && newTierFor() === row.id) {
+          <form class="vendor-source__tier-add" [formGroup]="tierFormFor(row.id)">
+            <app-input
+              [label]="'vendorSources.tier.minQty' | translate"
+              type="number"
+              formControlName="minQuantity"
+              [required]="true"
+              data-testid="tier-add-min-qty" />
+            <app-currency-input
+              [label]="'vendorSources.tier.unitPrice' | translate"
+              formControlName="unitPrice"
+              [required]="true"
+              data-testid="tier-add-unit-price" />
+            <app-input
+              [label]="'vendorSources.tier.currency' | translate"
+              formControlName="currency"
+              [maxlength]="3"
+              data-testid="tier-add-currency" />
+            <div class="vendor-source__tier-add-actions">
+              <button type="button" class="action-btn action-btn--sm" (click)="cancelAddTier()">
+                {{ 'common.cancel' | translate }}
+              </button>
+              <button type="button" class="action-btn action-btn--sm action-btn--primary"
+                data-testid="tier-add-save"
+                [disabled]="tierFormFor(row.id).invalid"
+                (click)="addTier(row.id)">
+                {{ 'common.save' | translate }}
+              </button>
+            </div>
+          </form>
+        }
+      </div>
+    </article>
+  }
+
+  <!-- ─── Add another vendor source — editing mode only ───────────── -->
+  @if (editing()) {
+    @if (!addingVendor()) {
+      <button type="button"
+        class="vendor-sources__add"
+        data-testid="vendor-sources-add"
+        (click)="startAddVendor()">
+        <span class="material-icons-outlined">add</span>
+        <span>{{ 'vendorSources.addAnother' | translate }}</span>
+      </button>
+    } @else {
+      <div class="vendor-sources__add-picker" data-testid="vendor-sources-add-picker">
+        <app-entity-picker
+          [label]="'vendorSources.pickVendor' | translate"
+          entityType="vendors"
+          displayField="companyName"
+          [createNewLabel]="('vendors.vendor' | translate).toLowerCase()"
+          [placeholder]="'vendors.searchByCompanyName' | translate"
+          [formControl]="addVendorControl"
+          (createNew)="onCreateNewVendor($event)" />
+        <button type="button" class="action-btn action-btn--sm" (click)="cancelAddVendor()">
+          {{ 'common.cancel' | translate }}
+        </button>
+      </div>
+    }
+  }
+
+  <!-- ─── Empty state ─────────────────────────────────────────────── -->
+  @if (!preferredStubVisible() && sortedRows().length === 0 && !addingVendor() && !loading()) {
+    <app-empty-state
+      icon="storefront"
+      [message]="'vendorSources.empty.message' | translate"
+      [helpText]="(editing() ? 'vendorSources.empty.help' : 'vendorSources.empty.helpReadonly') | translate" />
+  }
+
+  <!-- ─── Panel-level Save / Cancel ────────────────────────────────
+       Per-row 1:1 fields auto-save on blur (see saveRow), so by the
+       time the user clicks Save here most edits are already
+       persisted. The button still does the "right thing" — it
+       flushes any field that's still focused (no blur yet) and
+       exits edit mode. Cancel discards unsaved field-level changes
+       by reloading from the server, then exits. -->
+  @if (editing()) {
+    <div class="vendor-sources__actions">
+      <button type="button" class="action-btn"
+        data-testid="vendor-sources-cancel"
+        (click)="onCancel()">
+        {{ 'common.cancel' | translate }}
+      </button>
+      <button type="button" class="action-btn action-btn--primary"
+        data-testid="vendor-sources-save"
+        (click)="onSaveAll()">
+        <span class="material-icons-outlined">save</span>
+        {{ 'common.save' | translate }}
+      </button>
+    </div>
+  }
+
+</section>
+
+<!-- ─── Reusable per-row field grid ──────────────────────────────────
+     Same template for both edit and read-only — the [isReadonly]
+     binding on each <app-input>/<app-textarea>/<app-datepicker>
+     handles the visual swap via the global .app-readonly-field rule
+     in styles.scss. Layout dimensions stay identical between modes,
+     so toggling Edit doesn't reflow the surrounding grid. -->
+<ng-template #rowFields let-row="row" let-form="form">
+  <form class="vendor-source__fields" [formGroup]="form">
+    <app-input
+      [label]="'vendorPart.vendorPartNumber' | translate"
+      formControlName="vendorPartNumber"
+      [maxlength]="100"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)"
+      data-testid="row-vendor-part-number" />
+    <app-input
+      [label]="'vendorPart.manufacturerName' | translate"
+      formControlName="manufacturerName"
+      [maxlength]="200"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.vendorMpn' | translate"
+      formControlName="vendorMpn"
+      [maxlength]="100"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.leadTimeDays' | translate"
+      type="number"
+      formControlName="leadTimeDays"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.minOrderQty' | translate"
+      type="number"
+      formControlName="minOrderQty"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.packSize' | translate"
+      type="number"
+      formControlName="packSize"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.countryOfOrigin' | translate"
+      formControlName="countryOfOrigin"
+      [maxlength]="2"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.htsCode' | translate"
+      formControlName="htsCode"
+      [maxlength]="20"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-datepicker
+      [label]="'vendorPart.lastQuotedDate' | translate"
+      formControlName="lastQuotedDate"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-input
+      [label]="'vendorPart.certifications' | translate"
+      formControlName="certifications"
+      [maxlength]="500"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+    <app-textarea
+      class="vendor-source__notes"
+      [label]="'vendorPart.notes' | translate"
+      formControlName="notes"
+      [rows]="2"
+      [maxlength]="2000"
+      [isReadonly]="!editing()"
+      (blur)="saveRow(row)" />
+  </form>
+</ng-template>

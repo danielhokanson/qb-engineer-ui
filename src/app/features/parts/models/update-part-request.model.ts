@@ -27,6 +27,11 @@ export interface UpdatePartRequest {
   procurementSource?: ProcurementSource;
   inventoryClass?: InventoryClass;
   toolingAssetId?: number;
+  // Pillar 3 — preferred vendor FK. Set from the Sourcing step or via
+  // the "Set as preferred" action on the Vendor Sources panel. Pass 0
+  // to clear (per the legacy back-compat clearing convention noted at
+  // the top of this file).
+  preferredVendorId?: number;
   minStockThreshold?: number;
   reorderPoint?: number;
   reorderQuantity?: number;

@@ -4,7 +4,6 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { InputComponent } from '../../../../shared/components/input/input.component';
-import { StepRationaleComponent } from '../../../../shared/components/step-rationale/step-rationale.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
@@ -34,7 +33,6 @@ import { PartsService } from '../../services/parts.service';
   imports: [
     ReactiveFormsModule, TranslatePipe,
     InputComponent, TextareaComponent, LoadingBlockDirective,
-    StepRationaleComponent,
   ],
   templateUrl: './part-basics-step.component.html',
   styleUrl: './part-basics-step.component.scss',

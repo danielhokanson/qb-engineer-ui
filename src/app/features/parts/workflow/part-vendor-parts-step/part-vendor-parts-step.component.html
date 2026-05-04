@@ -1,22 +1,26 @@
-<section class="part-vendor-parts-step" [appLoadingBlock]="loading()" data-testid="part-vendor-parts-step">
+<section class="part-vendor-parts-step" data-testid="part-vendor-parts-step">
   <header class="part-vendor-parts-step__header">
     <h2 class="part-vendor-parts-step__title">{{ 'parts.workflow.vendorParts.title' | translate }}</h2>
     <p class="part-vendor-parts-step__hint">{{ 'parts.workflow.vendorParts.hint' | translate }}</p>
   </header>
 
-  @if (entityId(); as id) {
-    <app-vendor-part-list-panel
-      mode="sources"
-      parentEntityType="part"
-      [parentEntityId]="id"
-      [vendorParts]="vendorParts()"
-      [loading]="loading()"
-      (add)="onAdd()"
-      (edit)="onEdit($event)"
-      (delete)="onDelete($event)"
-      (togglePreferred)="onTogglePreferred($event)"
-      (viewTiers)="onViewTiers($event)"
-      (viewTierHistory)="onViewTierHistory($event)" />
+  <!--
+    Prefer the loaded entity's id over the run's entityId() — when the
+    user navigates direct to /parts/{id}?workflow=... the page may
+    create a fresh workflow run that hasn't yet bound to the entity
+    (entityId stays null until the basics step patches). The part is
+    already loaded though, so use its id directly to render the panel.
+    Fall back to the pending message only when no part is loaded at all
+    (the entity-less /parts/new path before basics is filled).
+  -->
+  @if (part()?.id; as id) {
+    <app-vendor-sources-panel
+      [partId]="id"
+      [partLabel]="partLabel()"
+      [preferredVendorId]="part()?.preferredVendorId ?? null"
+      [preferredVendorName]="part()?.preferredVendorName ?? ''"
+      [editing]="true"
+      (preferredVendorChanged)="onPreferredVendorChanged($event)" />
   } @else {
     <p class="part-vendor-parts-step__pending">
       {{ 'parts.workflow.vendorParts.pendingMaterialization' | translate }}

@@ -126,18 +126,15 @@
 
         @case ('sourcing') {
           <div class="detail-body--padded">
-          <app-vendor-part-list-panel
-            mode="sources"
-            parentEntityType="part"
-            [parentEntityId]="part.id"
-            [vendorParts]="vendorParts()"
-            [loading]="vendorPartsLoading()"
-            (add)="openVendorPartCreate()"
-            (edit)="openVendorPartEdit($event)"
-            (delete)="deleteVendorPart($event)"
-            (togglePreferred)="toggleVendorPartPreferred($event)"
-            (viewTiers)="openVendorPartTiers($event)"
-            (viewTierHistory)="openVendorPartTierHistory($event)" />
+          <app-vendor-sources-panel
+            [partId]="part.id"
+            [partLabel]="part.partNumber + ' — ' + part.name"
+            [preferredVendorId]="part.preferredVendorId"
+            [preferredVendorName]="part.preferredVendorName ?? ''"
+            [editing]="editing()"
+            (preferredVendorChanged)="onPreferredVendorChanged($event)"
+            (changed)="reloadVendorParts()"
+            (cancelled)="cancelEdit()" />
           </div>
         }
 

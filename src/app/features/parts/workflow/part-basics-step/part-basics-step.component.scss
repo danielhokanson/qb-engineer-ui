@@ -39,13 +39,6 @@
     max-width: 720px;
   }
 
-  // Rationale pane sits between header and form, capped at the same
-  // width so it visually belongs to the centered column.
-  app-step-rationale {
-    display: block;
-    width: 100%;
-    max-width: 720px;
-  }
 
   // Wraps a control + its inline helper text (used for the optional
   // Description field's "long-form notes" hint).

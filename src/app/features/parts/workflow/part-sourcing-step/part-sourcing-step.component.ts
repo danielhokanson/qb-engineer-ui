@@ -6,7 +6,6 @@ import { Observable, of, switchMap, tap } from 'rxjs';
 
 import { EntityPickerComponent } from '../../../../shared/components/entity-picker/entity-picker.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
-import { StepRationaleComponent } from '../../../../shared/components/step-rationale/step-rationale.component';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { WorkflowService } from '../../../../shared/services/workflow.service';
 import { PartDetail } from '../../models/part-detail.model';
@@ -28,7 +27,6 @@ import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
   imports: [
     ReactiveFormsModule, TranslatePipe,
     EntityPickerComponent, LoadingBlockDirective,
-    StepRationaleComponent,
   ],
   templateUrl: './part-sourcing-step.component.html',
   styleUrl: './part-sourcing-step.component.scss',
