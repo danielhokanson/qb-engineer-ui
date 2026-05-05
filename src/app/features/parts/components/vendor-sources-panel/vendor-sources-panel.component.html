@@ -143,7 +143,12 @@
       [class.vendor-source--no-tiers]="hasNoTiers(row)"
       [class.vendor-source--selected]="viewMode() === 'inspector' && selectedSourceId() === row.id"
       [attr.data-testid]="'vendor-source-' + row.id"
-      (click)="viewMode() === 'inspector' && selectSource(row.id)">
+      [attr.tabindex]="viewMode() === 'inspector' ? 0 : null"
+      [attr.role]="viewMode() === 'inspector' ? 'button' : null"
+      [attr.aria-pressed]="viewMode() === 'inspector' ? selectedSourceId() === row.id : null"
+      (click)="viewMode() === 'inspector' && selectSource(row.id)"
+      (keydown.enter)="viewMode() === 'inspector' && selectSource(row.id)"
+      (keydown.space)="viewMode() === 'inspector' && selectSource(row.id); $event.preventDefault()">
 
       <header class="vendor-source__header">
         <span class="vendor-source__name">{{ row.vendorCompanyName }}</span>
@@ -351,7 +356,7 @@
             }
           </header>
           <ng-container *ngTemplateOutlet="rowFields; context: { row: row, form: formFor(row) }" />
-        } @else if (preferredStubVisible() && preferredVendorId() != null) {
+        } @else if (preferredStubVisible() && preferredVendorId() !== null) {
           <header class="vendor-sources__inspector-header">
             <span class="vendor-source__name">{{ preferredVendorName() }}</span>
             <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
