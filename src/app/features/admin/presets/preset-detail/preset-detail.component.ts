@@ -142,7 +142,7 @@ export class PresetDetailComponent implements OnInit {
           this.snackbar.success(`Applied ${presetName} (${result.deltaCount} capabilities changed).`);
         }
         // Refresh capability descriptor + install state, dismiss banner.
-        this.capabilityService.load();
+        this.capabilityService.load().subscribe();
         this.installState.dismiss();
         // Reload the preset detail so its activeness + delta vs install
         // refresh.

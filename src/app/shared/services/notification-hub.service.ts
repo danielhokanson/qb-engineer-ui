@@ -41,7 +41,12 @@ export class NotificationHubService {
     connection.off('capabilityChanged');
     connection.on('capabilityChanged', (event: CapabilityChangedEvent) => {
       void event;
-      this.capabilityService.load();
+      // Subscribe — load() returns a cold HttpClient Observable; without
+      // a subscriber the descriptor never re-fetches and every connected
+      // client stays on the stale snapshot. Symptom: admin toggles a
+      // capability in tab A, tab B's header doesn't reveal/hide the
+      // matching feature button until reload.
+      this.capabilityService.load().subscribe();
     });
 
     await this.signalr.startConnection('notifications');

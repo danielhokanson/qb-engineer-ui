@@ -142,7 +142,7 @@ export class DiscoveryComponent implements OnInit {
 
   ngOnInit(): void {
     // Load both questions and capability descriptor (deltas need current state).
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
     this.discovery
       .loadQuestions(this.consultantMode.enabled())
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -279,7 +279,7 @@ export class DiscoveryComponent implements OnInit {
       next: () => {
         this.snackbar.success(`Discovery applied — ${chosenPresetName}.`);
         this.installState.dismiss();
-        this.capabilityService.load();
+        this.capabilityService.load().subscribe();
         this.router.navigate(['/admin/capabilities']);
       },
       error: () => {

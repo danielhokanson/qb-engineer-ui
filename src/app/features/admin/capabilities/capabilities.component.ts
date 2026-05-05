@@ -165,11 +165,11 @@ export class CapabilitiesComponent implements OnInit {
   protected readonly showOnboardingBanner = computed(() => !this.bannerDismissed());
 
   ngOnInit(): void {
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
   }
 
   protected refresh(): void {
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
   }
 
   protected toggleConsultantMode(): void {
@@ -223,7 +223,7 @@ export class CapabilitiesComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.markPending(entry.code, false);
         this.surfaceError(entry, err);
-        this.capabilityService.load();
+        this.capabilityService.load().subscribe();
       },
     });
   }
