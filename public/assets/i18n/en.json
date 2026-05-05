@@ -985,6 +985,7 @@
       "currency": "Currency",
       "effectiveFrom": "Effective from",
       "remove": "Remove tier",
+      "removePending": "Drop this pending tier",
       "showHistory": "Show history",
       "hideHistory": "Hide history",
       "commitNew": "Add tier",

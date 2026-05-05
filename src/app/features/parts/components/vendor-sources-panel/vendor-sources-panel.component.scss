@@ -240,6 +240,13 @@
       cursor: default;
     }
 
+    // Pending (typed but not saved) — subtle warning tint to differentiate
+    // from committed rows above; clears once the panel Save batch lands.
+    .tier-row--pending td {
+      background: color-mix(in srgb, var(--warning) 6%, var(--surface));
+      cursor: default;
+    }
+
     // Just-saved animation: full border, green, fades to default over 1000ms.
     .tier-row--just-saved td {
       animation: tier-row-saved 1000ms ease-out;

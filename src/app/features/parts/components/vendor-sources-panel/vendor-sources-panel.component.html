@@ -148,17 +148,41 @@
               }
 
               <!--
+                Pending NEW tiers — typed but not yet sent to the server.
+                Persisted in pendingTiersByVp until the panel-level Save
+                button iterates them and POSTs each. The X button drops
+                the row from the pending list (no API call).
+              -->
+              @for (p of pendingTiers(row.id); track p.tempId) {
+                <tr class="tier-row--pending"
+                    [attr.data-testid]="'tier-row-pending-' + p.tempId">
+                  <ng-container [formGroup]="p.form">
+                    <td><app-input label="" type="number" formControlName="minQuantity" [required]="true" /></td>
+                    <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(row.currency)" [required]="true" /></td>
+                    <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
+                    <td class="vendor-source__tier-actions">
+                      <button type="button" class="icon-btn icon-btn--danger"
+                        [matTooltip]="'common.remove' | translate"
+                        [attr.aria-label]="'vendorSources.tier.removePending' | translate"
+                        (click)="removePendingTier(row.id, p.tempId)">
+                        <span class="material-icons-outlined">close</span>
+                      </button>
+                    </td>
+                  </ng-container>
+                </tr>
+              }
+
+              <!--
                 Empty bottom row. Always rendered as the table's "spare"
                 input slot. Per 2026-05-05 user feedback: no + button —
-                this row is purely for typing new values into. Auto-
-                commits when the user tabs/clicks out of the row with a
-                valid form, OR presses Enter. After commit, the saved
-                tier appears in the @for above and a fresh empty row
-                takes this slot's place (same template branch, the
-                'new' form is deleted/re-created in commitTier).
+                this row is purely for typing new values into. When the
+                user tabs/clicks out of the row (or presses Enter) and
+                the row has any user-entered content, it's promoted to
+                a pending tier (above) and a fresh empty row takes its
+                place. Pending tiers commit only when the panel-level
+                Save button is clicked (batch).
               -->
               <tr class="tier-row--empty"
-                  [class.tier-row--just-saved]="justSavedKey() === tierKey(row.id, 'new')"
                   [attr.data-testid]="'tier-row-new-' + row.id"
                   (focusout)="onEmptyRowFocusOut($event, row.id)"
                   (keydown.enter)="onEmptyRowEnter(row.id)">

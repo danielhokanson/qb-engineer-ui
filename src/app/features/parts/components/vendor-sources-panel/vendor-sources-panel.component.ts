@@ -35,6 +35,17 @@ import { VendorPart, VendorPartPriceTier } from '../../models/vendor-part.model'
 import { VendorPartsService } from '../../services/vendor-parts.service';
 
 /**
+ * A new price tier that the user has typed but not yet committed to the
+ * server. Lives in `pendingTiersByVp` until the panel-level Save button
+ * iterates them and POSTs each. Identified by a stable temp id so the
+ * trackBy stays stable across re-renders even when the list grows.
+ */
+interface PendingTier {
+  tempId: string;
+  form: FormGroup;
+}
+
+/**
  * Vendor Sources panel — inline grouped editor for the (Part, Vendor)
  * intersection rows. Replaces the prior list-panel + edit-dialog +
  * tier-dialog stack with a single page surface where each vendor source
@@ -306,6 +317,9 @@ export class VendorSourcesPanelComponent {
     certifications: 'Certifications',
     notes: 'Notes',
     currency: 'Currency',
+    minQuantity: 'Tier Min Qty',
+    unitPrice: 'Tier Unit Price',
+    effectiveFrom: 'Tier Effective From',
   };
 
   protected readonly panelViolations = computed<string[]>(() => {
@@ -318,6 +332,20 @@ export class VendorSourcesPanelComponent {
         out.push(vendorName ? `${vendorName}: ${msg}` : msg);
       }
     }
+    // Pending tiers also gate Save — surface their problems with the
+    // owning vendor's name + a "(new tier)" suffix so the popover row
+    // points the user at the right place.
+    for (const [vpId, list] of this.pendingTiersByVp().entries()) {
+      const vendorName = vpId === this.STUB_ID
+        ? this.preferredVendorName() || ''
+        : this.vendorParts().find(v => v.id === vpId)?.vendorCompanyName ?? '';
+      for (const p of list) {
+        const items = FormValidationService.collectViolations(p.form, this.violationLabels);
+        for (const msg of items) {
+          out.push(vendorName ? `${vendorName} (new tier): ${msg}` : `New tier: ${msg}`);
+        }
+      }
+    }
     return out;
   });
 
@@ -325,6 +353,11 @@ export class VendorSourcesPanelComponent {
     this.formsTicker();
     for (const [, form] of this.rowForms.entries()) {
       if (form.invalid) return false;
+    }
+    for (const list of this.pendingTiersByVp().values()) {
+      for (const p of list) {
+        if (p.form.invalid) return false;
+      }
     }
     return true;
   });
@@ -338,8 +371,14 @@ export class VendorSourcesPanelComponent {
     return '';
   }
 
-  /** Compose the tierForms key — one form per (vendorPart, tier) edit slot. */
-  protected tierKey(vpId: number, tierId: number | 'new'): string {
+  /**
+   * Compose the tierForms key — one form per (vendorPart, tier) edit slot.
+   * `tierId` can be a real numeric tier id (cell-edit on an existing
+   * tier), `'new'` (the always-empty bottom row), or a `'pending-N'`
+   * temp id (a tier the user typed but hasn't saved yet — see
+   * pendingTiersByVp).
+   */
+  protected tierKey(vpId: number, tierId: number | string): string {
     return `${vpId}:${tierId}`;
   }
 
@@ -496,36 +535,116 @@ export class VendorSourcesPanelComponent {
     });
   }
 
+  // ─── Pending new tiers (batch-save via panel Save) ──────────────────
+  //
+  // 2026-05-05 user direction: "Each row can be given a temporary id and
+  // iterated over and saved as a batch." So the bottom empty row, once
+  // edited, becomes a PENDING tier (local-only) and a fresh empty row
+  // takes its slot. Pending tiers are visualized as additional rows but
+  // never round-trip the server until the user clicks the panel Save —
+  // at which point onSaveAll iterates the pending list and POSTs each
+  // one in parallel.
+  //
+  // Keys + state:
+  //   • The always-empty bottom slot stays keyed by 'new' in tierForms.
+  //   • Each pending tier holds its FormGroup + a stable temp id so
+  //     Angular's track function can keep DOM stable when the user
+  //     types in adjacent rows.
+  //   • pendingTiersByVp is the per-vendor-part list, signal-backed so
+  //     the table re-renders when promote/remove happens.
+
+  private nextPendingTierIndex = 0;
+
+  protected readonly pendingTiersByVp = signal<Map<number, PendingTier[]>>(new Map());
+
+  protected pendingTiers(vpId: number): PendingTier[] {
+    return this.pendingTiersByVp().get(vpId) ?? [];
+  }
+
   /**
-   * Auto-commit the empty bottom row when the user finishes editing it.
-   * Fires from the `<tr class="tier-row--empty">` (focusout). Only acts
-   * when focus is leaving the entire row (relatedTarget is outside) AND
-   * the form is valid AND has been touched — so partial edits and tab-
-   * between-cells navigation never trigger a phantom save.
-   *
-   * Replaces the old "+ button" pattern (2026-05-05 user feedback): the
-   * bottom row is purely an input slot, never a saveable row in itself.
-   * Once it commits, the next blank empty row appears automatically
-   * (same template branch — the form key 'new' is recycled).
+   * On (focusout) from the empty bottom row, if focus is leaving the row
+   * entirely AND the user has typed something, promote the form to a
+   * pending tier and let `tierFormFor(vpId, 'new')` lazily create a fresh
+   * empty form for the next iteration. NO server call here — the panel
+   * Save button is the only commit path.
    */
   protected onEmptyRowFocusOut(e: FocusEvent, vpId: number): void {
     const row = e.currentTarget as HTMLElement | null;
     if (!row) return;
     const next = e.relatedTarget as Node | null;
     if (next && row.contains(next)) return; // still inside the row
-    const form = this.tierFormFor(vpId, 'new');
-    if (!form.dirty || form.invalid) return;
-    this.commitTier(vpId, 'new');
+    this.promoteEmptyRowToPending(vpId);
   }
 
   /**
-   * Enter-key shortcut on the empty bottom row — commits the row when
-   * valid. Pairs with focusout so power users can stay on the keyboard.
+   * Enter-key shortcut on the empty bottom row — same promote-to-pending
+   * pathway as focusout, so power users can stay on the keyboard.
    */
   protected onEmptyRowEnter(vpId: number): void {
-    const form = this.tierFormFor(vpId, 'new');
-    if (!form.dirty || form.invalid) return;
-    this.commitTier(vpId, 'new');
+    this.promoteEmptyRowToPending(vpId);
+  }
+
+  private promoteEmptyRowToPending(vpId: number): void {
+    const emptyKey = this.tierKey(vpId, 'new');
+    const form = this.tierForms.get(emptyKey);
+    if (!form || !form.dirty) return;
+    const v = form.getRawValue();
+    // Skip rows where the user typed and erased — only effectiveFrom
+    // (which auto-defaults) is left. Without this, a tab-through would
+    // promote a useless row.
+    const hasUserContent = (v.minQuantity != null && v.minQuantity !== '') ||
+                           (v.unitPrice != null && v.unitPrice !== '');
+    if (!hasUserContent) return;
+    // Reuse the form by moving it into the pending list and dropping
+    // the 'new' key — the next access to tierFormFor(vpId, 'new')
+    // builds a fresh empty form for the bottom slot.
+    this.tierForms.delete(emptyKey);
+    const tempId = `pending-${++this.nextPendingTierIndex}`;
+    const pendingKey = this.tierKey(vpId, tempId);
+    this.tierForms.set(pendingKey, form);
+    // Wire the new form into the validity ticker so panelValid /
+    // panelViolations recompute when the user edits a pending row.
+    form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.formsTicker.update(n => n + 1);
+    });
+    const map = new Map(this.pendingTiersByVp());
+    const list = map.get(vpId) ?? [];
+    map.set(vpId, [...list, { tempId, form }]);
+    this.pendingTiersByVp.set(map);
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** Drop a pending tier without saving — the user clicked its X. */
+  protected removePendingTier(vpId: number, tempId: string): void {
+    const map = new Map(this.pendingTiersByVp());
+    const list = (map.get(vpId) ?? []).filter(p => p.tempId !== tempId);
+    map.set(vpId, list);
+    this.pendingTiersByVp.set(map);
+    this.tierForms.delete(this.tierKey(vpId, tempId));
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** Discard all pending tiers — used by the panel-level Cancel path. */
+  private clearPendingTiers(): void {
+    for (const list of this.pendingTiersByVp().values()) {
+      for (const p of list) {
+        // Leave the form in tierForms long enough for any focused field
+        // to settle, then remove on the next tick. (Synchronous delete
+        // would null-out the form binding while a blur handler is still
+        // reading it on its way out.)
+        const vpId = this.findVpIdForPendingForm(p.form);
+        if (vpId != null) this.tierForms.delete(this.tierKey(vpId, p.tempId));
+      }
+    }
+    this.pendingTiersByVp.set(new Map());
+    this.formsTicker.update(n => n + 1);
+  }
+
+  private findVpIdForPendingForm(form: FormGroup): number | null {
+    for (const [vpId, list] of this.pendingTiersByVp().entries()) {
+      if (list.some(p => p.form === form)) return vpId;
+    }
+    return null;
   }
 
   /** Reload tiers — pulls history when the toggle is on. */
@@ -661,6 +780,8 @@ export class VendorSourcesPanelComponent {
    * top user complaint about this panel.
    */
   protected onSaveAll(): void {
+    // 1) Flush dirty per-row 1:1 fields (most are already saved by the
+    //    on-blur handler; this catches whichever field is still focused).
     for (const [key, form] of this.rowForms.entries()) {
       if (!form.dirty || form.invalid) continue;
       const row = key === this.STUB_ID
@@ -668,15 +789,72 @@ export class VendorSourcesPanelComponent {
         : (this.vendorParts().find(v => v.id === key) ?? null);
       this.saveRow(row);
     }
-    this.cancelled.emit();
+
+    // 2) Batch-flush every pending new tier (per 2026-05-05 user
+    //    direction). Each POST is fire-and-forget; on the last response
+    //    the panel reloads and exits edit mode. Stub-era pending tiers
+    //    are skipped — they need a real vendorPart id first, which the
+    //    next round of editing (after the stub materializes) will give
+    //    them.
+    const partId = this.partId();
+    const pendingMap = this.pendingTiersByVp();
+    let pending = 0;
+    let completed = 0;
+    const finish = (): void => {
+      if (++completed < pending) return;
+      this.pendingTiersByVp.set(new Map());
+      this.formsTicker.update(n => n + 1);
+      if (partId != null) this.reload(partId);
+      this.changed.emit();
+      this.cancelled.emit();
+    };
+
+    for (const [vpId, list] of pendingMap.entries()) {
+      if (vpId === this.STUB_ID) continue;
+      for (const p of list) {
+        if (p.form.invalid) continue;
+        pending++;
+      }
+    }
+
+    if (pending === 0) {
+      this.cancelled.emit();
+      return;
+    }
+
+    for (const [vpId, list] of pendingMap.entries()) {
+      if (vpId === this.STUB_ID) continue;
+      for (const p of list) {
+        if (p.form.invalid) continue;
+        const v = p.form.getRawValue();
+        this.vendorPartsService.addPriceTier(vpId, {
+          minQuantity: v.minQuantity!,
+          unitPrice: v.unitPrice!,
+          effectiveFrom: v.effectiveFrom
+            ? new Date(v.effectiveFrom).toISOString()
+            : null,
+        }).subscribe({
+          next: () => {
+            this.tierForms.delete(this.tierKey(vpId, p.tempId));
+            finish();
+          },
+          error: () => {
+            this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed'));
+            finish();
+          },
+        });
+      }
+    }
   }
 
   /**
-   * Discard any in-progress field edits by reloading from the server
-   * (the source of truth — auto-save-on-blur means committed edits
-   * are already there) and signal the parent to exit edit mode.
+   * Discard any in-progress field edits + every pending new tier (which
+   * never round-tripped the server) by reloading from the source of
+   * truth and clearing the pending list, then signal the parent to exit
+   * edit mode.
    */
   protected onCancel(): void {
+    this.clearPendingTiers();
     const id = this.partId();
     if (id != null) this.load(id);
     this.cancelled.emit();
