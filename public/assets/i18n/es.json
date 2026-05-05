@@ -967,11 +967,36 @@
       "effectiveFrom": "Vigente desde",
       "remove": "Eliminar nivel",
       "removePending": "Descartar este nivel pendiente",
+      "undelete": "Restaurar nivel",
       "showHistory": "Mostrar historial",
       "hideHistory": "Ocultar historial",
       "commitNew": "Agregar nivel",
       "placeholderMinQty": "100",
       "placeholderPrice": "0.00"
+    },
+    "viewMode": {
+      "label": "Modo de vista",
+      "inspector": "Inspector",
+      "compare": "Comparar",
+      "pricing": "Precios"
+    },
+    "pricing": {
+      "title": "Precios entre todos los proveedores",
+      "col": {
+        "vendor": "Proveedor"
+      },
+      "empty": {
+        "message": "Sin niveles de precio en ningún proveedor.",
+        "help": "Agrega un proveedor y un nivel de precio para ver precios consolidados aquí."
+      }
+    },
+    "details": {
+      "show": "Mostrar detalles",
+      "hide": "Ocultar detalles"
+    },
+    "inspector": {
+      "label": "Detalles del proveedor seleccionado",
+      "placeholder": "Selecciona un proveedor a la izquierda para ver y editar sus detalles aquí."
     },
     "removeTier": {
       "confirmTitle": "¿Eliminar este nivel de precio?",

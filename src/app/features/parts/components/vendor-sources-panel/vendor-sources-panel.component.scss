@@ -7,6 +7,156 @@
   gap: $sp-md;
   position: relative;
 
+  // ─── View-mode toggle (Inspector | Compare) ──────────────────────
+  // Small button group above the source list. Mirrors the toolbar
+  // toggle pattern used elsewhere; only shown when 2+ sources warrant
+  // the choice.
+  &__view-toggle {
+    display: inline-flex;
+    align-self: flex-end;
+    border: $border-width-thin solid var(--border);
+    background: var(--surface);
+  }
+
+  &__view-btn {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: $sp-xs $sp-md;
+    color: var(--text-secondary);
+    font-size: $font-size-xxs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-xs;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
+      color: var(--primary);
+    }
+
+    &--active {
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      color: var(--primary);
+    }
+
+    .material-icons-outlined {
+      font-size: $icon-size-sm;
+    }
+
+    + .vendor-sources__view-btn {
+      border-left: $border-width-thin solid var(--border);
+    }
+  }
+
+  // ─── Two-pane layout (Inspector default; Compare = single column) ──
+  &__layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $sp-md;
+
+    .vendor-sources--inspector & {
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+
+      @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+    min-width: 0;
+  }
+
+  // ─── Right-side inspector pane (Pattern C) ──────────────────────
+  // Sticks to the top of the dialog body's scroll context so the
+  // selected source's details remain visible while the user scrolls
+  // the list on the left.
+  &__inspector {
+    position: sticky;
+    top: $sp-md;
+    align-self: start;
+    background: color-mix(in srgb, var(--text-muted) 3%, var(--surface));
+    border: $border-width-thin solid var(--border);
+    padding: $sp-md;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    @include custom-scrollbar(6px);
+  }
+
+  &__inspector-header {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    flex-wrap: wrap;
+    padding-bottom: $sp-sm;
+    border-bottom: $border-width-thin solid var(--border);
+  }
+
+  // ─── Cross-vendor pricing view (Pattern: flat table) ────────────
+  &__pricing {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-sm;
+    padding: $sp-md;
+    border: $border-width-thin solid var(--border);
+    background: var(--surface);
+  }
+
+  &__pricing-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-sm;
+  }
+
+  &__pricing-title {
+    @include uppercase-label($font-size-xxs, 0.06em, 700);
+    color: var(--text-muted);
+  }
+
+  &__pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-size-sm;
+  }
+
+  &__pricing-pref {
+    margin-left: $sp-sm;
+  }
+
+  &__inspector-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $sp-sm;
+    padding: $sp-2xl $sp-md;
+    color: var(--text-muted);
+    text-align: center;
+
+    .material-icons-outlined {
+      font-size: $icon-size-hero;
+      color: var(--text-muted);
+      opacity: 0.4;
+    }
+
+    p {
+      margin: 0;
+      font-size: $font-size-sm;
+    }
+  }
+
   &__add {
     appearance: none;
     background: transparent;
@@ -47,12 +197,22 @@
     }
   }
 
+  // Sticky footer — anchors Save/Cancel to the bottom of the dialog body
+  // regardless of how far the source cards above scroll. The dialog body
+  // owns the scroll context; this section pins to its bottom edge so the
+  // primary commit affordance is always one pointer-move away.
   &__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: $z-sticky;
     display: flex;
     justify-content: flex-end;
     gap: $sp-md;
-    padding-top: $sp-md;
+    padding: $sp-md $sp-lg;
+    margin: $sp-md (-$sp-lg) (-$sp-lg);
+    background: var(--surface);
     border-top: $border-width-thin solid var(--border);
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
   }
 }
 
@@ -77,6 +237,25 @@
     border-style: dashed;
   }
 
+  // Selected card in inspector mode — left accent in primary color +
+  // soft tint so the user immediately sees which source is reflected
+  // in the right inspector pane.
+  &--selected {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+    box-shadow: inset 3px 0 0 0 var(--primary);
+  }
+
+  // In inspector mode the cards are clickable to select.
+  .vendor-sources--inspector & {
+    cursor: pointer;
+    transition: background-color $transition-fast, border-color $transition-fast;
+
+    &:hover:not(.vendor-source--selected) {
+      background: color-mix(in srgb, var(--primary) 3%, var(--surface));
+    }
+  }
+
   &__header {
     display: flex;
     align-items: center;
@@ -90,6 +269,25 @@
     font-size: $font-size-md;
     font-weight: 600;
     color: var(--text);
+  }
+
+  // Currency badge inline next to vendor name. Subtle so the vendor
+  // identity stays the dominant glyph in the header row.
+  &__currency {
+    font-family: $font-family-mono;
+    font-size: $font-size-xxs;
+    color: var(--text-muted);
+    padding: 2px $sp-xs;
+    border: $border-width-thin solid var(--border);
+  }
+
+  // One-line summary of supplementary fields ("Lead 14d · MOQ 100 · DE
+  // · 2 tiers"). Right-aligned in the header so the user can scan
+  // multiple sources in inspector mode without expanding any details.
+  &__summary {
+    color: var(--text-muted);
+    font-size: $font-size-xs;
+    margin-right: $sp-sm;
   }
 
   &__chip {
@@ -208,21 +406,59 @@
     white-space: nowrap;
   }
 
-  // SCD Type 2 tier table — click-to-edit cells, always-present empty
-  // bottom row for adding, full-border green pulse on commit.
+  // SCD Type 2 tier table — click-to-edit cells (single-row edit mode),
+  // always-present empty bottom row for adding, full-border green pulse on
+  // commit.
+  //
+  // Editability cues (the user shouldn't have to guess that cells are
+  // interactive):
+  //   1. Zebra striping — every other row gets a faint tint so the table
+  //      reads as a populated dataset, not a static label-value list.
+  //   2. Hover state on data cells — light primary tint + pencil icon
+  //      pseudo-element to telegraph "click to edit."
+  //   3. Cursor: pointer on data cells.
+  //   4. Empty bottom row uses a dashed-border treatment so it reads as
+  //      "type here" rather than "this is data."
   &__tier-table--editable {
-    td:not(.vendor-source__tier-actions) {
-      cursor: pointer;
-      transition: background-color $transition-fast;
+    tbody tr:nth-child(even) td {
+      background: color-mix(in srgb, var(--text-muted) 3%, transparent);
     }
 
-    td:not(.vendor-source__tier-actions):hover {
-      background: color-mix(in srgb, var(--primary) 6%, transparent);
+    td:not(.vendor-source__tier-actions) {
+      cursor: text;
+      position: relative;
+      transition: background-color $transition-fast, box-shadow $transition-fast;
+    }
+
+    // Hover affordance — soft primary tint + tiny edit glyph in the cell
+    // corner so the user reads "I can change this." The pseudo-element
+    // sits absolutely so it doesn't push other content.
+    td:not(.vendor-source__tier-actions):not(.tier-row__effective-to-cell):hover {
+      background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+
+      &::after {
+        content: 'edit';
+        font-family: 'Material Icons Outlined';
+        position: absolute;
+        top: 50%;
+        right: $sp-xs;
+        transform: translateY(-50%);
+        font-size: $icon-size-xs;
+        color: var(--primary);
+        opacity: 0.7;
+        pointer-events: none;
+      }
     }
 
     .tier-row--editing td {
-      background: color-mix(in srgb, var(--primary) 8%, var(--surface));
-      cursor: default;
+      background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 50%, transparent);
+      cursor: text;
+
+      &:hover::after {
+        content: none;
+      }
     }
 
     .tier-row--superseded td {
@@ -231,13 +467,31 @@
       cursor: default !important;
 
       &:hover {
-        background: transparent;
+        background: color-mix(in srgb, var(--text-muted) 3%, transparent) !important;
+        box-shadow: none;
+        &::after { content: none; }
       }
     }
 
+    // Empty bottom row — dashed-border treatment + muted placeholder text
+    // so it reads as "type to add a tier", not "row of data."
     .tier-row--empty td {
-      background: color-mix(in srgb, var(--text-muted) 4%, var(--surface));
-      cursor: default;
+      background: color-mix(in srgb, var(--text-muted) 2%, var(--surface)) !important;
+      border-top: $border-width-thin dashed var(--border);
+
+      &:hover::after { content: 'add'; }
+    }
+
+    .tier-row--pending-delete td {
+      text-decoration: line-through;
+      color: var(--text-muted);
+      cursor: default !important;
+
+      &:hover {
+        background: transparent !important;
+        box-shadow: none;
+        &::after { content: none; }
+      }
     }
 
     // Pending (typed but not saved) — subtle warning tint to differentiate
