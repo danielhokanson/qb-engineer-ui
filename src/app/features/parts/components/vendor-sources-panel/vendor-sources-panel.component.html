@@ -24,6 +24,12 @@
         }
       </header>
       <ng-container *ngTemplateOutlet="rowFields; context: { row: null, form: formFor(null) }" />
+      <!-- Stub price-tier table — the user can enter tiers BEFORE saving.
+           On panel Save, the stub materializes first (POST vendor-part)
+           and the pending tiers are re-keyed under the new vp.id then
+           POSTed in sequence. Currency is read from the stub form so
+           changing the currency selector updates the column header. -->
+      <ng-container *ngTemplateOutlet="tierTable; context: { vpId: STUB_ID, currency: stubCurrency(), row: null }" />
     </article>
   }
 
@@ -67,136 +73,7 @@
 
       <ng-container *ngTemplateOutlet="rowFields; context: { row: row, form: formFor(row) }" />
 
-      <!-- ─── Price tiers (only while editing the source) ───────
-           SCD Type 2 model: editing or removing a tier doesn't mutate
-           in place — the supersede happens server-side and the row is
-           replaced with a new effective-dated copy. The "Show history"
-           toggle reveals superseded rows so you can audit the
-           pricing-history trail. The empty bottom row is the add
-           affordance (no separate "+ Add Tier" button). When a row
-           commits, the next empty row gets a 1000ms green-border
-           pulse to confirm the save and signal "you can keep going." -->
-      @if (editing()) {
-        <div class="vendor-source__tiers">
-          <header class="vendor-source__tiers-header">
-            <span>{{ 'vendorSources.priceTiers' | translate }}</span>
-            <button type="button" class="vendor-source__tier-history-toggle"
-              [attr.data-testid]="'vendor-source-tier-history-' + row.id"
-              (click)="toggleTierHistory()">
-              <span class="material-icons-outlined">{{ showTierHistory() ? 'visibility_off' : 'history' }}</span>
-              <span>{{ (showTierHistory() ? 'vendorSources.tier.hideHistory' : 'vendorSources.tier.showHistory') | translate }}</span>
-            </button>
-          </header>
-
-          <table class="vendor-source__tier-table vendor-source__tier-table--editable">
-            <thead>
-              <tr>
-                <th>{{ 'vendorSources.tier.minQty' | translate }}</th>
-                <th>{{ 'vendorSources.tier.unitPrice' | translate }} ({{ row.currency }})</th>
-                <th>{{ 'vendorSources.tier.effectiveFrom' | translate }}</th>
-                <th class="vendor-source__tier-actions"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Existing tiers (currently-effective + optionally superseded) -->
-              @for (tier of visibleTiers(row); track tier.id) {
-                <tr [class.tier-row--superseded]="!!tier.effectiveTo"
-                    [class.tier-row--editing]="editingTierKey() === tierKey(row.id, tier.id)"
-                    [attr.data-testid]="'tier-row-' + tier.id">
-                  @if (editingTierKey() === tierKey(row.id, tier.id)) {
-                    <ng-container [formGroup]="tierFormFor(row.id, tier.id)">
-                      <td><app-input label="" type="number" formControlName="minQuantity" [required]="true" /></td>
-                      <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(row.currency)" [required]="true" /></td>
-                      <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
-                      <td class="vendor-source__tier-actions">
-                        <button type="button" class="icon-btn"
-                          [matTooltip]="'common.cancel' | translate"
-                          [attr.aria-label]="'common.cancel' | translate"
-                          (click)="cancelEditTier()">
-                          <span class="material-icons-outlined">close</span>
-                        </button>
-                        <button type="button" class="icon-btn icon-btn--active"
-                          [matTooltip]="'common.save' | translate"
-                          [attr.aria-label]="'common.save' | translate"
-                          [disabled]="tierFormFor(row.id, tier.id).invalid"
-                          (click)="commitTier(row.id, tier.id)">
-                          <span class="material-icons-outlined">check</span>
-                        </button>
-                      </td>
-                    </ng-container>
-                  } @else {
-                    <td (click)="!tier.effectiveTo && startEditTier(row.id, tier)">{{ tier.minQuantity }}+</td>
-                    <td (click)="!tier.effectiveTo && startEditTier(row.id, tier)">{{ currencySymbol(tier.currency) }}{{ tier.unitPrice }}</td>
-                    <td (click)="!tier.effectiveTo && startEditTier(row.id, tier)">
-                      {{ tier.effectiveFrom | date:'mediumDate' }}
-                      @if (tier.effectiveTo) {
-                        <span class="tier-row__effective-to"> → {{ tier.effectiveTo | date:'mediumDate' }}</span>
-                      }
-                    </td>
-                    <td class="vendor-source__tier-actions">
-                      @if (!tier.effectiveTo) {
-                        <button type="button" class="icon-btn icon-btn--danger"
-                          [attr.aria-label]="'vendorSources.tier.remove' | translate"
-                          [matTooltip]="'common.remove' | translate"
-                          (click)="removeTier(row, tier)">
-                          <span class="material-icons-outlined">close</span>
-                        </button>
-                      }
-                    </td>
-                  }
-                </tr>
-              }
-
-              <!--
-                Pending NEW tiers — typed but not yet sent to the server.
-                Persisted in pendingTiersByVp until the panel-level Save
-                button iterates them and POSTs each. The X button drops
-                the row from the pending list (no API call).
-              -->
-              @for (p of pendingTiers(row.id); track p.tempId) {
-                <tr class="tier-row--pending"
-                    [attr.data-testid]="'tier-row-pending-' + p.tempId">
-                  <ng-container [formGroup]="p.form">
-                    <td><app-input label="" type="number" formControlName="minQuantity" [required]="true" /></td>
-                    <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(row.currency)" [required]="true" /></td>
-                    <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
-                    <td class="vendor-source__tier-actions">
-                      <button type="button" class="icon-btn icon-btn--danger"
-                        [matTooltip]="'common.remove' | translate"
-                        [attr.aria-label]="'vendorSources.tier.removePending' | translate"
-                        (click)="removePendingTier(row.id, p.tempId)">
-                        <span class="material-icons-outlined">close</span>
-                      </button>
-                    </td>
-                  </ng-container>
-                </tr>
-              }
-
-              <!--
-                Empty bottom row. Always rendered as the table's "spare"
-                input slot. Per 2026-05-05 user feedback: no + button —
-                this row is purely for typing new values into. When the
-                user tabs/clicks out of the row (or presses Enter) and
-                the row has any user-entered content, it's promoted to
-                a pending tier (above) and a fresh empty row takes its
-                place. Pending tiers commit only when the panel-level
-                Save button is clicked (batch).
-              -->
-              <tr class="tier-row--empty"
-                  [attr.data-testid]="'tier-row-new-' + row.id"
-                  (focusout)="onEmptyRowFocusOut($event, row.id)"
-                  (keydown.enter)="onEmptyRowEnter(row.id)">
-                <ng-container [formGroup]="tierFormFor(row.id, 'new')">
-                  <td><app-input label="" type="number" formControlName="minQuantity" [placeholder]="'vendorSources.tier.placeholderMinQty' | translate" /></td>
-                  <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(row.currency)" [placeholder]="'vendorSources.tier.placeholderPrice' | translate" /></td>
-                  <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
-                  <td class="vendor-source__tier-actions"></td>
-                </ng-container>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      }
+      <ng-container *ngTemplateOutlet="tierTable; context: { vpId: row.id, currency: row.currency, row: row }" />
     </article>
   }
 
@@ -347,4 +224,135 @@
       [isReadonly]="!editing()"
       (blur)="saveRow(row)" />
   </form>
+</ng-template>
+
+<!-- ─── Reusable price-tier table ────────────────────────────────────
+     Used by both real vendor-source rows and the preferred-vendor stub.
+     Context fields:
+       • vpId    — STUB_ID (-1) for the stub, or the real VendorPart.id.
+                   Drives form keying for tierFormFor + pendingTiersByVp.
+       • currency — column header label + symbol on the empty-row currency
+                    input. For real rows, row.currency. For the stub, read
+                    from the stub form (default USD).
+       • row     — the VendorPart object when present, else null. When
+                   null, "Show history" is hidden (no committed tiers
+                   exist yet for the stub) and the existing-tiers loop
+                   is skipped — only pending tiers + the empty bottom
+                   row render.
+     SCD Type 2 model: editing/removing a tier server-side supersedes
+     it (effectiveTo set, new row inserted with the new effective-dated
+     copy). The "Show history" toggle reveals superseded rows so admins
+     can audit the pricing-history trail. The empty bottom row is the
+     add affordance — typing into it promotes the form to a pending
+     tier on focusout/Enter (no API call); pending tiers commit only
+     when the panel-level Save batches them. -->
+<ng-template #tierTable let-vpId="vpId" let-currency="currency" let-row="row">
+  @if (editing()) {
+    <div class="vendor-source__tiers">
+      <header class="vendor-source__tiers-header">
+        <span>{{ 'vendorSources.priceTiers' | translate }}</span>
+        @if (row) {
+          <button type="button" class="vendor-source__tier-history-toggle"
+            [attr.data-testid]="'vendor-source-tier-history-' + vpId"
+            (click)="toggleTierHistory()">
+            <span class="material-icons-outlined">{{ showTierHistory() ? 'visibility_off' : 'history' }}</span>
+            <span>{{ (showTierHistory() ? 'vendorSources.tier.hideHistory' : 'vendorSources.tier.showHistory') | translate }}</span>
+          </button>
+        }
+      </header>
+
+      <table class="vendor-source__tier-table vendor-source__tier-table--editable">
+        <thead>
+          <tr>
+            <th>{{ 'vendorSources.tier.minQty' | translate }}</th>
+            <th>{{ 'vendorSources.tier.unitPrice' | translate }} ({{ currency }})</th>
+            <th>{{ 'vendorSources.tier.effectiveFrom' | translate }}</th>
+            <th class="vendor-source__tier-actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (row) {
+            @for (tier of visibleTiers(row); track tier.id) {
+              <tr [class.tier-row--superseded]="!!tier.effectiveTo"
+                  [class.tier-row--editing]="editingTierKey() === tierKey(vpId, tier.id)"
+                  [attr.data-testid]="'tier-row-' + tier.id">
+                @if (editingTierKey() === tierKey(vpId, tier.id)) {
+                  <ng-container [formGroup]="tierFormFor(vpId, tier.id)">
+                    <td><app-input label="" type="number" formControlName="minQuantity" [required]="true" /></td>
+                    <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(currency)" [required]="true" /></td>
+                    <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
+                    <td class="vendor-source__tier-actions">
+                      <button type="button" class="icon-btn"
+                        [matTooltip]="'common.cancel' | translate"
+                        [attr.aria-label]="'common.cancel' | translate"
+                        (click)="cancelEditTier()">
+                        <span class="material-icons-outlined">close</span>
+                      </button>
+                      <button type="button" class="icon-btn icon-btn--active"
+                        [matTooltip]="'common.save' | translate"
+                        [attr.aria-label]="'common.save' | translate"
+                        [disabled]="tierFormFor(vpId, tier.id).invalid"
+                        (click)="commitTier(vpId, tier.id)">
+                        <span class="material-icons-outlined">check</span>
+                      </button>
+                    </td>
+                  </ng-container>
+                } @else {
+                  <td (click)="!tier.effectiveTo && startEditTier(vpId, tier)">{{ tier.minQuantity }}+</td>
+                  <td (click)="!tier.effectiveTo && startEditTier(vpId, tier)">{{ currencySymbol(tier.currency) }}{{ tier.unitPrice }}</td>
+                  <td (click)="!tier.effectiveTo && startEditTier(vpId, tier)">
+                    {{ tier.effectiveFrom | date:'mediumDate' }}
+                    @if (tier.effectiveTo) {
+                      <span class="tier-row__effective-to"> → {{ tier.effectiveTo | date:'mediumDate' }}</span>
+                    }
+                  </td>
+                  <td class="vendor-source__tier-actions">
+                    @if (!tier.effectiveTo) {
+                      <button type="button" class="icon-btn icon-btn--danger"
+                        [attr.aria-label]="'vendorSources.tier.remove' | translate"
+                        [matTooltip]="'common.remove' | translate"
+                        (click)="removeTier(row, tier)">
+                        <span class="material-icons-outlined">close</span>
+                      </button>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          }
+
+          @for (p of pendingTiers(vpId); track p.tempId) {
+            <tr class="tier-row--pending"
+                [attr.data-testid]="'tier-row-pending-' + p.tempId">
+              <ng-container [formGroup]="p.form">
+                <td><app-input label="" type="number" formControlName="minQuantity" [required]="true" /></td>
+                <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(currency)" [required]="true" /></td>
+                <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
+                <td class="vendor-source__tier-actions">
+                  <button type="button" class="icon-btn icon-btn--danger"
+                    [matTooltip]="'common.remove' | translate"
+                    [attr.aria-label]="'vendorSources.tier.removePending' | translate"
+                    (click)="removePendingTier(vpId, p.tempId)">
+                    <span class="material-icons-outlined">close</span>
+                  </button>
+                </td>
+              </ng-container>
+            </tr>
+          }
+
+          <tr class="tier-row--empty"
+              [attr.data-testid]="'tier-row-new-' + vpId"
+              (focusout)="onEmptyRowFocusOut($event, vpId)"
+              (keydown.enter)="onEmptyRowEnter(vpId)">
+            <ng-container [formGroup]="tierFormFor(vpId, 'new')">
+              <td><app-input label="" type="number" formControlName="minQuantity" [placeholder]="'vendorSources.tier.placeholderMinQty' | translate" /></td>
+              <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(currency)" [placeholder]="'vendorSources.tier.placeholderPrice' | translate" /></td>
+              <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
+              <td class="vendor-source__tier-actions"></td>
+            </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  }
 </ng-template>
