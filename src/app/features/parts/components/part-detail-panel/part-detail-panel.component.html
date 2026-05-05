@@ -138,6 +138,52 @@
           </div>
         }
 
+        @case ('purchaseHistory') {
+          <div class="detail-body--padded">
+            <header class="purchase-history__header">
+              <app-input
+                class="purchase-history__search"
+                [label]="'parts.detail.purchaseHistory.searchLabel' | translate"
+                [formControl]="purchaseHistorySearch"
+                [placeholder]="'parts.detail.purchaseHistory.searchPlaceholder' | translate"
+                data-testid="purchase-history-search" />
+              <span class="purchase-history__cap">
+                {{ 'parts.detail.purchaseHistory.cap' | translate: { count: purchaseHistory().length } }}
+              </span>
+            </header>
+            <app-data-table
+              tableId="part-purchase-history"
+              [columns]="purchaseHistoryColumns"
+              [data]="purchaseHistory()"
+              [loading]="purchaseHistoryLoading()"
+              [clickableRows]="true"
+              trackByField="purchaseOrderLineId"
+              emptyIcon="receipt_long"
+              [emptyMessage]="'parts.detail.purchaseHistory.empty' | translate"
+              (rowClick)="onPurchaseHistoryRowClick($event)">
+              <ng-template appColumnCell="poNumber" let-row>
+                <app-entity-link type="purchase-order" [entityId]="row.purchaseOrderId">
+                  {{ row.poNumber }}
+                </app-entity-link>
+              </ng-template>
+              <ng-template appColumnCell="vendorName" let-row>
+                <app-entity-link type="vendor" [entityId]="row.vendorId">
+                  {{ row.vendorName }}
+                </app-entity-link>
+              </ng-template>
+              <ng-template appColumnCell="status" let-row>
+                <span class="chip" [class]="getPoStatusChipClass(row.status)">{{ row.status }}</span>
+              </ng-template>
+              <ng-template appColumnCell="orderedQuantity" let-row>
+                {{ row.receivedQuantity }} / {{ row.orderedQuantity }}
+              </ng-template>
+              <ng-template appColumnCell="unitPrice" let-row>{{ row.unitPrice | currency:'USD':'symbol':'1.2-2' }}</ng-template>
+              <ng-template appColumnCell="lineTotal" let-row>{{ row.lineTotal | currency:'USD':'symbol':'1.2-2' }}</ng-template>
+              <ng-template appColumnCell="orderedDate" let-row>{{ row.orderedDate | date:'MM/dd/yyyy' }}</ng-template>
+            </app-data-table>
+          </div>
+        }
+
         @case ('inventory') {
           <app-part-inventory-cluster
             [part]="part"

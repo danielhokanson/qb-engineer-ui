@@ -697,3 +697,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+// Purchase History tab — search field on the left, "Showing N of 50"
+// caption on the right.
+.purchase-history__header {
+  display: flex;
+  align-items: center;
+  gap: $sp-md;
+  margin-bottom: $sp-md;
+
+  .purchase-history__search {
+    flex: 1;
+    max-width: 360px;
+  }
+
+  .purchase-history__cap {
+    margin-left: auto;
+    font-size: $font-size-xs;
+    color: var(--text-muted);
+  }
+}

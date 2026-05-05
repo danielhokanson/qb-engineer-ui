@@ -858,6 +858,7 @@
       "tabs": {
         "identity": "Identidad",
         "sourcing": "Fuentes",
+        "purchaseHistory": "Historial de Compras",
         "inventory": "Inventario",
         "mrp": "MRP",
         "bom": "BOM",
@@ -870,6 +871,19 @@
         "activity": "Actividad",
         "files": "Archivos",
         "placeholderHelp": "Esta pestaña llegará en Pillar 4 Fase 2."
+      },
+      "purchaseHistory": {
+        "searchLabel": "Buscar",
+        "searchPlaceholder": "Nº PO, proveedor o descripción de línea",
+        "cap": "Mostrando últimos {{count}} (máx 50)",
+        "empty": "Aún ninguna orden de compra incluye esta pieza.",
+        "poNumber": "Nº PO",
+        "vendor": "Proveedor",
+        "status": "Estado",
+        "qty": "Rec / Ord",
+        "unitPrice": "Precio Unit.",
+        "total": "Total Línea",
+        "ordered": "Ordenado"
       },
       "material": {
         "title": "Material y Físico",

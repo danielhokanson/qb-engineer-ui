@@ -11,9 +11,9 @@ describe('PartDetailLayoutResolverService', () => {
     service = TestBed.inject(PartDetailLayoutResolverService);
   });
 
-  it('Buy + Raw → identity, sourcing, inventory, quality, cost, pricing, activity, files', () => {
+  it('Buy + Raw → identity, sourcing, purchaseHistory, inventory, quality, cost, pricing, activity, files', () => {
     const ids = service.resolve('Buy', 'Raw').map(t => t.id);
-    expect(ids).toEqual(['identity', 'sourcing', 'inventory', 'quality', 'cost', 'pricing', 'activity', 'files']);
+    expect(ids).toEqual(['identity', 'sourcing', 'purchaseHistory', 'inventory', 'quality', 'cost', 'pricing', 'activity', 'files']);
   });
 
   it('Make + Subassembly → identity, material, bom, routing, inventory, mrp, cost, pricing, quality, alternates, activity, files', () => {
@@ -37,7 +37,41 @@ describe('PartDetailLayoutResolverService', () => {
   it('unknown combo defaults to Buy + Component layout (includes pricing)', () => {
     // Phantom + Raw is not a viable combo per Section 2 — should default.
     const ids = service.resolve('Phantom', 'Raw').map(t => t.id);
-    expect(ids).toEqual(['identity', 'sourcing', 'inventory', 'quality', 'cost', 'pricing', 'alternates', 'activity', 'files']);
+    expect(ids).toEqual(['identity', 'sourcing', 'purchaseHistory', 'inventory', 'quality', 'cost', 'pricing', 'alternates', 'activity', 'files']);
+  });
+
+  it('purchaseHistory tab is included for every Buy / Subcontract combo', () => {
+    const cases: { ps: 'Buy' | 'Subcontract'; ic: 'Raw' | 'Component' | 'Subassembly' | 'FinishedGood' | 'Consumable' | 'Tool' }[] = [
+      { ps: 'Buy', ic: 'Raw' },
+      { ps: 'Buy', ic: 'Component' },
+      { ps: 'Buy', ic: 'Subassembly' },
+      { ps: 'Buy', ic: 'FinishedGood' },
+      { ps: 'Buy', ic: 'Consumable' },
+      { ps: 'Buy', ic: 'Tool' },
+      { ps: 'Subcontract', ic: 'Component' },
+      { ps: 'Subcontract', ic: 'Subassembly' },
+    ];
+    for (const { ps, ic } of cases) {
+      const ids = service.resolve(ps, ic).map(t => t.id);
+      expect(ids, `${ps}+${ic}`).toContain('purchaseHistory');
+      // Always sits immediately after sourcing.
+      expect(ids.indexOf('purchaseHistory'), `${ps}+${ic} ordering`).toBe(ids.indexOf('sourcing') + 1);
+    }
+  });
+
+  it('purchaseHistory tab is NOT included for Make or Phantom combos', () => {
+    const skipCases: { ps: 'Make' | 'Phantom'; ic: 'Component' | 'Subassembly' | 'FinishedGood' | 'Tool' }[] = [
+      { ps: 'Make', ic: 'Component' },
+      { ps: 'Make', ic: 'Subassembly' },
+      { ps: 'Make', ic: 'FinishedGood' },
+      { ps: 'Make', ic: 'Tool' },
+      { ps: 'Phantom', ic: 'Subassembly' },
+      { ps: 'Phantom', ic: 'FinishedGood' },
+    ];
+    for (const { ps, ic } of skipCases) {
+      const ids = service.resolve(ps, ic).map(t => t.id);
+      expect(ids, `${ps}+${ic}`).not.toContain('purchaseHistory');
+    }
   });
 
   it('Identity always first; Activity then Files always last across every combo', () => {
