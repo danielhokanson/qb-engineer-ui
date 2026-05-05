@@ -47,12 +47,22 @@
     }
   }
 
+  // Sticky footer — anchors Save/Cancel to the bottom of the dialog body
+  // regardless of how far the source cards above scroll. The dialog body
+  // owns the scroll context; this section pins to its bottom edge so the
+  // primary commit affordance is always one pointer-move away.
   &__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: $z-sticky;
     display: flex;
     justify-content: flex-end;
     gap: $sp-md;
-    padding-top: $sp-md;
+    padding: $sp-md $sp-lg;
+    margin: $sp-md (-$sp-lg) (-$sp-lg);
+    background: var(--surface);
     border-top: $border-width-thin solid var(--border);
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
   }
 }
 
@@ -208,21 +218,59 @@
     white-space: nowrap;
   }
 
-  // SCD Type 2 tier table — click-to-edit cells, always-present empty
-  // bottom row for adding, full-border green pulse on commit.
+  // SCD Type 2 tier table — click-to-edit cells (single-row edit mode),
+  // always-present empty bottom row for adding, full-border green pulse on
+  // commit.
+  //
+  // Editability cues (the user shouldn't have to guess that cells are
+  // interactive):
+  //   1. Zebra striping — every other row gets a faint tint so the table
+  //      reads as a populated dataset, not a static label-value list.
+  //   2. Hover state on data cells — light primary tint + pencil icon
+  //      pseudo-element to telegraph "click to edit."
+  //   3. Cursor: pointer on data cells.
+  //   4. Empty bottom row uses a dashed-border treatment so it reads as
+  //      "type here" rather than "this is data."
   &__tier-table--editable {
-    td:not(.vendor-source__tier-actions) {
-      cursor: pointer;
-      transition: background-color $transition-fast;
+    tbody tr:nth-child(even) td {
+      background: color-mix(in srgb, var(--text-muted) 3%, transparent);
     }
 
-    td:not(.vendor-source__tier-actions):hover {
-      background: color-mix(in srgb, var(--primary) 6%, transparent);
+    td:not(.vendor-source__tier-actions) {
+      cursor: text;
+      position: relative;
+      transition: background-color $transition-fast, box-shadow $transition-fast;
+    }
+
+    // Hover affordance — soft primary tint + tiny edit glyph in the cell
+    // corner so the user reads "I can change this." The pseudo-element
+    // sits absolutely so it doesn't push other content.
+    td:not(.vendor-source__tier-actions):not(.tier-row__effective-to-cell):hover {
+      background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+
+      &::after {
+        content: 'edit';
+        font-family: 'Material Icons Outlined';
+        position: absolute;
+        top: 50%;
+        right: $sp-xs;
+        transform: translateY(-50%);
+        font-size: $icon-size-xs;
+        color: var(--primary);
+        opacity: 0.7;
+        pointer-events: none;
+      }
     }
 
     .tier-row--editing td {
-      background: color-mix(in srgb, var(--primary) 8%, var(--surface));
-      cursor: default;
+      background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 50%, transparent);
+      cursor: text;
+
+      &:hover::after {
+        content: none;
+      }
     }
 
     .tier-row--superseded td {
@@ -231,13 +279,31 @@
       cursor: default !important;
 
       &:hover {
-        background: transparent;
+        background: color-mix(in srgb, var(--text-muted) 3%, transparent) !important;
+        box-shadow: none;
+        &::after { content: none; }
       }
     }
 
+    // Empty bottom row — dashed-border treatment + muted placeholder text
+    // so it reads as "type to add a tier", not "row of data."
     .tier-row--empty td {
-      background: color-mix(in srgb, var(--text-muted) 4%, var(--surface));
-      cursor: default;
+      background: color-mix(in srgb, var(--text-muted) 2%, var(--surface)) !important;
+      border-top: $border-width-thin dashed var(--border);
+
+      &:hover::after { content: 'add'; }
+    }
+
+    .tier-row--pending-delete td {
+      text-decoration: line-through;
+      color: var(--text-muted);
+      cursor: default !important;
+
+      &:hover {
+        background: transparent !important;
+        box-shadow: none;
+        &::after { content: none; }
+      }
     }
 
     // Just-saved animation: full border, green, fades to default over 1000ms.

@@ -985,6 +985,7 @@
       "currency": "Currency",
       "effectiveFrom": "Effective from",
       "remove": "Remove tier",
+      "undelete": "Restore tier",
       "showHistory": "Show history",
       "hideHistory": "Hide history",
       "commitNew": "Add tier",

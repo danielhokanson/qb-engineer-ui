@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { DestroyRef } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -31,6 +32,34 @@ import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
 import { VendorQuickCreateDialogComponent, VendorQuickCreateDialogData } from '../../../vendors/components/vendor-quick-create-dialog/vendor-quick-create-dialog.component';
 import { VendorPart, VendorPartPriceTier } from '../../models/vendor-part.model';
 import { VendorPartsService } from '../../services/vendor-parts.service';
+
+/**
+ * Pending tier change held in client state until the modal-level Save
+ * flushes the batch to the server. Pattern A — single save on the page,
+ * no per-row save buttons. See vendor-sources-panel.component.ts for the
+ * full editing-model rationale.
+ */
+type TierValues = {
+  minQuantity: number;
+  unitPrice: number;
+  effectiveFrom: Date;
+};
+type TierMutation =
+  | { type: 'add'; vpId: number; tempId: number; values: TierValues }
+  | { type: 'edit'; vpId: number; tierId: number; values: TierValues }
+  | { type: 'delete'; vpId: number; tierId: number };
+
+/**
+ * Row shape for tier rendering — overlays server tier values with any
+ * in-flight client-side mutations so the user sees their pending state
+ * (struck-through for delete, modified values + indicator for edit, fresh
+ * row for add) before committing via the modal Save.
+ */
+export type TierViewRow = VendorPartPriceTier & {
+  _pendingAdd?: boolean;
+  _pendingEdit?: boolean;
+  _pendingDelete?: boolean;
+};
 
 /**
  * Vendor Sources panel — inline grouped editor for the (Part, Vendor)
@@ -140,23 +169,63 @@ export class VendorSourcesPanelComponent {
   protected readonly vendorParts = signal<VendorPart[]>([]);
   protected readonly addingVendor = signal(false);
   /**
-   * Which existing tier is currently in cell-edit mode, keyed by
-   * `${vendorPartId}:${tierId}` (or `${vendorPartId}:new` for the always-
-   * present empty bottom row, but that's never set here — the empty row
-   * is implicitly always editable). Null means no existing tier is open
-   * for editing.
+   * Which EXISTING tier is currently in cell-edit mode (only one row at
+   * a time — Pattern A: single-row edit). Keyed by `${vendorPartId}:${tierId}`.
+   * Clicking a cell on another row commits the previous row's edits to
+   * local pending state and opens the new row for edit.
    */
   protected readonly editingTierKey = signal<string | null>(null);
 
   /**
-   * The tier-row key that just successfully saved — drives the 1000ms
-   * green-border-fade animation that confirms the save and signals
-   * "you can keep typing." Cleared after the animation timeout.
+   * Pending tier mutations held in client state. The modal-level Save
+   * (onSaveAll) flushes all of these to the server in one batch; Cancel
+   * discards them. No per-row Save button — the only commit affordance
+   * is the modal-level Save (Pattern A: single save on the page).
+   *
+   * - `add`: a new tier the user typed into the empty bottom form
+   * - `edit`: changes to an existing tier (server supersedes via SCD-2)
+   * - `delete`: existing tier marked for soft-close
+   *
+   * `tempId` on adds is a session-local counter so multiple new tiers
+   * keep distinct keys; resolved server-side at flush time.
+   */
+  protected readonly pendingMutations = signal<TierMutation[]>([]);
+  private nextTempId = 1;
+
+  /**
+   * The tier-row key that just appeared (newly committed to local state)
+   * — drives the 1000ms green-border-fade animation that confirms the
+   * commit and signals "you can keep adding."
    */
   protected readonly justSavedKey = signal<string | null>(null);
 
   /** "Show history" toggle — when true the tier list returns superseded rows too. */
   protected readonly showTierHistory = signal(false);
+
+  // ─── Stage 2: detail disclosure (Pattern C with B toggle) ───────────
+  /**
+   * View mode for the source list:
+   *  - 'inspector' (default, Pattern C): cards collapsed to header +
+   *    summary + tier table; full per-source details shown in a
+   *    right-side property inspector for the selected card.
+   *  - 'compare' (Pattern B, on demand): cards stacked with summary line
+   *    each; click an "Show details" affordance per card to accordion-
+   *    expand its full details inline. Better for side-by-side scanning.
+   */
+  protected readonly viewMode = signal<'inspector' | 'compare'>('inspector');
+
+  /** Which source card's details show in the right inspector pane. */
+  protected readonly selectedSourceId = signal<number | null>(null);
+
+  /** In compare mode, which cards have their details accordion expanded. */
+  protected readonly expandedDetailIds = signal<Set<number>>(new Set());
+
+  /** Resolves the selected source object for the inspector pane. */
+  protected readonly selectedSource = computed<VendorPart | null>(() => {
+    const id = this.selectedSourceId();
+    if (id == null) return null;
+    return this.vendorParts().find(v => v.id === id) ?? null;
+  });
 
   /** Sorted view for rendering — preferred first, alphabetical otherwise. */
   protected readonly sortedRows = computed<VendorPart[]>(() => {
@@ -299,11 +368,55 @@ export class VendorSourcesPanelComponent {
     return form;
   }
 
-  /** Tiers visible in the table — currently effective always; superseded only when toggle is on. */
-  protected visibleTiers(row: VendorPart): VendorPartPriceTier[] {
-    const all = row.priceTiers ?? [];
-    if (this.showTierHistory()) return all;
-    return all.filter(t => !t.effectiveTo);
+  /**
+   * Tiers visible in the table for one vendor source. Overlays the live
+   * server-side rows with any in-flight client-side mutations:
+   *  - server rows whose ids appear in pending deletes get
+   *    `_pendingDelete = true` so the row renders struck-through
+   *  - server rows whose ids appear in pending edits get their values
+   *    swapped with the pending values + `_pendingEdit = true`
+   *  - pending adds (no server id yet) are appended as fresh rows
+   *    with negative `id = -tempId` so trackBy keys stay stable
+   *
+   * The empty bottom row (the always-visible "type to add" form) is NOT
+   * part of this list — it's rendered separately in the template so it
+   * can hold its own form-bound inputs.
+   */
+  protected visibleTiers(row: VendorPart): TierViewRow[] {
+    const baseline = (row.priceTiers ?? []).filter(t =>
+      this.showTierHistory() || !t.effectiveTo);
+    const muts = this.pendingMutations().filter(m => 'vpId' in m && m.vpId === row.id);
+    const deletes = new Set<number>(
+      muts.filter((m): m is Extract<TierMutation, { type: 'delete' }> => m.type === 'delete')
+        .map(m => m.tierId));
+    const edits = new Map<number, TierValues>(
+      muts.filter((m): m is Extract<TierMutation, { type: 'edit' }> => m.type === 'edit')
+        .map(m => [m.tierId, m.values]));
+    const adds = muts.filter((m): m is Extract<TierMutation, { type: 'add' }> => m.type === 'add');
+
+    const overlaid: TierViewRow[] = baseline.map(t => {
+      const edit = edits.get(t.id);
+      return {
+        ...t,
+        minQuantity: edit?.minQuantity ?? t.minQuantity,
+        unitPrice: edit?.unitPrice ?? t.unitPrice,
+        effectiveFrom: edit ? edit.effectiveFrom.toISOString() : t.effectiveFrom,
+        _pendingDelete: deletes.has(t.id),
+        _pendingEdit: !!edit,
+      };
+    });
+    const newRows: TierViewRow[] = adds.map(a => ({
+      id: -a.tempId,
+      vendorPartId: a.vpId,
+      minQuantity: a.values.minQuantity,
+      unitPrice: a.values.unitPrice,
+      currency: row.currency,
+      effectiveFrom: a.values.effectiveFrom.toISOString(),
+      effectiveTo: null,
+      notes: null,
+      _pendingAdd: true,
+    }));
+    return [...overlaid, ...newRows];
   }
 
   // ─── Save-on-blur for 1:1 fields ────────────────────────────────────
@@ -374,10 +487,16 @@ export class VendorSourcesPanelComponent {
     if (partId != null) this.reload(partId);
   }
 
-  /** Switch an existing tier row into cell-edit mode and seed its form. */
-  protected startEditTier(vpId: number, tier: VendorPartPriceTier): void {
+  /**
+   * Click a cell on an existing tier row → enter cell-edit mode for
+   * that row. Per Pattern A (single-row edit), if another row is already
+   * in edit, commit its in-flight values to local pending state first.
+   */
+  protected startEditTier(vpId: number, tier: TierViewRow): void {
+    if (tier._pendingDelete || tier.effectiveTo) return; // can't edit deleted or superseded
+    const previousKey = this.editingTierKey();
+    if (previousKey) this.commitOpenEditToLocal(previousKey);
     const key = this.tierKey(vpId, tier.id);
-    // Drop any stale form so we re-seed from current data.
     this.tierForms.delete(key);
     const form = this.tierFormFor(vpId, tier.id);
     form.patchValue({
@@ -388,7 +507,10 @@ export class VendorSourcesPanelComponent {
     this.editingTierKey.set(key);
   }
 
-  /** Cancel without saving — form discarded so next open re-seeds clean. */
+  /**
+   * Esc / explicit cancel — drop the in-flight form, exit edit mode.
+   * Does NOT touch any previously committed pending mutations.
+   */
   protected cancelEditTier(): void {
     const key = this.editingTierKey();
     if (key) this.tierForms.delete(key);
@@ -396,39 +518,120 @@ export class VendorSourcesPanelComponent {
   }
 
   /**
-   * Commit the form values for either an existing tier (server supersedes
-   * the old row) or the empty bottom row (server inserts new). On
-   * success, animate the next empty row in with the green-border pulse.
+   * Internal: take the values from a row currently in edit mode and
+   * push them onto pendingMutations (as an 'edit'). For a positive
+   * tier id this becomes a server-side supersede on flush; for a
+   * negative id (a pending-add row) it re-overrides the existing add.
+   * No-op if the form is invalid.
    */
-  protected commitTier(vpId: number, tierId: number | 'new'): void {
-    const partId = this.partId();
-    if (partId == null) return;
-    const key = this.tierKey(vpId, tierId);
-    const form = this.tierFormFor(vpId, tierId);
-    if (form.invalid) return;
+  private commitOpenEditToLocal(key: string): void {
+    const form = this.tierForms.get(key);
+    if (!form || form.invalid) return;
+    const [vpStr, tierStr] = key.split(':');
+    const vpId = parseInt(vpStr, 10);
+    const tierId = parseInt(tierStr, 10);
     const v = form.getRawValue();
-    this.vendorPartsService.addPriceTier(vpId, {
+    const values: TierValues = {
       minQuantity: v.minQuantity!,
       unitPrice: v.unitPrice!,
-      effectiveFrom: v.effectiveFrom
-        ? new Date(v.effectiveFrom).toISOString()
-        : null,
-    }).subscribe({
-      next: () => {
-        this.tierForms.delete(key);
-        if (tierId !== 'new') this.editingTierKey.set(null);
-        // Animate the new bottom row to confirm the save and signal
-        // "you can keep typing" — full green border, fade to default.
-        const newKey = this.tierKey(vpId, 'new');
-        this.justSavedKey.set(newKey);
-        setTimeout(() => {
-          if (this.justSavedKey() === newKey) this.justSavedKey.set(null);
-        }, 1000);
-        this.reload(partId);
-        this.changed.emit();
-      },
-      error: () => this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed')),
+      effectiveFrom: v.effectiveFrom ? new Date(v.effectiveFrom) : new Date(),
+    };
+    this.upsertEditMutation(vpId, tierId, values);
+    this.tierForms.delete(key);
+    this.editingTierKey.set(null);
+  }
+
+  /**
+   * Called from the empty-bottom-row form when the user has typed values
+   * and clicks elsewhere or commits via Save. Pushes a fresh 'add'
+   * mutation, resets the form to empty, and pulses the just-added row
+   * green so the user sees confirmation.
+   */
+  protected commitNewTierFromEmptyForm(vpId: number): void {
+    const form = this.tierFormFor(vpId, 'new');
+    if (form.invalid) return;
+    const v = form.getRawValue();
+    if (v.minQuantity == null && v.unitPrice == null) return; // empty — nothing to add
+    if (form.invalid) return;
+    const tempId = this.nextTempId++;
+    const values: TierValues = {
+      minQuantity: v.minQuantity!,
+      unitPrice: v.unitPrice!,
+      effectiveFrom: v.effectiveFrom ? new Date(v.effectiveFrom) : new Date(),
+    };
+    this.pendingMutations.update(list => [
+      ...list,
+      { type: 'add', vpId, tempId, values },
+    ]);
+    // Reset the empty form so it's ready for the next entry.
+    form.reset({ minQuantity: null, unitPrice: null, effectiveFrom: new Date() });
+    // Pulse the just-added row green.
+    const newKey = `${vpId}:add-${tempId}`;
+    this.justSavedKey.set(newKey);
+    setTimeout(() => {
+      if (this.justSavedKey() === newKey) this.justSavedKey.set(null);
+    }, 1000);
+  }
+
+  /** Track-by key for tier rows in the table — handles both real and pending. */
+  protected tierTrackBy(_idx: number, t: TierViewRow): string {
+    if (t._pendingAdd) return `add-${t.id}`;
+    return `id-${t.id}`;
+  }
+
+  /**
+   * focusout handler on the empty bottom row — commits the form to
+   * pending state ONLY when focus is leaving the row entirely. Tabbing
+   * between cells inside the same row keeps the user "still entering
+   * this row" so we don't commit mid-entry.
+   */
+  protected onEmptyRowFocusOut(event: FocusEvent, vpId: number): void {
+    const row = event.currentTarget as HTMLElement | null;
+    const next = event.relatedTarget as HTMLElement | null;
+    if (row && next && row.contains(next)) return;
+    this.commitNewTierFromEmptyForm(vpId);
+  }
+
+  /** Replace any prior 'edit' for this tier with the new values. */
+  private upsertEditMutation(vpId: number, tierId: number, values: TierValues): void {
+    this.pendingMutations.update(list => {
+      // For pending adds (negative id), update the matching add in place.
+      if (tierId < 0) {
+        const tempId = -tierId;
+        return list.map(m =>
+          m.type === 'add' && m.vpId === vpId && m.tempId === tempId
+            ? { ...m, values }
+            : m);
+      }
+      const filtered = list.filter(m =>
+        !(m.type === 'edit' && m.vpId === vpId && m.tierId === tierId));
+      return [...filtered, { type: 'edit', vpId, tierId, values }];
     });
+  }
+
+  /**
+   * Mark a tier for deletion in local pending state. Toggle: if the tier
+   * is already pending-delete, un-delete it. Confirmed only at modal
+   * Save time.
+   */
+  protected removeTier(vp: VendorPart, tier: TierViewRow): void {
+    if (tier._pendingAdd) {
+      // Drop the unsaved add entirely.
+      const tempId = -tier.id;
+      this.pendingMutations.update(list => list.filter(m =>
+        !(m.type === 'add' && m.vpId === vp.id && m.tempId === tempId)));
+      return;
+    }
+    if (tier._pendingDelete) {
+      // Toggle off — un-delete.
+      this.pendingMutations.update(list => list.filter(m =>
+        !(m.type === 'delete' && m.vpId === vp.id && m.tierId === tier.id)));
+      return;
+    }
+    this.pendingMutations.update(list => [
+      ...list,
+      { type: 'delete', vpId: vp.id, tierId: tier.id },
+    ]);
   }
 
   /** Reload tiers — pulls history when the toggle is on. */
@@ -440,28 +643,6 @@ export class VendorSourcesPanelComponent {
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
-    });
-  }
-
-  protected removeTier(vp: VendorPart, tier: VendorPartPriceTier): void {
-    const partId = this.partId();
-    if (partId == null) return;
-    this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: this.translate.instant('vendorSources.removeTier.confirmTitle'),
-        message: this.translate.instant('vendorSources.removeTier.confirmMessage'),
-        confirmLabel: this.translate.instant('common.delete'),
-        severity: 'danger',
-      } satisfies ConfirmDialogData,
-    }).afterClosed().subscribe((confirmed) => {
-      if (!confirmed) return;
-      this.vendorPartsService.deletePriceTier(vp.id, tier.id).subscribe({
-        next: () => {
-          this.load(partId);
-          this.changed.emit();
-        },
-      });
     });
   }
 
@@ -557,13 +738,31 @@ export class VendorSourcesPanelComponent {
 
   // ─── Panel-level Save / Cancel ──────────────────────────────────────
   /**
-   * Flush every dirty per-row form, then signal the parent to exit edit
-   * mode. Most fields are already saved by the on-blur handler; this
-   * catches the field the user is still focused on (no blur yet) and
-   * acts as a visible "I'm done" affordance — the lack of one was the
-   * top user complaint about this panel.
+   * THE only commit affordance — Pattern A (single save on the page).
+   * Fold any open in-flight tier edit + the empty-form's pending values
+   * into local pending state, flush:
+   *   1. dirty per-row 1:1 fields (vendorPartNumber, lead time, etc.)
+   *   2. pending tier mutations (deletes first, then adds, then edits)
+   * Then signal the parent to exit edit mode.
    */
   protected onSaveAll(): void {
+    const partId = this.partId();
+    if (partId == null) {
+      this.cancelled.emit();
+      return;
+    }
+
+    // Sweep open in-flight tier edit into local mutations.
+    const openKey = this.editingTierKey();
+    if (openKey) this.commitOpenEditToLocal(openKey);
+
+    // Sweep any typed-but-uncommitted values from each row's empty form.
+    for (const row of this.vendorParts()) {
+      this.commitNewTierFromEmptyForm(row.id);
+    }
+
+    // Commit per-row 1:1 field edits via the existing per-row save path
+    // (saveRow handles its own dirty check + immediate PATCH).
     for (const [key, form] of this.rowForms.entries()) {
       if (!form.dirty || form.invalid) continue;
       const row = key === this.STUB_ID
@@ -571,15 +770,45 @@ export class VendorSourcesPanelComponent {
         : (this.vendorParts().find(v => v.id === key) ?? null);
       this.saveRow(row);
     }
-    this.cancelled.emit();
+
+    // Flush pending tier mutations to the server. Deletes first (so a
+    // subsequent add at the same min_qty gets a clean SCD-2 supersede
+    // path on the next read), then adds + edits (server's upsert path
+    // handles supersede semantics for edits transparently).
+    const muts = this.pendingMutations();
+    const calls: Promise<unknown>[] = [];
+    for (const m of muts) {
+      if (m.type === 'delete') {
+        calls.push(firstValueFrom(this.vendorPartsService.deletePriceTier(m.vpId, m.tierId)));
+      }
+    }
+    for (const m of muts) {
+      if (m.type === 'add' || m.type === 'edit') {
+        calls.push(firstValueFrom(this.vendorPartsService.addPriceTier(m.vpId, {
+          minQuantity: m.values.minQuantity,
+          unitPrice: m.values.unitPrice,
+          effectiveFrom: m.values.effectiveFrom.toISOString(),
+        })));
+      }
+    }
+
+    Promise.all(calls)
+      .then(() => {
+        this.pendingMutations.set([]);
+        this.changed.emit();
+        this.cancelled.emit();
+      })
+      .catch(() => this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed')));
   }
 
   /**
-   * Discard any in-progress field edits by reloading from the server
-   * (the source of truth — auto-save-on-blur means committed edits
-   * are already there) and signal the parent to exit edit mode.
+   * Discard any pending tier mutations + any in-flight 1:1 field edits
+   * (reload from server) and signal the parent to exit edit mode.
    */
   protected onCancel(): void {
+    this.pendingMutations.set([]);
+    this.editingTierKey.set(null);
+    this.tierForms.clear();
     const id = this.partId();
     if (id != null) this.load(id);
     this.cancelled.emit();
@@ -588,6 +817,44 @@ export class VendorSourcesPanelComponent {
   // ─── Display helpers ────────────────────────────────────────────────
   protected hasNoTiers(vp: VendorPart): boolean {
     return !vp.priceTiers || vp.priceTiers.length === 0;
+  }
+
+  /** Inspector mode: select a source card → its details fill the right pane. */
+  protected selectSource(id: number): void {
+    // Toggle: clicking the already-selected card un-selects.
+    this.selectedSourceId.update(prev => prev === id ? null : id);
+  }
+
+  /** Compare mode: toggle the per-card accordion that reveals full details. */
+  protected toggleDetails(id: number): void {
+    this.expandedDetailIds.update(set => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  protected isExpanded(id: number): boolean {
+    return this.expandedDetailIds().has(id);
+  }
+
+  /**
+   * One-line summary of supplementary fields for the source-card header.
+   * Used by both inspector + compare modes — surfaces the most-glanced
+   * source attributes (lead time, MOQ, country) without expanding the
+   * full details. Skips empty fields gracefully.
+   */
+  protected summary(row: VendorPart): string {
+    const bits: string[] = [];
+    if (row.leadTimeDays != null) bits.push(`Lead ${row.leadTimeDays}d`);
+    if (row.minOrderQty != null) bits.push(`MOQ ${row.minOrderQty}`);
+    if (row.countryOfOrigin) bits.push(row.countryOfOrigin);
+    if (row.priceTiers && row.priceTiers.filter(t => !t.effectiveTo).length > 0) {
+      const n = row.priceTiers.filter(t => !t.effectiveTo).length;
+      bits.push(`${n} tier${n === 1 ? '' : 's'}`);
+    }
+    return bits.join(' · ');
   }
 
   /** ISO-4217 → symbol fallback for tier display. */

@@ -952,6 +952,7 @@
       "currency": "Moneda",
       "effectiveFrom": "Vigente desde",
       "remove": "Eliminar nivel",
+      "undelete": "Restaurar nivel",
       "showHistory": "Mostrar historial",
       "hideHistory": "Ocultar historial",
       "commitNew": "Agregar nivel",
