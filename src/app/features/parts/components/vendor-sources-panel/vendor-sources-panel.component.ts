@@ -446,12 +446,7 @@ export class VendorSourcesPanelComponent {
         vendorId, partId, isPreferred: true, ...payload,
       }).subscribe({
         next: (created) => {
-          // Move the stub form's key to the real id so subsequent edits
-          // attach to the right row.
-          this.rowForms.delete(this.STUB_ID);
-          form.markAsPristine();
-          this.rowForms.set(created.id, form);
-          this.load(partId);
+          this.adoptStubMaterializedRow(form, created);
           this.changed.emit();
         },
         error: () => this.snackbar.error(this.translate.instant('vendorSources.saveFailed')),
@@ -466,6 +461,84 @@ export class VendorSourcesPanelComponent {
         error: () => this.snackbar.error(this.translate.instant('vendorSources.saveFailed')),
       });
     }
+  }
+
+  /**
+   * Stub→real transition. Called from saveRow's stub-success path.
+   *
+   * Two bugs this fixes that the naive "delete STUB_ID, set createdId, load()"
+   * sequence introduced:
+   *
+   *   1. Validation reset — when delete(STUB_ID) ran but vendorParts() hadn't
+   *      yet been refreshed (load is async), the next change-detection tick
+   *      re-rendered the still-visible stub article, called formFor(null),
+   *      which re-created an EMPTY form B at STUB_ID. Now there were two
+   *      forms: form A at createdId ("3g45e3", valid) and form B at STUB_ID
+   *      (empty, fails Validators.required). panelViolations walks the whole
+   *      map and surfaces form B's violation forever — "Vendor Part # is
+   *      required" even though the visible field showed the value.
+   *
+   *   2. Pending tiers + the empty-tier 'new' form for the stub were keyed
+   *      under STUB_ID; onSaveAll skipped STUB_ID-keyed pending tiers (no
+   *      real vp id to POST against), so any tier the user typed during
+   *      the stub phase was lost when they Saved.
+   *
+   * Fix: optimistically merge the created row into vendorParts() BEFORE
+   * load(), so preferredStubVisible() flips false on the same tick — the
+   * stub article is removed from the DOM in the very next CD pass and
+   * formFor(null) is never called again. Re-key every STUB_ID-keyed
+   * tier form + pending tier under createdId so the data the user
+   * entered while in stub mode survives the transition.
+   */
+  private adoptStubMaterializedRow(form: FormGroup, created: VendorPart): void {
+    // 1) Re-key the row form.
+    this.rowForms.delete(this.STUB_ID);
+    form.markAsPristine();
+    this.rowForms.set(created.id, form);
+
+    // 2) Re-key every tier form keyed under STUB_ID.
+    const stubPrefix = `${this.STUB_ID}:`;
+    const newPrefix = `${created.id}:`;
+    for (const oldKey of Array.from(this.tierForms.keys())) {
+      if (!oldKey.startsWith(stubPrefix)) continue;
+      const newKey = newPrefix + oldKey.slice(stubPrefix.length);
+      const tierForm = this.tierForms.get(oldKey);
+      if (tierForm) {
+        this.tierForms.delete(oldKey);
+        this.tierForms.set(newKey, tierForm);
+      }
+    }
+
+    // 3) Re-key pending-tier list from STUB_ID to created.id.
+    const pendingMap = new Map(this.pendingTiersByVp());
+    const stubPending = pendingMap.get(this.STUB_ID);
+    if (stubPending && stubPending.length > 0) {
+      pendingMap.delete(this.STUB_ID);
+      const existing = pendingMap.get(created.id) ?? [];
+      pendingMap.set(created.id, [...existing, ...stubPending]);
+      this.pendingTiersByVp.set(pendingMap);
+    } else if (pendingMap.has(this.STUB_ID)) {
+      pendingMap.delete(this.STUB_ID);
+      this.pendingTiersByVp.set(pendingMap);
+    }
+
+    // 4) Optimistically merge the created row into vendorParts so
+    //    preferredStubVisible() flips false RIGHT NOW — before load()
+    //    completes. This is the key step: it prevents the orphan-form
+    //    bug by ensuring formFor(null) is never called again for this
+    //    stub. load() still runs to pick up server-side defaults
+    //    (lastQuotedDate, computed price tier counts, etc.).
+    this.vendorParts.update(list => {
+      if (list.some(v => v.id === created.id)) return list;
+      return [...list, created];
+    });
+
+    // 5) Bump the validation ticker so panelViolations recomputes against
+    //    the new key and clears any stale stub-keyed violations.
+    this.formsTicker.update(n => n + 1);
+
+    const partId = this.partId();
+    if (partId != null) this.load(partId);
   }
 
   // ─── Tier edit / commit / remove (SCD Type 2) ────────────────────────
