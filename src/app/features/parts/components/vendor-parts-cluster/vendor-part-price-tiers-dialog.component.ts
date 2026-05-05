@@ -98,7 +98,7 @@ export class VendorPartPriceTiersDialogComponent {
     this.vendorPartsService.addPriceTier(this.data.vendorPart.id, {
       minQuantity: v.minQuantity!,
       unitPrice: v.unitPrice!,
-      currency: v.currency,
+      // Currency moved to VendorPart-level — server snapshots from parent.
       effectiveFrom: v.effectiveFrom ? toIsoDate(v.effectiveFrom) : null,
       effectiveTo: v.effectiveTo ? toIsoDate(v.effectiveTo) : null,
       notes: v.notes || null,

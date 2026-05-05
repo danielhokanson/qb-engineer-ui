@@ -203,27 +203,85 @@
   }
 
   &__tier-actions {
-    width: 32px;
+    width: 80px;
     text-align: right;
+    white-space: nowrap;
   }
 
-  &__tier-add {
-    display: grid;
-    grid-template-columns: 1fr 1fr 80px auto;
-    gap: $sp-sm;
-    align-items: end;
-    padding: $sp-sm;
-    background: color-mix(in srgb, var(--primary) 5%, transparent);
-    border: $border-width-thin solid var(--primary);
+  // SCD Type 2 tier table — click-to-edit cells, always-present empty
+  // bottom row for adding, full-border green pulse on commit.
+  &__tier-table--editable {
+    td:not(.vendor-source__tier-actions) {
+      cursor: pointer;
+      transition: background-color $transition-fast;
+    }
 
-    @include mobile {
-      grid-template-columns: 1fr;
+    td:not(.vendor-source__tier-actions):hover {
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
+    }
+
+    .tier-row--editing td {
+      background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+      cursor: default;
+    }
+
+    .tier-row--superseded td {
+      color: var(--text-muted);
+      font-style: italic;
+      cursor: default !important;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    .tier-row--empty td {
+      background: color-mix(in srgb, var(--text-muted) 4%, var(--surface));
+      cursor: default;
+    }
+
+    // Just-saved animation: full border, green, fades to default over 1000ms.
+    .tier-row--just-saved td {
+      animation: tier-row-saved 1000ms ease-out;
+    }
+
+    .tier-row__effective-to {
+      color: var(--text-muted);
+      font-size: $font-size-xxs;
     }
   }
 
-  &__tier-add-actions {
-    display: flex;
-    gap: $sp-sm;
-    justify-content: flex-end;
+  &__tier-history-toggle {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    font-size: $font-size-xxs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-xs;
+    padding: $sp-xs $sp-sm;
+
+    &:hover {
+      color: var(--primary);
+    }
+
+    .material-icons-outlined {
+      font-size: $icon-size-xs;
+    }
+  }
+}
+
+@keyframes tier-row-saved {
+  0% {
+    box-shadow: inset 0 0 0 2px var(--success);
+    background: color-mix(in srgb, var(--success) 18%, var(--surface));
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px transparent;
+    background: transparent;
   }
 }

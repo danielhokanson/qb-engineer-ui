@@ -5,10 +5,15 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { VendorPart, VendorPartPriceTier } from '../models/vendor-part.model';
 
+/**
+ * Request body for upserting a tier. Currency is intentionally absent —
+ * it lives on the parent VendorPart now, snapshotted at insert time
+ * server-side. EffectiveFrom is optional; the server defaults to "now"
+ * when omitted (matches the UI's "default to today" behavior).
+ */
 export interface UpsertVendorPartPriceTierRequest {
   minQuantity: number;
   unitPrice: number;
-  currency: string;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
   notes?: string | null;
@@ -23,8 +28,14 @@ export interface UpsertVendorPartPriceTierRequest {
 export class VendorPartsService {
   private readonly http = inject(HttpClient);
 
-  listForPart(partId: number): Observable<VendorPart[]> {
-    return this.http.get<VendorPart[]>(`${environment.apiUrl}/parts/${partId}/vendor-parts`);
+  /**
+   * Lists vendor sources for a part. Each VendorPart's price tiers are
+   * filtered to currently-effective by default; pass `showHistory=true` to
+   * receive all tier rows including superseded.
+   */
+  listForPart(partId: number, showHistory = false): Observable<VendorPart[]> {
+    const qs = showHistory ? '?showHistory=true' : '';
+    return this.http.get<VendorPart[]>(`${environment.apiUrl}/parts/${partId}/vendor-parts${qs}`);
   }
 
   listForVendor(vendorId: number): Observable<VendorPart[]> {

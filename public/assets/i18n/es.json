@@ -951,7 +951,12 @@
       "unitPrice": "Precio unitario",
       "currency": "Moneda",
       "effectiveFrom": "Vigente desde",
-      "remove": "Eliminar nivel"
+      "remove": "Eliminar nivel",
+      "showHistory": "Mostrar historial",
+      "hideHistory": "Ocultar historial",
+      "commitNew": "Agregar nivel",
+      "placeholderMinQty": "100",
+      "placeholderPrice": "0.00"
     },
     "removeTier": {
       "confirmTitle": "¿Eliminar este nivel de precio?",
@@ -983,6 +988,7 @@
     "isPreferredHelper": "Solo un proveedor por pieza puede ser preferente.",
     "lastQuotedDate": "Última cotización",
     "certifications": "Certificaciones",
+    "currency": "Moneda",
     "notes": "Notas",
     "priceTiersLabel": "Niveles de precio",
     "priceTiersCount": "{{count}} nivel(es)",

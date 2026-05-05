@@ -24,6 +24,7 @@ import { EntityPickerComponent } from '../../../../shared/components/entity-pick
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
+import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
@@ -78,7 +79,7 @@ import { VendorPartsService } from '../../services/vendor-parts.service';
   imports: [
     CommonModule, ReactiveFormsModule, TranslatePipe, MatTooltipModule,
     InputComponent, TextareaComponent, DatepickerComponent,
-    CurrencyInputComponent, EntityPickerComponent,
+    CurrencyInputComponent, EntityPickerComponent, SelectComponent,
     EmptyStateComponent, LoadingBlockDirective,
   ],
   templateUrl: './vendor-sources-panel.component.html',
@@ -138,7 +139,24 @@ export class VendorSourcesPanelComponent {
   protected readonly loading = signal(false);
   protected readonly vendorParts = signal<VendorPart[]>([]);
   protected readonly addingVendor = signal(false);
-  protected readonly newTierFor = signal<number | null>(null); // vendorPartId or -1 for the stub
+  /**
+   * Which existing tier is currently in cell-edit mode, keyed by
+   * `${vendorPartId}:${tierId}` (or `${vendorPartId}:new` for the always-
+   * present empty bottom row, but that's never set here — the empty row
+   * is implicitly always editable). Null means no existing tier is open
+   * for editing.
+   */
+  protected readonly editingTierKey = signal<string | null>(null);
+
+  /**
+   * The tier-row key that just successfully saved — drives the 1000ms
+   * green-border-fade animation that confirms the save and signals
+   * "you can keep typing." Cleared after the animation timeout.
+   */
+  protected readonly justSavedKey = signal<string | null>(null);
+
+  /** "Show history" toggle — when true the tier list returns superseded rows too. */
+  protected readonly showTierHistory = signal(false);
 
   /** Sorted view for rendering — preferred first, alphabetical otherwise. */
   protected readonly sortedRows = computed<VendorPart[]>(() => {
@@ -163,7 +181,24 @@ export class VendorSourcesPanelComponent {
   protected readonly rowForms = new Map<number, FormGroup>();
 
   /** Per-row "new tier" mini-forms, indexed by vendorPartId (or -1 for stub). */
-  protected readonly tierForms = new Map<number, FormGroup>();
+  /**
+   * Per-row tier forms, keyed by `${vendorPartId}:${tierId|'new'}`. The
+   * 'new' key is for the always-present empty bottom row that adds a
+   * fresh tier when the user types into it; existing tier ids are used
+   * when an existing row goes into cell-edit mode.
+   */
+  protected readonly tierForms = new Map<string, FormGroup>();
+
+  /** Currency options for the source-level select. ISO-4217 short list. */
+  protected readonly currencyOptions: SelectOption[] = [
+    { value: 'USD', label: 'USD ($)' },
+    { value: 'EUR', label: 'EUR (€)' },
+    { value: 'GBP', label: 'GBP (£)' },
+    { value: 'CAD', label: 'CAD ($)' },
+    { value: 'MXN', label: 'MXN ($)' },
+    { value: 'JPY', label: 'JPY (¥)' },
+    { value: 'CNY', label: 'CNY (¥)' },
+  ];
 
   constructor() {
     effect(() => {
@@ -197,7 +232,12 @@ export class VendorSourcesPanelComponent {
           if (key !== -1 && !ids.has(key)) this.rowForms.delete(key);
         }
         for (const key of [...this.tierForms.keys()]) {
-          if (key !== -1 && !ids.has(key)) this.tierForms.delete(key);
+          // tierForms keys are now `${vpId}:${tierId|'new'}` strings; drop
+          // any whose vpId no longer matches a known row.
+          const colon = key.indexOf(':');
+          const vpIdStr = colon < 0 ? key : key.substring(0, colon);
+          const vpId = parseInt(vpIdStr, 10);
+          if (vpId !== this.STUB_ID && !ids.has(vpId)) this.tierForms.delete(key);
         }
         this.loading.set(false);
       },
@@ -226,23 +266,44 @@ export class VendorSourcesPanelComponent {
         certifications: [row?.certifications ?? '', [Validators.maxLength(500)]],
         lastQuotedDate: [row?.lastQuotedDate ? new Date(row.lastQuotedDate) : null],
         notes: [row?.notes ?? '', [Validators.maxLength(2000)]],
+        currency: [row?.currency ?? 'USD', [Validators.required, Validators.maxLength(3)]],
       });
       this.rowForms.set(key, form);
     }
     return form;
   }
 
-  protected tierFormFor(vpId: number): FormGroup {
-    let form = this.tierForms.get(vpId);
+  /** Compose the tierForms key — one form per (vendorPart, tier) edit slot. */
+  protected tierKey(vpId: number, tierId: number | 'new'): string {
+    return `${vpId}:${tierId}`;
+  }
+
+  /**
+   * Lazy-create form for editing a tier OR for the empty bottom row
+   * ('new'). Existing-tier forms get pre-populated from the live values
+   * via {@link startEditTier}; the 'new' form starts blank with
+   * effectiveFrom defaulted to today so the user only has to type qty +
+   * price before committing.
+   */
+  protected tierFormFor(vpId: number, tierId: number | 'new'): FormGroup {
+    const key = this.tierKey(vpId, tierId);
+    let form = this.tierForms.get(key);
     if (!form) {
       form = this.fb.group({
-        minQuantity: [1, [Validators.required, Validators.min(0)]],
+        minQuantity: [null as number | null, [Validators.required, Validators.min(1)]],
         unitPrice: [null as number | null, [Validators.required, Validators.min(0)]],
-        currency: ['USD', [Validators.required, Validators.maxLength(3)]],
+        effectiveFrom: [new Date(), [Validators.required]],
       });
-      this.tierForms.set(vpId, form);
+      this.tierForms.set(key, form);
     }
     return form;
+  }
+
+  /** Tiers visible in the table — currently effective always; superseded only when toggle is on. */
+  protected visibleTiers(row: VendorPart): VendorPartPriceTier[] {
+    const all = row.priceTiers ?? [];
+    if (this.showTierHistory()) return all;
+    return all.filter(t => !t.effectiveTo);
   }
 
   // ─── Save-on-blur for 1:1 fields ────────────────────────────────────
@@ -270,6 +331,7 @@ export class VendorSourcesPanelComponent {
       certifications: v.certifications || null,
       lastQuotedDate: v.lastQuotedDate ? new Date(v.lastQuotedDate).toISOString().slice(0, 10) : null,
       notes: v.notes || null,
+      currency: v.currency || 'USD',
     };
 
     if (!row) {
@@ -302,35 +364,82 @@ export class VendorSourcesPanelComponent {
     }
   }
 
-  // ─── Tier add / remove ──────────────────────────────────────────────
-  protected showAddTier(vpId: number): void {
-    this.newTierFor.set(vpId);
-    // Reset form so previous values don't leak into the next add.
-    const f = this.tierFormFor(vpId);
-    f.reset({ minQuantity: 1, unitPrice: null, currency: 'USD' });
+  // ─── Tier edit / commit / remove (SCD Type 2) ────────────────────────
+
+  /** Toggle the "Show history" view that surfaces superseded tiers. */
+  protected toggleTierHistory(): void {
+    const next = !this.showTierHistory();
+    this.showTierHistory.set(next);
+    const partId = this.partId();
+    if (partId != null) this.reload(partId);
   }
 
-  protected cancelAddTier(): void {
-    this.newTierFor.set(null);
+  /** Switch an existing tier row into cell-edit mode and seed its form. */
+  protected startEditTier(vpId: number, tier: VendorPartPriceTier): void {
+    const key = this.tierKey(vpId, tier.id);
+    // Drop any stale form so we re-seed from current data.
+    this.tierForms.delete(key);
+    const form = this.tierFormFor(vpId, tier.id);
+    form.patchValue({
+      minQuantity: tier.minQuantity,
+      unitPrice: tier.unitPrice,
+      effectiveFrom: new Date(tier.effectiveFrom),
+    });
+    this.editingTierKey.set(key);
   }
 
-  protected addTier(vpId: number): void {
+  /** Cancel without saving — form discarded so next open re-seeds clean. */
+  protected cancelEditTier(): void {
+    const key = this.editingTierKey();
+    if (key) this.tierForms.delete(key);
+    this.editingTierKey.set(null);
+  }
+
+  /**
+   * Commit the form values for either an existing tier (server supersedes
+   * the old row) or the empty bottom row (server inserts new). On
+   * success, animate the next empty row in with the green-border pulse.
+   */
+  protected commitTier(vpId: number, tierId: number | 'new'): void {
     const partId = this.partId();
     if (partId == null) return;
-    const form = this.tierFormFor(vpId);
+    const key = this.tierKey(vpId, tierId);
+    const form = this.tierFormFor(vpId, tierId);
     if (form.invalid) return;
     const v = form.getRawValue();
     this.vendorPartsService.addPriceTier(vpId, {
       minQuantity: v.minQuantity!,
       unitPrice: v.unitPrice!,
-      currency: v.currency!,
+      effectiveFrom: v.effectiveFrom
+        ? new Date(v.effectiveFrom).toISOString()
+        : null,
     }).subscribe({
       next: () => {
-        this.newTierFor.set(null);
-        this.load(partId);
+        this.tierForms.delete(key);
+        if (tierId !== 'new') this.editingTierKey.set(null);
+        // Animate the new bottom row to confirm the save and signal
+        // "you can keep typing" — full green border, fade to default.
+        const newKey = this.tierKey(vpId, 'new');
+        this.justSavedKey.set(newKey);
+        setTimeout(() => {
+          if (this.justSavedKey() === newKey) this.justSavedKey.set(null);
+        }, 1000);
+        this.reload(partId);
         this.changed.emit();
       },
       error: () => this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed')),
+    });
+  }
+
+  /** Reload tiers — pulls history when the toggle is on. */
+  private reload(partId: number): void {
+    this.loading.set(true);
+    this.vendorPartsService.listForPart(partId, this.showTierHistory()).subscribe({
+      next: (list) => {
+        this.vendorParts.set(list);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
     });
   }
 
@@ -481,7 +590,17 @@ export class VendorSourcesPanelComponent {
     return !vp.priceTiers || vp.priceTiers.length === 0;
   }
 
+  /** ISO-4217 → symbol fallback for tier display. */
   protected currencySymbol(code: string): string {
-    return code === 'USD' ? '$' : code === 'EUR' ? '€' : code;
+    switch (code) {
+      case 'USD':
+      case 'CAD':
+      case 'MXN': return '$';
+      case 'EUR': return '€';
+      case 'GBP': return '£';
+      case 'JPY':
+      case 'CNY': return '¥';
+      default: return code + ' ';
+    }
   }
 }

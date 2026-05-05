@@ -33,6 +33,13 @@ export interface VendorPart {
   priceTiers: VendorPartPriceTier[];
   createdAt: string;
   updatedAt: string;
+  /**
+   * ISO-4217 currency code this vendor quotes in. Promoted from the
+   * per-tier level — tier rows snapshot this value at insert time so
+   * historical rows preserve the currency they were quoted at if the
+   * source's currency later changes.
+   */
+  currency: string;
 }
 
 export interface VendorPartPriceTier {
