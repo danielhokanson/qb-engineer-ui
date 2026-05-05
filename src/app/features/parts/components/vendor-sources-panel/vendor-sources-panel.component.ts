@@ -26,6 +26,8 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
+import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
+import { FormValidationService } from '../../../../shared/services/form-validation.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
 import { VendorQuickCreateDialogComponent, VendorQuickCreateDialogData } from '../../../vendors/components/vendor-quick-create-dialog/vendor-quick-create-dialog.component';
@@ -80,7 +82,7 @@ import { VendorPartsService } from '../../services/vendor-parts.service';
     CommonModule, ReactiveFormsModule, TranslatePipe, MatTooltipModule,
     InputComponent, TextareaComponent, DatepickerComponent,
     CurrencyInputComponent, EntityPickerComponent, SelectComponent,
-    EmptyStateComponent, LoadingBlockDirective,
+    EmptyStateComponent, LoadingBlockDirective, ValidationButtonComponent,
   ],
   templateUrl: './vendor-sources-panel.component.html',
   styleUrl: './vendor-sources-panel.component.scss',
@@ -255,7 +257,7 @@ export class VendorSourcesPanelComponent {
     let form = this.rowForms.get(key);
     if (!form) {
       form = this.fb.group({
-        vendorPartNumber: [row?.vendorPartNumber ?? '', [Validators.maxLength(100)]],
+        vendorPartNumber: [row?.vendorPartNumber ?? '', [Validators.required, Validators.maxLength(100)]],
         manufacturerName: [row?.manufacturerName ?? '', [Validators.maxLength(200)]],
         vendorMpn: [row?.vendorMpn ?? '', [Validators.maxLength(100)]],
         leadTimeDays: [row?.leadTimeDays ?? null, [Validators.min(0)]],
@@ -268,9 +270,72 @@ export class VendorSourcesPanelComponent {
         notes: [row?.notes ?? '', [Validators.maxLength(2000)]],
         currency: [row?.currency ?? 'USD', [Validators.required, Validators.maxLength(3)]],
       });
+      // Bump the panel-level reactivity ticker whenever this row's status
+      // changes so panelViolations / panelValid recompute. takeUntilDestroyed
+      // ensures the subscription dies with the component.
+      form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+        this.formsTicker.update(v => v + 1);
+      });
       this.rowForms.set(key, form);
+      // First-tick bump so a freshly-created form's invalid-state surfaces
+      // without waiting for a status change.
+      queueMicrotask(() => this.formsTicker.update(v => v + 1));
     }
     return form;
+  }
+
+  // ─── Panel-level validation aggregation ─────────────────────────────
+  //
+  // The panel hosts N row forms, one per vendor source. The Save button
+  // (per CLAUDE.md "Save Action — Required on Every Editable Surface")
+  // gates on ALL row forms being valid, with a `<app-validation-button>`
+  // surfacing the why. Aggregation walks every row form via formsTicker
+  // (bumped from each form's statusChanges) so the computed signals
+  // recompute reactively.
+  private readonly formsTicker = signal(0);
+
+  private readonly violationLabels: Record<string, string> = {
+    vendorPartNumber: 'Vendor Part #',
+    manufacturerName: 'Manufacturer',
+    vendorMpn: 'Manufacturer Part #',
+    leadTimeDays: 'Lead Time (days)',
+    minOrderQty: 'Min Order Qty',
+    packSize: 'Pack Size',
+    countryOfOrigin: 'Country of Origin',
+    htsCode: 'HTS Code',
+    certifications: 'Certifications',
+    notes: 'Notes',
+    currency: 'Currency',
+  };
+
+  protected readonly panelViolations = computed<string[]>(() => {
+    this.formsTicker(); // dependency
+    const out: string[] = [];
+    for (const [, form] of this.rowForms.entries()) {
+      const vendorName = this.vendorNameForForm(form);
+      const items = FormValidationService.collectViolations(form, this.violationLabels);
+      for (const msg of items) {
+        out.push(vendorName ? `${vendorName}: ${msg}` : msg);
+      }
+    }
+    return out;
+  });
+
+  protected readonly panelValid = computed<boolean>(() => {
+    this.formsTicker();
+    for (const [, form] of this.rowForms.entries()) {
+      if (form.invalid) return false;
+    }
+    return true;
+  });
+
+  private vendorNameForForm(form: FormGroup): string {
+    for (const [key, f] of this.rowForms.entries()) {
+      if (f !== form) continue;
+      if (key === this.STUB_ID) return this.preferredVendorName() || '';
+      return this.vendorParts().find(v => v.id === key)?.vendorCompanyName ?? '';
+    }
+    return '';
   }
 
   /** Compose the tierForms key — one form per (vendorPart, tier) edit slot. */
@@ -429,6 +494,38 @@ export class VendorSourcesPanelComponent {
       },
       error: () => this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed')),
     });
+  }
+
+  /**
+   * Auto-commit the empty bottom row when the user finishes editing it.
+   * Fires from the `<tr class="tier-row--empty">` (focusout). Only acts
+   * when focus is leaving the entire row (relatedTarget is outside) AND
+   * the form is valid AND has been touched — so partial edits and tab-
+   * between-cells navigation never trigger a phantom save.
+   *
+   * Replaces the old "+ button" pattern (2026-05-05 user feedback): the
+   * bottom row is purely an input slot, never a saveable row in itself.
+   * Once it commits, the next blank empty row appears automatically
+   * (same template branch — the form key 'new' is recycled).
+   */
+  protected onEmptyRowFocusOut(e: FocusEvent, vpId: number): void {
+    const row = e.currentTarget as HTMLElement | null;
+    if (!row) return;
+    const next = e.relatedTarget as Node | null;
+    if (next && row.contains(next)) return; // still inside the row
+    const form = this.tierFormFor(vpId, 'new');
+    if (!form.dirty || form.invalid) return;
+    this.commitTier(vpId, 'new');
+  }
+
+  /**
+   * Enter-key shortcut on the empty bottom row — commits the row when
+   * valid. Pairs with focusout so power users can stay on the keyboard.
+   */
+  protected onEmptyRowEnter(vpId: number): void {
+    const form = this.tierFormFor(vpId, 'new');
+    if (!form.dirty || form.invalid) return;
+    this.commitTier(vpId, 'new');
   }
 
   /** Reload tiers — pulls history when the toggle is on. */

@@ -147,23 +147,26 @@
                 </tr>
               }
 
-              <!-- Empty bottom row — always present, type to add a tier -->
+              <!--
+                Empty bottom row. Always rendered as the table's "spare"
+                input slot. Per 2026-05-05 user feedback: no + button —
+                this row is purely for typing new values into. Auto-
+                commits when the user tabs/clicks out of the row with a
+                valid form, OR presses Enter. After commit, the saved
+                tier appears in the @for above and a fresh empty row
+                takes this slot's place (same template branch, the
+                'new' form is deleted/re-created in commitTier).
+              -->
               <tr class="tier-row--empty"
                   [class.tier-row--just-saved]="justSavedKey() === tierKey(row.id, 'new')"
-                  [attr.data-testid]="'tier-row-new-' + row.id">
+                  [attr.data-testid]="'tier-row-new-' + row.id"
+                  (focusout)="onEmptyRowFocusOut($event, row.id)"
+                  (keydown.enter)="onEmptyRowEnter(row.id)">
                 <ng-container [formGroup]="tierFormFor(row.id, 'new')">
                   <td><app-input label="" type="number" formControlName="minQuantity" [placeholder]="'vendorSources.tier.placeholderMinQty' | translate" /></td>
                   <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(row.currency)" [placeholder]="'vendorSources.tier.placeholderPrice' | translate" /></td>
                   <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
-                  <td class="vendor-source__tier-actions">
-                    <button type="button" class="icon-btn icon-btn--active"
-                      [matTooltip]="'vendorSources.tier.commitNew' | translate"
-                      [attr.aria-label]="'vendorSources.tier.commitNew' | translate"
-                      [disabled]="tierFormFor(row.id, 'new').invalid"
-                      (click)="commitTier(row.id, 'new')">
-                      <span class="material-icons-outlined">add</span>
-                    </button>
-                  </td>
+                  <td class="vendor-source__tier-actions"></td>
                 </ng-container>
               </tr>
             </tbody>
@@ -222,12 +225,15 @@
         (click)="onCancel()">
         {{ 'common.cancel' | translate }}
       </button>
-      <button type="button" class="action-btn action-btn--primary"
-        data-testid="vendor-sources-save"
-        (click)="onSaveAll()">
-        <span class="material-icons-outlined">save</span>
-        {{ 'common.save' | translate }}
-      </button>
+      <app-validation-button [violations]="panelViolations">
+        <button type="button" class="action-btn action-btn--primary"
+          [disabled]="!panelValid()"
+          data-testid="vendor-sources-save"
+          (click)="onSaveAll()">
+          <span class="material-icons-outlined">save</span>
+          {{ 'common.save' | translate }}
+        </button>
+      </app-validation-button>
     </div>
   }
 
@@ -245,6 +251,7 @@
       [label]="'vendorPart.vendorPartNumber' | translate"
       formControlName="vendorPartNumber"
       [maxlength]="100"
+      [required]="true"
       [isReadonly]="!editing()"
       (blur)="saveRow(row)"
       data-testid="row-vendor-part-number" />
