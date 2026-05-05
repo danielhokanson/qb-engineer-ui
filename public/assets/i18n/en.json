@@ -2716,6 +2716,10 @@
     }
   },
   "shared": {
+    "slideout": {
+      "label": "Side panel",
+      "close": "Close panel"
+    },
     "closeDialog": "Close dialog",
     "helpTour": "Page help tour",
     "startHelpTour": "Start page help tour",
@@ -5193,10 +5197,11 @@
         "confirmMessage": "You have unsaved changes on this step. Switching modes will discard them.",
         "confirmAction": "Switch and discard"
       },
-      "contextPaneLabel": "Step context",
       "optional": "Optional",
       "rationale": {
-        "heading": "Why this step?"
+        "heading": "Why this step?",
+        "toggle": "Why this step?",
+        "close": "Close help"
       },
       "readonlyLabel": "View only",
       "resumeBanner": "Picking up where you left off — last edited {{lastEdited}}.",

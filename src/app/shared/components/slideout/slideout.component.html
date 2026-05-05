@@ -1,0 +1,50 @@
+<!--
+  Stays mounted at all times so the open ↔ closed transition can play
+  in both directions; visibility/inert toggle keeps it out of the
+  tab order and assistive-tech tree when closed.
+-->
+@if (backdrop()) {
+  <div
+    class="slideout-backdrop"
+    [class.slideout-backdrop--open]="open()"
+    [attr.inert]="open() ? null : ''"
+    role="button"
+    tabindex="0"
+    [attr.aria-label]="'shared.slideout.close' | translate"
+    data-testid="slideout-backdrop"
+    (click)="onBackdropClick()"
+    (keydown.enter)="onBackdropClick()"
+    (keydown.space)="onBackdropClick()"></div>
+}
+<aside
+  class="slideout slideout--{{ position() }}"
+  [class.slideout--open]="open()"
+  [attr.inert]="open() ? null : ''"
+  [style.--slideout-size]="size()"
+  [attr.aria-label]="title() || ('shared.slideout.label' | translate)"
+  [attr.aria-hidden]="open() ? null : 'true'"
+  role="region"
+  data-testid="slideout">
+  <header class="slideout__header">
+    @if (icon()) {
+      <span class="material-icons-outlined slideout__icon" aria-hidden="true">{{ icon() }}</span>
+    }
+    @if (title()) {
+      <span class="slideout__title">{{ title() }}</span>
+    } @else {
+      <span class="slideout__title-spacer" aria-hidden="true"></span>
+    }
+    <button
+      type="button"
+      class="icon-btn slideout__close"
+      [attr.aria-label]="'shared.slideout.close' | translate"
+      [matTooltip]="'shared.slideout.close' | translate"
+      data-testid="slideout-close"
+      (click)="close()">
+      <span class="material-icons-outlined">close</span>
+    </button>
+  </header>
+  <div class="slideout__body">
+    <ng-content />
+  </div>
+</aside>

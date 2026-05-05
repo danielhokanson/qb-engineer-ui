@@ -24,6 +24,7 @@ import { WorkflowStepDefinition } from '../../models/workflow-step-definition.mo
 import { PredicateEvaluator } from '../../services/predicate-evaluator';
 import { WorkflowService } from '../../services/workflow.service';
 import { WorkflowStepRegistryService } from '../../services/workflow-step-registry.service';
+import { SlideoutComponent } from '../slideout/slideout.component';
 import { ValidationButtonComponent } from '../validation-button/validation-button.component';
 import { WorkflowStepStubComponent } from './workflow-step-stub.component';
 
@@ -49,7 +50,7 @@ import { WorkflowStepStubComponent } from './workflow-step-stub.component';
 @Component({
   selector: 'app-workflow',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, MatTooltipModule, ValidationButtonComponent],
+  imports: [CommonModule, TranslatePipe, MatTooltipModule, SlideoutComponent, ValidationButtonComponent],
   templateUrl: './workflow.component.html',
   styleUrl: './workflow.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -257,17 +258,33 @@ export class WorkflowComponent {
   });
 
   /**
-   * Right context pane open/closed state. Default: open on desktop,
-   * SCSS responsive rules drop the pane under the form below 1024px
-   * with the same toggle controlling visibility there. Per-mount user
-   * state — does not persist across page remounts (Hess: defaults
-   * should be helpful, persistence adds complexity for marginal gain).
+   * On-demand rationale sidecar visibility. Closed by default; user opens
+   * via the header "?" icon and dismisses by clicking it again or by any
+   * navigation event (step jump, back/next, mode toggle). NOT persisted —
+   * truly transient per the team's UX call (2026-05-04): persistent
+   * rationale text consumed too much horizontal space in guided mode and
+   * cramped the form column. Help-on-demand pattern (Whitenton/NN/g
+   * "progressive disclosure") replaces it.
    */
-  protected readonly contextPaneExpanded = signal<boolean>(true);
+  protected readonly rationaleOpen = signal<boolean>(false);
 
-  protected toggleContextPane(): void {
-    this.contextPaneExpanded.update(v => !v);
+  protected toggleRationale(): void {
+    this.rationaleOpen.update(v => !v);
   }
+
+  /**
+   * Auto-dismiss the rationale sidecar whenever the dialog's state
+   * changes (step jump, mode toggle). The current step's id and the
+   * mode are the only inputs the user uses to "navigate" inside the
+   * dialog; both should reset transient help state. Reading the two
+   * signals registers them as effect deps; .set() is a no-op when the
+   * value hasn't changed (signal default equality), so this can't loop.
+   */
+  private readonly autoDismissRationale = effect(() => {
+    this.currentStepId();
+    this.mode();
+    this.rationaleOpen.set(false);
+  });
 
   protected readonly isFirstStep = computed(() => this.currentStepIndex() === 0);
   protected readonly isLastStep = computed(() => {

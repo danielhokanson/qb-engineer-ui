@@ -1,0 +1,175 @@
+@use 'styles/variables' as *;
+@use 'styles/mixins' as *;
+
+/*
+ * Slideout — transient overlay anchored to a parent container.
+ *
+ * The component absolute-positions itself against the nearest
+ * positioned ancestor. Caller must apply `position: relative` to the
+ * intended container; otherwise the slideout escapes to whichever
+ * ancestor *is* positioned (or the viewport). All four edges share the
+ * same anchoring/animation pattern, just rotated.
+ */
+
+// Backdrop fades in/out on the .--open toggle. Visibility transitions
+// with a delay equal to the opacity transition so the backdrop stops
+// intercepting clicks the moment it's no longer needed.
+.slideout-backdrop {
+  position: absolute;
+  inset: 0;
+  background: $backdrop-color;
+  z-index: $z-dropdown;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-normal ease-out,
+    visibility 0s linear 250ms;
+
+  &--open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity $transition-normal ease-out,
+      visibility 0s linear 0s;
+  }
+}
+
+// Slideout always stays in the DOM so the close transition can play.
+// Default state = OPEN (transform 0). The closed state pushes off-edge
+// via :not(.--open) on the position class. Doing it that way avoids a
+// CSS-specificity trap: the position class and the --open class have
+// the same specificity (both single classes), so source order would
+// otherwise let the later one win regardless of intent.
+.slideout {
+  position: absolute;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  z-index: $z-dropdown;
+  visibility: visible;
+  transform: translate(0, 0);
+  transition: transform $transition-normal ease-out,
+    visibility 0s linear 0s;
+  // Sized via the --slideout-size custom property set inline by the
+  // template. Default 320px applies via the input default in the
+  // component class.
+  --slideout-size: 320px;
+
+  // Closed: hide visibility AFTER the transform animation completes
+  // so the slide-out animation is visible (visibility: hidden cuts off
+  // any in-flight transition immediately if applied synchronously).
+  &:not(.slideout--open) {
+    visibility: hidden;
+    transition: transform $transition-normal ease-out,
+      visibility 0s linear 250ms;
+  }
+
+  // Position-specific: edge anchor + off-edge transform when CLOSED.
+  &--right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--slideout-size);
+    max-width: 100%;
+    border-left: $border-width-thin solid var(--border);
+    box-shadow: $shadow-panel;
+    &:not(.slideout--open) { transform: translateX(100%); }
+  }
+
+  &--left {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--slideout-size);
+    max-width: 100%;
+    border-right: $border-width-thin solid var(--border);
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+    &:not(.slideout--open) { transform: translateX(-100%); }
+  }
+
+  &--top {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--slideout-size);
+    max-height: 100%;
+    border-bottom: $border-width-thin solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    &:not(.slideout--open) { transform: translateY(-100%); }
+  }
+
+  &--bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--slideout-size);
+    max-height: 100%;
+    border-top: $border-width-thin solid var(--border);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    &:not(.slideout--open) { transform: translateY(100%); }
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    padding: $sp-sm $sp-md;
+    border-bottom: $border-width-thin solid var(--border);
+    background: var(--bg);
+    flex: 0 0 auto;
+  }
+
+  &__icon {
+    color: var(--info);
+    font-size: $icon-size-md;
+    flex: 0 0 auto;
+  }
+
+  &__title {
+    flex: 1;
+    font-size: $font-size-xxs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+    @include truncate;
+  }
+
+  &__title-spacer {
+    flex: 1;
+  }
+
+  &__close {
+    flex: 0 0 auto;
+  }
+
+  &__body {
+    padding: $sp-md;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    @include custom-scrollbar(8px);
+  }
+}
+
+@keyframes slideout-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideout-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideout-slide-in-top {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideout-slide-in-bottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideout-backdrop-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

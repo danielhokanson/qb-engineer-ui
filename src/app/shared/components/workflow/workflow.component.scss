@@ -2,14 +2,18 @@
 @use 'styles/mixins' as *;
 
 /*
- * Workflow shell layout (Option C — 2026-05-04 part-UX research pass).
+ * Workflow shell layout — refined 2026-05-04 (form-cramping pass).
  *
- * Guided mode is a three-column interior under a persistent header.
- * The header anchors the close button + mode toggle to the upper right
- * (Material dialog convention; matches Salesforce, Fiori, Business
- * Central). The body uses CSS grid so the rail, form, and context
- * pane all start at the same top edge and end at the same bottom edge
- * regardless of which one's content is taller.
+ * Guided mode is a TWO-column interior under a persistent header: rail
+ * on the left, form column on the right. The previous three-column
+ * layout (rail + form + persistent rationale) cramped the form because
+ * most steps need every pixel for fields. Rationale moved to an
+ * on-demand overlay sidecar that anchors absolutely inside the body
+ * (not in the grid), so the form column remains full width whether
+ * the sidecar is open or closed.
+ *
+ * The header anchors the mode toggle, the new "?" rationale icon, and
+ * the close button to the upper-right (Material dialog convention).
  *
  * Per-decision sources are noted inline. The full research synthesis
  * lives in docs/part-ux-review-2026-05-04.md.
@@ -19,6 +23,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;       // Claim the parent flex row's full width.
+  flex: 1 1 auto;    // …and act as a flex item if our parent is a row.
+  min-width: 0;
   min-height: 0;
   background: var(--bg);
   color: var(--text);
@@ -163,58 +170,83 @@
     }
   }
 
-  // ─── Body — three-column grid in guided mode ───────────────────────
+  // ─── Steps carousel — horizontal strip under the header ───────────
   //
-  // Grid columns: 240px rail | flex form | 296px context pane.
-  // Form (1fr) takes whatever the dialog has after the two fixed sides
-  // — at the recommended 1280px guided dialog this is ~720px.
+  // Sits between the header and the body in guided mode. Horizontally
+  // scrollable when the step set overflows the dialog width. Steps
+  // render as compact pills with chevron separators between them.
+  &__steps {
+    flex: 0 0 auto;
+    background: var(--bg);
+    border-bottom: $border-width-thin solid var(--border);
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    // Slim horizontal scrollbar — visible on hover only so the strip
+    // looks calm at rest.
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    &:hover {
+      scrollbar-color: var(--border) transparent;
+    }
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: transparent;
+    }
+    &:hover::-webkit-scrollbar-thumb {
+      background: var(--border);
+    }
+  }
+
+  &__steps-list {
+    list-style: none;
+    margin: 0;
+    padding: $sp-sm $sp-md;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: $sp-xs;
+    width: max-content;  // Allow horizontal overflow when steps don't fit.
+    min-width: 100%;
+  }
+
+  &__step-sep-icon {
+    color: var(--text-muted);
+    font-size: $icon-size-sm;
+    flex: 0 0 auto;
+    opacity: 0.6;
+  }
+
+  // ─── Body — single full-width column ──────────────────────────────
+  //
+  // The rationale sidecar overlays the form column when open (absolute
+  // positioning) so the form keeps its full width either way.
+  // position: relative on the body anchors the sidecar.
   &__body {
     display: flex;
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+    position: relative;
   }
 
-  &--guided &__body {
-    display: grid;
-    grid-template-columns: 240px minmax(0, 1fr) 296px;
-    grid-template-rows: 100%;
-    align-items: stretch;
-  }
-
-  &__rail {
-    border-right: $border-width-thin solid var(--border);
-    background: var(--surface);
-    overflow-y: auto;
-    @include custom-scrollbar(8px);
-  }
-
-  &__rail-list {
-    list-style: none;
-    margin: 0;
-    padding: $sp-md 0;
-    display: flex;
-    flex-direction: column;
-    gap: $sp-xs;
-  }
-
-  // Form column — primary surface (Polaris primary/secondary).
-  // White-equivalent background, contains step content + footer.
-  &__main {
-    background: var(--surface);
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-  }
-
+  // Step content — fills __body. The footer was lifted out of __body
+  // into a sibling of __body (a direct child of .workflow-shell), so
+  // the rationale slideout (anchored to __body) only overlays the
+  // scrollable form area and never covers the Back / Continue actions.
   &__step-content {
-    flex: 1;
+    background: var(--surface);
+    flex: 1 1 auto;
     overflow-y: auto;
     padding: $sp-lg;
     display: flex;
     flex-direction: column;
     gap: $sp-md;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
     @include custom-scrollbar(8px);
 
     // Fade newly-mounted step content in so navigation feels like a
@@ -259,80 +291,18 @@
     margin-left: auto;
   }
 
-  // ─── Right context pane ────────────────────────────────────────────
+  // ─── Rationale text (inside the shared <app-slideout>) ─────────────
   //
-  // Hosts "Why this step" rationale + reserved slots for related-record
-  // summaries and AI suggestions (3-block ceiling — Salesforce / Odoo
-  // overload trap). Visually demoted using --bg vs. the form's
-  // --surface (Polaris primary/secondary). Independent scrollbar so
-  // long rationale doesn't push the form taller.
-  &__context-pane {
-    background: var(--bg);
-    border-left: $border-width-thin solid var(--border);
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    @include custom-scrollbar(8px);
-  }
-
-  &__context-collapse {
-    display: flex;
-    align-items: center;
-    gap: $sp-sm;
-    width: 100%;
-    appearance: none;
-    background: transparent;
-    border: 0;
-    border-bottom: $border-width-thin solid var(--border);
-    padding: $sp-md $sp-md;
-    text-align: left;
-    cursor: pointer;
-    color: var(--text);
-    font-family: inherit;
-
-    &:hover {
-      background: color-mix(in srgb, var(--primary) 4%, transparent);
-    }
-
-    &:focus-visible {
-      outline: $border-width solid var(--primary);
-      outline-offset: -$border-width;
-    }
-
-    .material-icons-outlined:first-child {
-      color: var(--info);
-      font-size: $icon-size-md;
-      flex: 0 0 auto;
-    }
-  }
-
-  &__context-heading {
-    flex: 1;
-    font-size: $font-size-xxs;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-
-  &__context-chevron {
-    font-size: $icon-size-md;
-    color: var(--text-muted);
-    flex: 0 0 auto;
-  }
-
-  &__context-body {
-    padding: $sp-md;
-    animation: workflow-content-fade-in $transition-normal ease-out;
-  }
-
-  &__context-text {
+  // The slideout component owns positioning, animation, header chrome,
+  // and the close button. We only style the projected paragraph itself
+  // so it picks up the right text size and respects the inline <strong>
+  // we use via [innerHTML] in rationale strings.
+  &__rationale-text {
     margin: 0;
     font-size: $font-size-sm;
     line-height: 1.55;
     color: var(--text);
 
-    /* HTML inside the rationale (we use innerHTML for <strong>/<br>) */
     strong {
       color: var(--text);
       font-weight: 600;
@@ -391,32 +361,37 @@
   }
 }
 
-// ─── Step rail rows ─────────────────────────────────────────────────
+// ─── Step pills (carousel form) ────────────────────────────────────
 
 .workflow-step {
   margin: 0;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-xs;
+  flex: 0 0 auto;
 
   &__btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: $sp-md;
-    width: 100%;
-    padding: $sp-sm $sp-md;
+    gap: $sp-sm;
+    padding: $sp-xs $sp-md;
     background: transparent;
-    border: 0;
-    border-left: $border-width-accent solid transparent;
+    border: $border-width-thin solid transparent;
     color: var(--text-secondary);
     font-family: inherit;
     font-size: $font-size-sm;
+    line-height: 1.2;
     text-align: left;
     cursor: pointer;
+    white-space: nowrap;
     transition: background-color $transition-fast, color $transition-fast,
-      border-left-color $transition-fast;
+      border-color $transition-fast;
 
     &:hover:not(:disabled) {
-      background: var(--bg);
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
       color: var(--text);
+      border-color: color-mix(in srgb, var(--primary) 25%, transparent);
 
       .workflow-step__indicator {
         border-color: var(--text-secondary);
@@ -438,29 +413,30 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border: $border-width-thin solid var(--border);
     background: var(--bg);
     flex: 0 0 auto;
     transition: background-color $transition-normal, border-color $transition-normal,
       color $transition-normal, transform $transition-fast;
+    border-radius: 50%; // Compact circle reads better in a horizontal strip.
 
     .material-icons-outlined {
-      font-size: $icon-size-sm;
+      font-size: $icon-size-xs;
     }
   }
 
   &__index {
-    font-size: $font-size-xs;
-    font-weight: 600;
+    font-size: $font-size-xxs;
+    font-weight: 700;
     color: var(--text-secondary);
     transition: color $transition-fast;
   }
 
   &__label {
-    flex: 1;
     @include truncate;
+    max-width: 18ch;
   }
 
   &__optional {
@@ -472,15 +448,14 @@
     background: color-mix(in srgb, var(--text-muted) 12%, transparent);
     padding: 1px $sp-sm;
     line-height: 1.4;
-    margin-left: auto;
     flex: 0 0 auto;
   }
 
   &--current &__btn {
-    border-left-color: var(--primary);
     color: var(--text);
     font-weight: 600;
-    background: color-mix(in srgb, var(--primary) 6%, transparent);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 50%, transparent);
   }
 
   &--current &__indicator {
@@ -535,56 +510,15 @@
 
 // ─── Responsive collapse ────────────────────────────────────────────
 //
-// Below 1200px the right context pane shrinks; below 1024px it drops
-// out of the grid entirely and re-mounts under the form column as a
-// collapsible accordion (same component instance via the same template
-// branch — the SCSS does the visual reflow). Below 768px the rail
-// becomes icon-only; below 480px the entire dialog goes edge-to-edge
-// (rule lives on the page-level shell SCSS, not here).
-
-@media (max-width: 1200px) {
-  .workflow-shell--guided .workflow-shell__body {
-    grid-template-columns: 220px minmax(0, 1fr) 264px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .workflow-shell--guided .workflow-shell__body {
-    // Drop the right pane out of the grid and put it below the form.
-    grid-template-columns: 200px minmax(0, 1fr);
-    grid-template-rows: 1fr auto;
-  }
-
-  .workflow-shell--guided .workflow-shell__rail {
-    grid-row: 1 / -1;  // Rail spans both rows on the left.
-    grid-column: 1;
-  }
-
-  .workflow-shell--guided .workflow-shell__main {
-    grid-row: 1;
-    grid-column: 2;
-  }
-
-  .workflow-shell--guided .workflow-shell__context-pane {
-    grid-row: 2;
-    grid-column: 2;
-    border-left: 0;
-    border-top: $border-width-thin solid var(--border);
-    max-height: 40vh;  // Prevent it from dominating when expanded.
-  }
-}
+// Single full-width body at every viewport. The carousel scrolls
+// horizontally when steps don't fit. Below mobile, step labels collapse
+// to indicators-only and the mode-toggle sublabels hide so the header
+// chrome stays usable on narrow screens. The rationale slideout has
+// max-width: 100% in its own component, so it fills the body when open
+// on small viewports.
 
 @include mobile {
   .workflow-shell {
-    &__rail {
-      grid-row: auto;
-      flex: 0 0 60px;
-    }
-    &__step-label {
-      // Title block keeps the breadcrumb in the header even on mobile
-      // so the user always knows where they are. (Hess: provide
-      // signposts and cues.) Just narrow it via overflow handling.
-    }
     .workflow-step__label {
       display: none;
     }
