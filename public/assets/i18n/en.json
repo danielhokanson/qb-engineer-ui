@@ -891,6 +891,7 @@
       "tabs": {
         "identity": "Identity",
         "sourcing": "Sources",
+        "purchaseHistory": "Purchase History",
         "inventory": "Inventory",
         "mrp": "MRP",
         "bom": "BOM",
@@ -903,6 +904,19 @@
         "activity": "Activity",
         "files": "Files",
         "placeholderHelp": "This tab is coming in Pillar 4 Phase 2."
+      },
+      "purchaseHistory": {
+        "searchLabel": "Search",
+        "searchPlaceholder": "PO #, vendor, or line description",
+        "cap": "Showing last {{count}} (max 50)",
+        "empty": "No purchase orders include this part yet.",
+        "poNumber": "PO #",
+        "vendor": "Vendor",
+        "status": "Status",
+        "qty": "Recv / Ord",
+        "unitPrice": "Unit Price",
+        "total": "Line Total",
+        "ordered": "Ordered"
       },
       "material": {
         "title": "Material & Physical",

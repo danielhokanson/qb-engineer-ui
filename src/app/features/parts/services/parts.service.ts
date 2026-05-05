@@ -16,6 +16,7 @@ import { InventoryClass } from '../models/inventory-class.type';
 import { PartRevision } from '../models/part-revision.model';
 import { CreatePartRevisionRequest } from '../models/create-part-revision-request.model';
 import { PartInventorySummary } from '../models/part-inventory-summary.model';
+import { PartPurchaseHistoryItem } from '../models/part-purchase-history-item.model';
 import { FileAttachment } from '../../../shared/models/file.model';
 import { ActivityItem } from '../../../shared/models/activity.model';
 import { Operation, OperationMaterial } from '../models/operation.model';
@@ -128,6 +129,17 @@ export class PartsService {
 
   getPartInventorySummary(partId: number): Observable<PartInventorySummary> {
     return this.http.get<PartInventorySummary>(`${this.base}/${partId}/inventory-summary`);
+  }
+
+  /**
+   * Backward-from-part PO history. Server caps the result at 50 rows;
+   * pass an optional `search` term to filter by PO #, vendor, or line
+   * description before the cap is applied.
+   */
+  getPurchaseHistory(partId: number, search?: string): Observable<PartPurchaseHistoryItem[]> {
+    const url = `${this.base}/${partId}/purchase-history`;
+    const params = search?.trim() ? new HttpParams().set('search', search.trim()) : undefined;
+    return this.http.get<PartPurchaseHistoryItem[]>(url, params ? { params } : {});
   }
 
   linkAccountingItem(partId: number, externalId: string, externalRef: string): Observable<void> {

@@ -15,6 +15,7 @@ import { ProcurementSource } from '../models/procurement-source.type';
 export type PartDetailTabId =
   | 'identity'
   | 'sourcing'
+  | 'purchaseHistory'
   | 'inventory'
   | 'mrp'
   | 'bom'
@@ -41,6 +42,7 @@ export interface TabLayoutEntry {
 
 const IDENTITY: TabLayoutEntry = { id: 'identity', labelKey: 'parts.detail.tabs.identity', iconName: 'badge' };
 const SOURCING: TabLayoutEntry = { id: 'sourcing', labelKey: 'parts.detail.tabs.sourcing', iconName: 'store' };
+const PURCHASE_HISTORY: TabLayoutEntry = { id: 'purchaseHistory', labelKey: 'parts.detail.tabs.purchaseHistory', iconName: 'receipt_long' };
 const INVENTORY: TabLayoutEntry = { id: 'inventory', labelKey: 'parts.detail.tabs.inventory', iconName: 'inventory_2' };
 const MRP: TabLayoutEntry = { id: 'mrp', labelKey: 'parts.detail.tabs.mrp', iconName: 'event_available' };
 const BOM: TabLayoutEntry = { id: 'bom', labelKey: 'parts.detail.tabs.bom', iconName: 'account_tree' };
@@ -72,19 +74,19 @@ export class PartDetailLayoutResolverService {
   private middleTabs(ps: ProcurementSource, ic: InventoryClass): TabLayoutEntry[] {
     // Buy + Raw (B1)
     if (ps === 'Buy' && ic === 'Raw') {
-      return [SOURCING, INVENTORY, QUALITY, COST, PRICING];
+      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING];
     }
     // Buy + Component / Subassembly / FinishedGood (B2 / B3 / B4)
     if (ps === 'Buy' && (ic === 'Component' || ic === 'Subassembly' || ic === 'FinishedGood')) {
-      return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
     // Buy + Consumable (B5) — no Quality
     if (ps === 'Buy' && ic === 'Consumable') {
-      return [SOURCING, INVENTORY, COST, PRICING];
+      return [SOURCING, PURCHASE_HISTORY, INVENTORY, COST, PRICING];
     }
     // Buy + Tool (B6)
     if (ps === 'Buy' && ic === 'Tool') {
-      return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
 
     // Make + Component (M1)
@@ -102,10 +104,10 @@ export class PartDetailLayoutResolverService {
 
     // Subcontract + Component / Subassembly (S1 / S2)
     if (ps === 'Subcontract' && ic === 'Component') {
-      return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
     if (ps === 'Subcontract' && ic === 'Subassembly') {
-      return [SOURCING, BOM, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, PURCHASE_HISTORY, BOM, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
 
     // Phantom + Subassembly / FinishedGood (P1 / P3) — never stocked, never priced
@@ -114,6 +116,6 @@ export class PartDetailLayoutResolverService {
     }
 
     // Default: Buy + Component layout
-    return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+    return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
   }
 }

@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { MatDialog } from '@angular/material/dialog';
@@ -15,6 +18,7 @@ import { PartDetail } from '../../models/part-detail.model';
 import { BOMEntry } from '../../models/bom-entry.model';
 import { BOMSourceType } from '../../models/bom-source-type.type';
 import { PartInventorySummary } from '../../models/part-inventory-summary.model';
+import { PartPurchaseHistoryItem } from '../../models/part-purchase-history-item.model';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { FormValidationService } from '../../../../shared/services/form-validation.service';
 import { FileAttachment } from '../../../../shared/models/file.model';
@@ -23,6 +27,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
 import { EntityPickerComponent } from '../../../../shared/components/entity-picker/entity-picker.component';
+import { EntityLinkComponent } from '../../../../shared/components/entity-link/entity-link.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
 import { StlViewerComponent } from '../../../../shared/components/stl-viewer/stl-viewer.component';
@@ -82,10 +87,11 @@ type BomViewMode = 'table' | 'tree';
   selector: 'app-part-detail-panel',
   standalone: true,
   imports: [
+    CommonModule,
     ReactiveFormsModule, TranslatePipe,
     MatTooltipModule,
     DialogComponent, InputComponent, SelectComponent, TextareaComponent,
-    EntityPickerComponent, LoadingBlockDirective, ValidationButtonComponent,
+    EntityPickerComponent, EntityLinkComponent, LoadingBlockDirective, ValidationButtonComponent,
     StlViewerComponent, BarcodeInfoComponent,
     DataTableComponent, ColumnCellDirective,
     BomTreeComponent, BomRevisionHistoryComponent,
@@ -103,6 +109,7 @@ type BomViewMode = 'table' | 'tree';
 })
 export class PartDetailPanelComponent {
   protected readonly partsService = inject(PartsService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly snackbar = inject(SnackbarService);
   private readonly translate = inject(TranslateService);
@@ -207,6 +214,32 @@ export class PartDetailPanelComponent {
     { field: 'quantity', header: this.translate.instant('parts.bomQty'), width: '60px', align: 'center', sortable: true },
   ];
 
+  // ── Purchase History (backward-from-part view) ─────────────────────
+  // Server caps results at 50; the search field is a live filter that
+  // re-queries on debounced input change. Lazy-loaded — the first
+  // request only fires when the user opens the Purchase History tab.
+  protected readonly purchaseHistory = signal<PartPurchaseHistoryItem[]>([]);
+  protected readonly purchaseHistoryLoading = signal(false);
+  protected readonly purchaseHistorySearch = new FormControl<string>('', { nonNullable: true });
+
+  protected readonly purchaseHistoryColumns: ColumnDef[] = [
+    { field: 'poNumber', header: this.translate.instant('parts.detail.purchaseHistory.poNumber'), sortable: true, width: '160px' },
+    { field: 'vendorName', header: this.translate.instant('parts.detail.purchaseHistory.vendor'), sortable: true, filterable: true, type: 'text' },
+    { field: 'status', header: this.translate.instant('parts.detail.purchaseHistory.status'), sortable: true, filterable: true, type: 'enum', width: '120px',
+      filterOptions: [
+        { value: 'Draft', label: 'Draft' },
+        { value: 'Submitted', label: 'Submitted' },
+        { value: 'Acknowledged', label: 'Acknowledged' },
+        { value: 'PartiallyReceived', label: 'Partially Received' },
+        { value: 'Closed', label: 'Closed' },
+        { value: 'Cancelled', label: 'Cancelled' },
+      ] },
+    { field: 'orderedQuantity', header: this.translate.instant('parts.detail.purchaseHistory.qty'), sortable: true, type: 'number', align: 'right', width: '90px' },
+    { field: 'unitPrice', header: this.translate.instant('parts.detail.purchaseHistory.unitPrice'), sortable: true, type: 'number', align: 'right', width: '110px' },
+    { field: 'lineTotal', header: this.translate.instant('parts.detail.purchaseHistory.total'), sortable: true, type: 'number', align: 'right', width: '110px' },
+    { field: 'orderedDate', header: this.translate.instant('parts.detail.purchaseHistory.ordered'), sortable: true, type: 'date', width: '120px' },
+  ];
+
   constructor() {
     effect(() => {
       const id = this.partId();
@@ -239,7 +272,18 @@ export class PartDetailPanelComponent {
       if (this.activeTabId() === 'sourcing') {
         this.loadVendorParts();
       }
+      if (this.activeTabId() === 'purchaseHistory') {
+        this.loadPurchaseHistory();
+      }
     });
+
+    // Live-filter the purchase-history table on search input. 250ms debounce
+    // keeps the API request rate sane while still feeling responsive.
+    this.purchaseHistorySearch.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef), debounceTime(250), distinctUntilChanged())
+      .subscribe(() => {
+        if (this.activeTabId() === 'purchaseHistory') this.loadPurchaseHistory();
+      });
   }
 
   // ── Data Loading ──
@@ -516,5 +560,52 @@ export class PartDetailPanelComponent {
     this.partsService.updatePart(p.id, { preferredVendorId: vendorId }).subscribe({
       next: () => this.loadDetail(p.id),
     });
+  }
+
+  /**
+   * Lazy-load the part's purchase-order history. Triggered when the
+   * Purchase History tab activates and again on every debounced change
+   * to the search field. Server caps at 50 rows; pagination is left out
+   * here intentionally (the user's spec: "Obviously this can get out of
+   * hand, so just show the last 50 and allow searching").
+   */
+  private loadPurchaseHistory(): void {
+    const p = this.part();
+    if (!p) return;
+    this.purchaseHistoryLoading.set(true);
+    this.partsService.getPurchaseHistory(p.id, this.purchaseHistorySearch.value).subscribe({
+      next: (rows) => {
+        this.purchaseHistory.set(rows);
+        this.purchaseHistoryLoading.set(false);
+      },
+      error: () => this.purchaseHistoryLoading.set(false),
+    });
+  }
+
+  /**
+   * Click anywhere on a purchase-history row → open the underlying PO.
+   * The PO # cell is also a deep-link via app-entity-link, but row-click
+   * keeps the table behavior consistent with the rest of the app.
+   */
+  protected onPurchaseHistoryRowClick(row: unknown): void {
+    const item = row as PartPurchaseHistoryItem;
+    if (!item?.purchaseOrderId) return;
+    this.router?.navigate([], {
+      queryParams: { detail: `purchase-order:${item.purchaseOrderId}` },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  /** Map PO status to the chip class used elsewhere in the app. */
+  protected getPoStatusChipClass(status: string): string {
+    switch (status) {
+      case 'Draft':              return 'chip--muted';
+      case 'Submitted':          return 'chip--info';
+      case 'Acknowledged':       return 'chip--info';
+      case 'PartiallyReceived':  return 'chip--warning';
+      case 'Closed':             return 'chip--success';
+      case 'Cancelled':          return 'chip--error';
+      default:                   return 'chip--muted';
+    }
   }
 }
