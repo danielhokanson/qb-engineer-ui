@@ -152,7 +152,7 @@ export class PresetCompareComponent implements OnInit {
         } else {
           this.snackbar.success(`Applied ${presetName} (${result.deltaCount} capabilities changed).`);
         }
-        this.capabilityService.load();
+        this.capabilityService.load().subscribe();
         this.installState.dismiss();
         this.router.navigate(['/admin/presets', presetId]);
       },

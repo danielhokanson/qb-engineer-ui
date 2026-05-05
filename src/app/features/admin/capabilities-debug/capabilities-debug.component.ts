@@ -32,10 +32,10 @@ export class CapabilitiesDebugComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
   }
 
   protected refresh(): void {
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
   }
 }

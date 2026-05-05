@@ -112,7 +112,7 @@ export class CapabilityDetailComponent implements OnInit {
   ngOnInit(): void {
     // The capability service may already be loaded; if not, kick a load so
     // `entry()` resolves. Repeated load() calls are idempotent.
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
   }
 
   protected back(): void {
@@ -122,7 +122,7 @@ export class CapabilityDetailComponent implements OnInit {
   protected refreshAll(): void {
     const code = this.code();
     if (!code) return;
-    this.capabilityService.load();
+    this.capabilityService.load().subscribe();
     this.loadRelations(code);
     this.loadAuditLog(code);
   }
@@ -142,7 +142,7 @@ export class CapabilityDetailComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.togglePending.set(false);
         this.surfaceError(entry, err);
-        this.capabilityService.load();
+        this.capabilityService.load().subscribe();
       },
     });
   }
