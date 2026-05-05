@@ -278,18 +278,49 @@ if (missingFromEn.length > 0) {
   }
 }
 
-if (missingFromEs.length > 0) {
-  console.log(`\nWARN: ${missingFromEs.length} key(s) in en.json but missing from es.json (won't fail the build):`);
-  for (const { key } of missingFromEs.slice(0, 30)) {
+// ─── 100% language-parity rule (2026-05-05) ──────────────────────────
+// Per the project rule: every mapped language must be 100% in sync with
+// en.json (the canonical source). Both directions:
+//   • Keys in en.json that are missing from es.json → block (untranslated)
+//   • Keys in es.json that are missing from en.json → block (orphans)
+// Add a new mapped language by appending its set to PARITY_LANGS below
+// and including its key set in the comparisons.
+const enOnlyKeys = [...enKeys].filter(k => !esKeys.has(k)).sort();
+const esOnlyKeys = [...esKeys].filter(k => !enKeys.has(k)).sort();
+
+if (missingFromEs.length > 0 || enOnlyKeys.length > 0) {
+  // missingFromEs is the subset of enOnlyKeys that's also referenced in
+  // code; enOnlyKeys catches the rest (en-only keys not referenced in
+  // code but still need to be translated for parity).
+  const all = enOnlyKeys; // superset of missingFromEs
+  console.log(`\nERROR: ${all.length} key(s) in en.json are MISSING from es.json:`);
+  for (const key of all.slice(0, 50)) {
     console.log(`  ${key}`);
   }
-  if (missingFromEs.length > 30) console.log(`  … and ${missingFromEs.length - 30} more`);
+  if (all.length > 50) console.log(`  … and ${all.length - 50} more`);
 }
 
-if (missingFromEn.length > 0) {
-  console.log(`\nFAILED: add missing keys to src/assets/i18n/en.json (and es.json), or add to scripts/.lint-i18n-allow if dynamically supplied.`);
+if (esOnlyKeys.length > 0) {
+  console.log(`\nERROR: ${esOnlyKeys.length} orphan key(s) in es.json with no en.json counterpart:`);
+  for (const key of esOnlyKeys.slice(0, 50)) {
+    console.log(`  ${key}`);
+  }
+  if (esOnlyKeys.length > 50) console.log(`  … and ${esOnlyKeys.length - 50} more`);
+}
+
+const failed =
+  missingFromEn.length > 0 ||
+  enOnlyKeys.length > 0 ||
+  esOnlyKeys.length > 0;
+
+if (failed) {
+  console.log(`\nFAILED: i18n parity broken. Mapped languages must be 100% in sync with en.json.`);
+  console.log(`  • Missing en keys → add to src/assets/i18n/en.json`);
+  console.log(`  • en→es gaps → translate the listed keys into es.json`);
+  console.log(`  • es-only orphans → remove from es.json (or add the matching en.json entry)`);
+  console.log(`  • Dynamic keys assembled at runtime → add to scripts/.lint-i18n-allow`);
   process.exit(1);
 }
 
-console.log(`\nOK: every i18n key referenced in code is present in en.json.`);
+console.log(`\nOK: every i18n key in en.json is mirrored in es.json (no missing, no orphans).`);
 process.exit(0);

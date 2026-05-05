@@ -184,7 +184,10 @@
     "part": "Parte",
     "settings": "Configuración",
     "summary": "Resumen",
-    "units": "units"
+    "units": "units",
+    "overview": "Resumen",
+    "activity": "Actividad",
+    "archived": "Archivado"
   },
   "dashboard": {
     "title": "Panel",
@@ -613,7 +616,6 @@
         "step1SubcontractDesc": "Vendor builds the entire part on our behalf.",
         "step1Phantom": "Phantom",
         "step1PhantomDesc": "Logical grouping; never stocked.",
-
         "step2Title": "What inventory bucket?",
         "step2Raw": "Raw material",
         "step2RawDesc": "Bulk input — bar stock, sheet, pellets, wire.",
@@ -627,17 +629,14 @@
         "step2ConsumableDesc": "Single-use shop supply.",
         "step2Tool": "Tool",
         "step2ToolDesc": "Durable, multi-use.",
-
         "step3Title": "Item kind",
         "step3Helper": "Optional descriptive tag — Fastener, Electronic, Packaging, etc. Skip if unsure.",
         "step3None": "— None —",
-
         "step4Title": "How would you like to fill it in?",
         "step4Express": "Quick add",
         "step4ExpressDesc": "One form, all fields visible.",
         "step4Guided": "Step by step",
         "step4GuidedDesc": "Walk through each cluster of fields in order.",
-
         "continue": "Continue",
         "recommended": "Recommended",
         "violations": {
@@ -670,7 +669,8 @@
         "abcClassA": "A — alto valor / control estricto",
         "abcClassB": "B — valor medio",
         "abcClassC": "C — bajo valor / control flexible",
-        "saveFailed": "No se pudo guardar."
+        "saveFailed": "No se pudo guardar.",
+        "rationale": "<strong>La identidad es la base de todo lo demás.</strong> El número y nombre de la pieza resuelven cada referencia aguas abajo: POs, órdenes de trabajo, posiciones de BOM, líneas contables. <br><br>Saltarse los datos básicos es imposible: no existe una pieza hasta que este paso guarda. La fuente de adquisición + clase de inventario elegidas en la pantalla anterior determinan qué pasos siguen y qué controles se aplican al promover."
       },
       "bom": {
         "title": "Lista de Materiales",
@@ -680,12 +680,14 @@
         "childPart": "Pieza",
         "saveFailed": "No se pudo guardar.",
         "emptyMessage": "Sin componentes.",
-        "emptyHelp": "Agregue componentes del catálogo para definir el BOM."
+        "emptyHelp": "Agregue componentes del catálogo para definir el BOM.",
+        "rationale": "<strong>El BOM es la receta.</strong> Sin él, MRP no puede explotar la demanda en requisitos de componentes, el cálculo de costos no tiene nada que sumar, y las órdenes de taller no pueden emitir material. <br><br>Cada fila es una pieza hija + cantidad (con factor de chatarra opcional). Para combos Make + Subensamblaje / Producto Terminado este paso es obligatorio para promover; para Make + Componente es opcional (la fabricación de una sola pieza desde materia prima es válida)."
       },
       "routing": {
         "title": "Ruta",
         "hint": "Defina los pasos de operación para fabricar esta pieza.",
-        "refreshStatus": "Actualizar estado"
+        "refreshStatus": "Actualizar estado",
+        "rationale": "<strong>El enrutamiento es la secuencia de fabricación.</strong> Operaciones + centros de trabajo + tiempos de ciclo/configuración alimentan la generación de órdenes de trabajo, planificación de capacidad, cálculo de costos de mano de obra y la impresión de viajeros de planta. <br><br>Las operaciones subcontratadas (marcar un paso como externo) generan automáticamente POs al proveedor en el momento correcto de la secuencia, sin necesidad de crear una PO por separado."
       },
       "costing": {
         "title": "Costo",
@@ -704,7 +706,8 @@
         "manualOverridePlaceholder": "0.00",
         "currentLabel": "Costo mostrado actualmente",
         "notSet": "No definido",
-        "saveFailed": "No se pudo guardar."
+        "saveFailed": "No se pudo guardar.",
+        "rationale": "<strong>El costo determina cada dólar aguas abajo.</strong> El precio de cotización, los reportes de margen, la valuación de WIP y el análisis de variación estándar-vs-real leen de este número. <br><br>El Nivel 1 (override manual) es el camino más simple: ingresa un número en el que confíes. El Nivel 2 / Nivel 3 agregan tarifas por centro de costo y bolsas basadas en actividad — están bloqueados por capacidad y aún no implementados, por lo que hoy el override manual es la respuesta operativa."
       },
       "alternates": {
         "title": "Alternativos",
@@ -740,12 +743,8 @@
         "title": "Abastecimiento",
         "hint": "Proveedor predeterminado y parámetros de pedido. Las anulaciones por proveedor van en la pestaña Fuentes.",
         "preferredVendorLabel": "Proveedor Preferido",
-        "leadTimeDaysLabel": "Plazo (días)",
-        "leadTimeDaysHelper": "Valor por defecto; el plazo por proveedor se establece en la pestaña Fuentes.",
-        "minOrderQtyLabel": "Cantidad Mínima",
-        "packSizeLabel": "Tamaño de Paquete",
-        "externalPartNumberLabel": "N.º de Pieza Externo",
-        "saveFailed": "No se pudo guardar el abastecimiento."
+        "saveFailed": "No se pudo guardar el abastecimiento.",
+        "rationale": "<strong>El proveedor preferido es el predeterminado para nuevas POs y RFQs.</strong> Los compradores pueden anularlo por PO, pero todo asume que esta es la primera llamada. <br><br>Sin un proveedor preferido, la generación automática de POs, las órdenes planificadas dirigidas por MRP y la programación que considera plazos se detienen — necesitan a quién preguntar. Los proveedores de respaldo + precios por nivel + MOQ por proveedor viven en el siguiente paso."
       },
       "manufacturer": {
         "title": "Fabricante",
@@ -766,7 +765,8 @@
         "stockUomNone": "— No establecido —",
         "defaultBinLabel": "Bin Predeterminado (id)",
         "defaultBinHelper": "Id numérico. Reemplazado por un selector real de bin en una versión posterior.",
-        "saveFailed": "No se pudo guardar el inventario."
+        "saveFailed": "No se pudo guardar el inventario.",
+        "rationale": "<strong>La UoM de inventario es la unidad que utilizan todas las demás transacciones de inventario.</strong> Recepciones, salidas, transferencias, conteos — todo se denomina aquí. Eligir mal y las conversiones se propagan por cada reporte aguas abajo. <br><br>Mín / reorden / stock de seguridad son política: determinan cuándo MRP dispara órdenes planificadas o cuándo los reportes manuales de reorden destacan una pieza. Los valores predeterminados están bien si aún no lo sabes — ajusta más tarde a medida que surjan los patrones de demanda."
       },
       "quality": {
         "title": "Calidad",
@@ -789,7 +789,8 @@
         "abcClassC": "C — bajo valor / control flexible",
         "hazmatClassLabel": "Clase Peligrosa",
         "shelfLifeDaysLabel": "Vida Útil (días)",
-        "saveFailed": "No se pudo guardar calidad."
+        "saveFailed": "No se pudo guardar calidad.",
+        "rationale": "<strong>El modo de trazabilidad es casi-irreversible — puedes cambiarlo después pero cada transacción previa se registró bajo la configuración anterior.</strong> Lote o serie habilita retiro por lote, seguimiento de caducidad y flujos de garantía / RMA por unidad. Bulk se salta todo eso. <br><br>La clase ABC determina la cadencia de conteo cíclico (A semanal, C anual, etc.) y la priorización en los reportes de resolución de faltantes. Mat. peligroso + vida útil solo importan si las capacidades de industria regulada están activas en esta instalación."
       },
       "shipping": {
         "title": "Envío y Físico",
@@ -823,7 +824,6 @@
         "title": "Proveedor",
         "hint": "Único proveedor de subcontratación. La MOQ y el tamaño de paquete viven en la pieza de origen.",
         "preferredVendorLabel": "Proveedor Preferido",
-        "leadTimeDaysLabel": "Plazo (días)",
         "saveFailed": "No se pudo guardar la información del proveedor."
       },
       "flags": {
@@ -847,7 +847,18 @@
         "salesUomNone": "— No establecido —",
         "defaultSalesPriceLabel": "Precio de Venta Predeterminado",
         "defaultSalesPriceHelper": "Editable en la pestaña Precios (próximamente).",
-        "saveFailed": "No se pudieron guardar los datos de ventas."
+        "saveFailed": "No se pudieron guardar los datos de ventas.",
+        "inferredPriceLabel": "Precio de venta inferido",
+        "inferredPriceSourcePriceListEntry": "Desde la entrada de lista de precios para el cliente actual",
+        "inferredPriceSourcePartPrice": "Desde el precio de venta predeterminado a nivel de pieza",
+        "inferredPriceSourceVendorPartTier": "Desde el precio del nivel más bajo del proveedor preferido",
+        "inferredPriceSourceDefault": "Predeterminado — sin precios configurados"
+      },
+      "vendorParts": {
+        "title": "Fuentes de proveedor",
+        "hint": "Cada proveedor que suministra esta pieza es su propio grupo abajo — identificadores específicos del proveedor, tiempo de entrega, MOQ y niveles de precio. El proveedor preferido (definido en el paso anterior) se muestra primero; agrega alternos según sea necesario.",
+        "pendingMaterialization": "Guarda los pasos anteriores primero para habilitar fuentes de proveedor para esta pieza.",
+        "rationale": "<strong>Las Fuentes de proveedor son donde viven los precios y los términos por proveedor.</strong> La creación de Órdenes de Compra lee los niveles de precio desde aquí — sin al menos un nivel en el proveedor elegido, el sistema no puede cotizar un precio para la cantidad solicitada y la línea de PO se bloqueará. <br><br>El proveedor preferido (definido en el paso previo) es el predeterminado para nuevas POs; puedes anularlo por PO. Agregar proveedores alternos aquí da a los compradores opciones de respaldo cuando el preferido está sin stock o sobre el MOQ para la situación."
       }
     },
     "detail": {
@@ -920,7 +931,8 @@
         "hazmatClass": "Clase de Materiales Peligrosos",
         "shelfLifeDays": "Vida Útil (días)",
         "backflushPolicy": "Política de Backflush"
-      }
+      },
+      "addAlternateVendor": "Agregar alterno"
     },
     "pricing": {
       "currentPrice": "Precio efectivo actual",
@@ -943,7 +955,24 @@
       "addedSnack": "Precio efectivo añadido.",
       "deletedSnack": "Fila de precio eliminada.",
       "confirmDelete": "¿Eliminar esta fila de precio del historial?"
-    }
+    },
+    "bomRevisionHistory": "Historial de revisiones",
+    "bomRevisionHistoryHint": "Cada cambio de componente crea una instantánea inmutable.",
+    "bomRevisionHistoryEmpty": "Aún sin revisiones",
+    "bomRevisionHistoryEmptyHelp": "Agregar una línea de BOM creará la revisión 1.",
+    "bomRevisionCurrent": "Actual",
+    "bomRevisionLines": "líneas",
+    "bomRevisionEmptySnapshot": "Esta revisión no contiene líneas de componentes.",
+    "bomAtRelease": "Revisión de BOM al liberar",
+    "bomAtReleaseStale": "El BOM se ha actualizado desde que se liberó este Trabajo.",
+    "bomAtReleaseNone": "No fijado a una revisión de BOM.",
+    "viewBomRevision": "Ver revisión",
+    "isSubcontract": "Operación subcontratada",
+    "subcontractVendor": "Proveedor de subcontratación",
+    "subcontractTurnTimeDays": "Tiempo de retorno (días)",
+    "subcontractLabel": "Subcontratación",
+    "subcontractVendorMissing": "(sin proveedor)",
+    "daysTurn": "días de retorno"
   },
   "vendorSources": {
     "preferred": "Preferido",
@@ -1048,7 +1077,8 @@
       "empty": "Sin niveles — añade uno para precios por cantidad."
     },
     "priceTierHistory": "Historial de niveles de precio",
-    "priceTierHistoryEmpty": "Sin historial de niveles todavía."
+    "priceTierHistoryEmpty": "Sin historial de niveles todavía.",
+    "manufacturerName": "Fabricante"
   },
   "inventory": {
     "title": "Inventario",
@@ -1296,7 +1326,12 @@
       "emptyHelp": "Agrega una pieza para comenzar a fijar precios en esta lista.",
       "addEntry": "Agregar Entrada",
       "confirmDelete": "¿Eliminar esta entrada de precio?"
-    }
+    },
+    "creditLimit": "Límite de crédito",
+    "defaultTaxCodeId": "ID de código fiscal predeterminado",
+    "defaultCurrency": "Moneda predeterminada (ISO 4217)",
+    "billingAddress": "Dirección de facturación",
+    "shippingAddress": "Dirección de envío"
   },
   "priceListEntry": {
     "partLabel": "Pieza",
@@ -1631,7 +1666,12 @@
     "colStatus": "Estado",
     "colHours": "Horas",
     "maintenanceHistory": "Historial de Mantenimiento",
-    "noMaintenanceLogs": "Sin registros de mantenimiento"
+    "noMaintenanceLogs": "Sin registros de mantenimiento",
+    "acquisitionSection": "Adquisición y depreciación",
+    "acquisitionCost": "Costo de adquisición",
+    "depreciationMethod": "Método de depreciación",
+    "workCenterId": "ID de centro de trabajo",
+    "glAccount": "Cuenta contable (opcional)"
   },
   "admin": {
     "title": "Configuración Admin",
@@ -1940,6 +1980,194 @@
       "married": "Casado/a",
       "marriedJoint": "Casado/a declarando conjuntamente",
       "headOfHousehold": "Cabeza de familia"
+    },
+    "preparingSigningSession": "Preparando sesión de firma…",
+    "backToPreview": "Volver a la vista previa",
+    "completeSignatureNote": "Completa tu firma arriba para continuar al siguiente formulario.",
+    "listADocProvided": "Documento de Lista A proporcionado",
+    "listBCDocProvided": "Documentos de Lista B + Lista C proporcionados",
+    "notSpecified": "No especificado",
+    "yes": "Sí",
+    "no": "No",
+    "steps": {
+      "personalInfo": "Información personal",
+      "address": "Dirección",
+      "federalTax": "Impuesto federal",
+      "stateTax": "Impuesto estatal",
+      "i9": "I-9",
+      "directDeposit": "Depósito directo",
+      "acknowledge": "Reconocer"
+    },
+    "personal": {
+      "title": "Información personal",
+      "desc": "Esta información se usa para pre-llenar tus formularios W-4, I-9 y de retención estatal. Ingrésala una vez aquí — no necesitarás volver a ingresarla en cada formulario.",
+      "firstName": "Nombre",
+      "middleName": "Segundo nombre",
+      "lastName": "Apellido",
+      "otherLastNames": "Otros apellidos usados (desde los 16 años)",
+      "otherLastNamesPlaceholder": "Apellido de soltera, apellido anterior, etc.",
+      "dateOfBirth": "Fecha de nacimiento",
+      "ssn": "Número de Seguro Social",
+      "ssnPlaceholder": "XXX-XX-XXXX",
+      "email": "Dirección de correo electrónico",
+      "phone": "Número de teléfono",
+      "securityNote": "Tu SSN y fecha de nacimiento están encriptados y se usan únicamente para la presentación oficial de formularios fiscales. Nunca se almacenan en texto plano."
+    },
+    "addressStep": {
+      "title": "Dirección de domicilio",
+      "desc": "Tu dirección residencial es obligatoria para W-4, I-9 y retención estatal. El estado que selecciones también determina qué formulario de retención estatal aplica.",
+      "street1": "Dirección de calle",
+      "street2": "Apartamento / Suite / Unidad",
+      "city": "Ciudad",
+      "state": "Estado",
+      "statePlaceholder": "Selecciona estado",
+      "zipCode": "Código postal",
+      "zipPlaceholder": "00000"
+    },
+    "w4": {
+      "title": "W-4: Retención de impuestos federales",
+      "howToComplete": "Cómo completar este formulario",
+      "filingStatusInstructions": "Estado civil para efectos fiscales (Paso 1c):",
+      "filingStatusDesc": "Elige el estado que mejor describa tu situación. Es el campo más importante y afecta cada cheque de pago.",
+      "multipleJobsInstructions": "Múltiples empleos (Paso 2):",
+      "multipleJobsDesc": "Marca esto si tú (o tu cónyuge) tienen más de un empleo simultáneamente. Esto evita la sub-retención.",
+      "dependentsInstructions": "Dependientes (Paso 3):",
+      "dependentsDesc": "Ingresa el número de hijos calificados menores de 17 años (línea 3a, $2,000 cada uno) y otros dependientes (línea 3b, $500 cada uno). La mayoría de los empleados deja ambos en 0.",
+      "otherAdjustmentsInstructions": "Otros ajustes (Paso 4 — Opcional):",
+      "otherAdjustmentsDesc": "Usa estos campos para afinar la retención por ingresos de inversión, deducciones detalladas o retención adicional por cheque.",
+      "exemptInstructions": "Exento:",
+      "exemptDesc": "Solo reclama exento si debiste $0 de impuesto federal el año pasado y esperas deber $0 este año. La mayoría de los empleados no califican.",
+      "filingStatusLabel": "Estado civil para efectos fiscales (Paso 1c)",
+      "multipleJobsLabel": "Múltiples empleos o cónyuge también trabaja (Paso 2)",
+      "step3Title": "Paso 3 — Reclamar dependientes",
+      "qualifyingChildren": "Hijos calificados menores de 17 años (3a)",
+      "otherDependents": "Otros dependientes (3b)",
+      "totalCredit": "Monto total del crédito (línea 3)",
+      "step4Title": "Paso 4 — Otros ajustes (Opcional)",
+      "otherIncome": "Otros ingresos no provenientes de empleos — 4a ($)",
+      "deductions": "Deducciones — 4b ($)",
+      "extraWithholding": "Retención adicional por período de pago — 4c ($)",
+      "exemptLabel": "Reclamar exento de retención federal",
+      "irsNote": "Para obtener la retención más precisa, usa el Estimador de Retención del IRS en",
+      "irsUrl": "irs.gov/W4App",
+      "irsNoteSuffix": "antes de completar este paso."
+    },
+    "stateTax": {
+      "title": "Retención de impuestos estatales",
+      "noIncomeTaxTitle": "{{state}} no tiene impuesto sobre la renta estatal.",
+      "noIncomeTaxDesc": "No se requiere certificado de retención estatal. Haz clic en Continuar para proceder.",
+      "instructionsTitle": "Instrucciones",
+      "instructionsDesc": "La retención estatal varía según el estado. Ingresa tu estado civil para efectos fiscales y asignaciones como se muestra en el certificado de retención de tu estado.",
+      "allowancesDesc": "Asignaciones:",
+      "allowancesExplain": "Cada asignación reduce el monto retenido por cheque de pago. Reclamar más asignaciones = menos retenido; menos = más retenido. Ingresa 0 si no estás seguro — tu estado aplicará el predeterminado.",
+      "exemptDesc": "Exento:",
+      "exemptExplain": "Solo reclama exento si no debiste impuestos estatales el año pasado y no esperas deber este año.",
+      "filingStatusLabel": "Estado civil estatal para efectos fiscales",
+      "allowancesLabel": "Asignaciones",
+      "additionalWithholding": "Retención adicional por período de pago ($)",
+      "exemptLabel": "Reclamar exento de retención estatal"
+    },
+    "i9": {
+      "title": "I-9: Verificación de elegibilidad de empleo",
+      "section1Title": "Sección 1 — Empleado (Completar antes del primer día)",
+      "section1Desc": "La ley federal exige que verifiques tu identidad y autorización para trabajar en los EE.UU. Completas la Sección 1 ahora; tu empleador completa la Sección 2 dentro de",
+      "section1Days": "3 días hábiles",
+      "section1Suffix": "de tu primer día de empleo.",
+      "lprInstructions": "Residentes Permanentes Legales:",
+      "lprDesc": "Ingresa tu Número de Registro de Extranjero (Número-A, comienza con \"A\") en el campo proporcionado.",
+      "alienInstructions": "Extranjeros autorizados para trabajar:",
+      "alienDesc": "Proporciona tu Número-A, Número de Admisión del Formulario I-94 o detalles del pasaporte extranjero según corresponda.",
+      "docsHeader": "Documentos que debes presentar a tu empleador en tu primer día",
+      "listATitle": "Lista A (cualquiera)",
+      "listAItems": [
+        "Pasaporte o tarjeta de pasaporte de EE.UU.",
+        "Tarjeta de Residente Permanente (Formulario I-551)",
+        "Documento de Autorización de Empleo (Formulario I-766)",
+        "Pasaporte extranjero con sello I-94 o I-551"
+      ],
+      "or": "O",
+      "listBCTitle": "Lista B + Lista C (uno de cada)",
+      "listBCItems": [
+        "B: Licencia de conducir / Identificación estatal",
+        "B: Identificación escolar con fotografía",
+        "C: Tarjeta del Seguro Social de EE.UU.",
+        "C: Acta de nacimiento (copia certificada)"
+      ],
+      "citizenshipLabel": "Soy (estado de ciudadanía / inmigración)",
+      "alienRegNumber": "Número de Registro de Extranjero (Número-A)",
+      "alienRegPlaceholder": "A000000000",
+      "i94Number": "Número de admisión del Formulario I-94",
+      "foreignPassport": "Número de pasaporte extranjero",
+      "countryOfIssuance": "País de emisión",
+      "workAuthExpiry": "Fecha de vencimiento de la autorización de trabajo",
+      "docUploadDesc": "Pre-carga copias de tus documentos de identidad. Los originales físicos deben presentarse a tu empleador en o antes de tu primer día de empleo.",
+      "listAChoice": "Lista A",
+      "listAChoiceDesc": "Un documento — Pasaporte de EE.UU., Tarjeta de Residente Permanente o Autorización de Empleo",
+      "listBCChoice": "Lista B + Lista C",
+      "listBCChoiceDesc": "Dos documentos — Identidad (p. ej., licencia de conducir) + Autorización de empleo (p. ej., tarjeta del SSN)",
+      "listASubTitle": "Lista A — Identidad y autorización de trabajo",
+      "docType": "Tipo de documento",
+      "docNumber": "Número de documento",
+      "issuingAuthority": "Autoridad emisora",
+      "expirationDate": "Fecha de vencimiento (dejar en blanco si N/A)",
+      "expirationDateShort": "Fecha de vencimiento",
+      "documentUploaded": "Documento cargado",
+      "uploading": "Cargando...",
+      "uploadListA": "Haz clic para cargar el documento de Lista A (PDF o imagen)",
+      "listBSubTitle": "Lista B — Documento de identidad",
+      "uploadListB": "Haz clic para cargar el documento de Lista B (PDF o imagen)",
+      "listCSubTitle": "Lista C — Autorización de empleo",
+      "uploadListC": "Haz clic para cargar el documento de Lista C (PDF o imagen)",
+      "preparerToggle": "Un preparador o traductor me ayudó a completar este formulario",
+      "preparerFirstName": "Nombre del preparador",
+      "preparerLastName": "Apellido del preparador",
+      "preparerStreet": "Dirección de calle del preparador",
+      "preparerCity": "Ciudad",
+      "preparerState": "Estado",
+      "preparerZip": "Código postal"
+    },
+    "deposit": {
+      "title": "Autorización de depósito directo",
+      "desc": "Autoriza el depósito directo de nómina a tu cuenta bancaria. Tus números de ruta y de cuenta se pueden encontrar en un cheque o en la aplicación móvil de tu banco.",
+      "routingLabel": "Nº de ruta",
+      "routingValue": "⑆ 123456789 ⑆",
+      "routingDesc": "Primeros 9 dígitos en la parte inferior izquierda",
+      "accountLabel": "Nº de cuenta",
+      "accountValue": "0001234567890 ⑈",
+      "accountDesc": "Siguiente número después de la ruta",
+      "bankName": "Nombre del banco",
+      "routingNumber": "Número de ruta (9 dígitos)",
+      "routingPlaceholder": "123456789",
+      "accountNumber": "Número de cuenta",
+      "accountType": "Tipo de cuenta",
+      "voidedCheck": "CHEQUE ANULADO",
+      "uploadVoidedCheck": "Haz clic para cargar un cheque anulado (PDF o imagen)",
+      "uploadingCheck": "Cargando…",
+      "voidedCheckUploaded": "Cheque anulado cargado"
+    },
+    "ack": {
+      "title": "Reconocimientos",
+      "desc": "Revisa y reconoce las siguientes políticas obligatorias para continuar al paso de firma de documentos.",
+      "workersCompTitle": "Compensación al trabajador",
+      "workersCompBody": "Reconozco que se me ha informado de mis derechos bajo las leyes de compensación al trabajador de mi estado. Entiendo que el seguro de compensación al trabajador cubre lesiones y enfermedades relacionadas con el trabajo, y acepto reportar cualquier lesión o enfermedad de este tipo a mi supervisor inmediatamente.",
+      "workersCompToggle": "Reconozco la política de compensación al trabajador",
+      "handbookTitle": "Manual del empleado",
+      "handbookBody": "Reconozco que he recibido, leído y entendido el Manual del Empleado. Entiendo que no es un contrato de empleo, que puede actualizarse en cualquier momento, y acepto cumplir con todas las políticas y procedimientos contenidos en él.",
+      "handbookToggle": "Reconozco la recepción del Manual del Empleado",
+      "submitNote": "Después de hacer clic en Enviar, serás guiado a firmar electrónicamente tu W-4, formulario de retención estatal e I-9 vía DocuSign."
+    },
+    "actions": {
+      "back": "Atrás",
+      "continue": "Continuar",
+      "preparingDocuments": "Preparando documentos...",
+      "submitAndSign": "Enviar y firmar documentos"
+    },
+    "errors": {
+      "uploadFailed": "Falló la carga del documento. Inténtalo de nuevo.",
+      "voidedCheckFailed": "Falló la carga del cheque anulado. Inténtalo de nuevo.",
+      "submissionFailed": "Falló el envío. Inténtalo de nuevo.",
+      "previewFailed": "No se pudo cargar la vista previa del PDF. Inténtalo de nuevo.",
+      "signingFailed": "No se pudo crear la sesión de firma. Inténtalo de nuevo."
     }
   },
   "account": {
@@ -2937,7 +3165,17 @@
     "newPoTitle": "Nueva Orden de Compra",
     "noLinesYet": "Sin líneas aún",
     "orderDetails": "Detalles de la Orden",
-    "tabOrders": "Orders"
+    "tabOrders": "Orders",
+    "showInactiveVendors": "Mostrar proveedores inactivos",
+    "showInactiveParts": "Mostrar piezas obsoletas",
+    "vendorDeactivatedWarning": "El proveedor '{{name}}' está desactivado. Reactívalo o elige otro.",
+    "shortClose": "Cierre parcial",
+    "shortCloseTitle": "Cierre parcial de orden de compra",
+    "shortCloseMessage": "Cierra esta PO y marca la cantidad no recibida como cancelada-no-recibida. Úsalo cuando el remanente no llegará (backorder cancelado por el proveedor, artículo descontinuado).",
+    "shortCloseReason": "Motivo (obligatorio)",
+    "shortClosed": "Cerrada parcialmente",
+    "shortClosedQty": "Cerrada parcialmente",
+    "poShortClosed": "Orden de compra cerrada parcialmente."
   },
   "salesOrders": {
     "title": "Órdenes de Venta",
@@ -3033,7 +3271,24 @@
     "returnDate": "Fecha de Devolución",
     "originalJob": "Trabajo Original",
     "reworkJob": "Trabajo de Retrabajo",
-    "inspectionNotes": "Notas de Inspección"
+    "inspectionNotes": "Notas de Inspección",
+    "schedule": {
+      "tab": "Programación",
+      "poOrderBy": "Pedir PO antes del",
+      "materialsNeeded": "Materiales necesarios",
+      "productionStart": "Inicio de producción",
+      "productionComplete": "Producción completa",
+      "qcComplete": "QC completo",
+      "shipBy": "Enviar antes del",
+      "delivery": "Entrega",
+      "atRisk": "En riesgo",
+      "onTrack": "En curso",
+      "done": "Listo",
+      "overdue": "Atrasado",
+      "upcoming": "Próximo",
+      "noSchedule": "Sin hitos de programación disponibles",
+      "timelineLabel": "Cronograma de programación"
+    }
   },
   "quotes": {
     "title": "Cotizaciones",
@@ -3768,7 +4023,8 @@
     },
     "locationEmpty": "Location Empty",
     "lot": "Lot",
-    "scan": "Scan"
+    "scan": "Scan",
+    "devices": "Dispositivos lectores"
   },
   "customerReturns": {
     "allStatuses": "Todos los Estados",
@@ -3953,7 +4209,9 @@
       "runComplete": "Ejecución MRP completada",
       "orderFirmed": "Orden confirmada",
       "releasedAs": "Liberada como",
-      "exceptionResolved": "Excepción resuelta"
+      "exceptionResolved": "Excepción resuelta",
+      "scheduleActivated": "Programación activada",
+      "forecastApproved": "Pronóstico aprobado"
     }
   },
   "scheduling": {
@@ -4294,8 +4552,6 @@
     },
     "workflows": {
       "newWorkflow": "Nuevo Flujo",
-      "newWorkflowTitle": "Nuevo Flujo de Aprobación",
-      "editWorkflow": "Editar Flujo de Aprobación",
       "noWorkflows": "Sin flujos de aprobación configurados",
       "workflowName": "Nombre del Flujo",
       "entityType": "Tipo de Entidad",
@@ -4309,9 +4565,7 @@
       "role": "Rol",
       "autoApproveBelow": "Auto-Aprobar Debajo de ($)",
       "escalateAfter": "Escalar Después de (horas)",
-      "cancel": "Cancelar",
-      "update": "Actualizar",
-      "create": "Crear"
+      "cancel": "Cancelar"
     },
     "entityTypes": {
       "purchaseOrder": "Orden de Compra",
@@ -4732,6 +4986,22 @@
         "completed": "Completado",
         "progress": "Progreso",
         "lastActivity": "Última Actividad"
+      },
+      "noPaths": "Sin rutas de capacitación definidas",
+      "noProgress": "Sin datos de progreso de usuario disponibles",
+      "users": "usuarios",
+      "auto": "Auto",
+      "manual": "Manual",
+      "activeLabel": "Activo",
+      "inactive": "Inactivo",
+      "editPath": "Editar ruta",
+      "viewDetail": "Ver detalle de capacitación de este usuario",
+      "snackbar": {
+        "moduleCreated": "Módulo de capacitación creado",
+        "moduleUpdated": "Módulo de capacitación actualizado",
+        "moduleDeleted": "Módulo eliminado",
+        "pathCreated": "Ruta de capacitación creada",
+        "walkthroughFailed": "Falló al generar los pasos del tutorial"
       }
     },
     "trainingDetail": {
@@ -4742,7 +5012,10 @@
       "pathsEnrolled": "rutas inscritas",
       "moduleBreakdown": "Desglose de Módulos",
       "completed": "Completado",
-      "inProgress": "En Progreso"
+      "inProgress": "En Progreso",
+      "selectUser": "Selecciona un usuario para ver su progreso de capacitación",
+      "completedStat": "completado",
+      "notStarted": "Sin iniciar"
     },
     "completeI9": {
       "title": "Completar I-9 Sección 2",
@@ -4759,7 +5032,38 @@
       "workAuthExpiration": "Fecha de Vencimiento de Autorización de Trabajo",
       "reverificationNote": "Dejar en blanco para ciudadanos estadounidenses, residentes permanentes y documentos sin vencimiento. Cuando se establezca, se enviará un recordatorio 90 días antes del vencimiento.",
       "cancel": "Cancelar",
-      "completeSection2": "Completar Sección 2"
+      "completeSection2": "Completar Sección 2",
+      "snackbar": {
+        "i9Completed": "Sección 2 del I-9 completada"
+      }
+    },
+    "domainEventFailures": {
+      "failures": "fallos",
+      "filterStatus": "Estado",
+      "allStatuses": "Todos los estados",
+      "statusFailed": "Fallido",
+      "statusRetrying": "Reintentando",
+      "statusResolved": "Resuelto",
+      "noFailures": "Sin fallos de eventos de dominio",
+      "retry": "Reintentar",
+      "resolve": "Resolver",
+      "retryTitle": "¿Reintentar manejador del evento?",
+      "retryMessage": "Esto re-encolará el manejador \"{{handler}}\" para su ejecución.",
+      "retryQueued": "Reintento del manejador del evento encolado",
+      "resolveTitle": "¿Resolver el fallo?",
+      "resolveMessage": "Esto marcará el manejador \"{{handler}}\" como resuelto sin reintentar.",
+      "resolved": "Fallo del evento resuelto",
+      "errorMessageLabel": "Mensaje de error",
+      "eventPayload": "Carga útil del evento",
+      "cols": {
+        "eventType": "Tipo de evento",
+        "handler": "Manejador",
+        "error": "Error",
+        "status": "Estado",
+        "retries": "Reintentos",
+        "failedAt": "Falló en",
+        "lastRetry": "Último reintento"
+      }
     }
   },
   "announcements": {
@@ -4891,7 +5195,6 @@
         "expressForm": "Quick add",
         "sourcing": "Abastecimiento",
         "vendorParts": "Proveedores",
-        "manufacturer": "Fabricante",
         "inventory": "Inventario",
         "manufacturing": "Fabricación",
         "quality": "Calidad",
@@ -4982,5 +5285,12 @@
       "hasInventory": "Inventario",
       "hasInventoryMissing": "Aún no se ha establecido la unidad de medida del stock."
     }
+  },
+  "address": {
+    "street": "Calle",
+    "city": "Ciudad",
+    "state": "Estado",
+    "postal": "Código postal",
+    "country": "País"
   }
 }
