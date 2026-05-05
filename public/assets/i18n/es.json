@@ -2484,6 +2484,10 @@
     }
   },
   "shared": {
+    "slideout": {
+      "label": "Panel lateral",
+      "close": "Cerrar panel"
+    },
     "closeDialog": "Cerrar diálogo",
     "helpTour": "Tour de ayuda de la página",
     "startHelpTour": "Iniciar tour de ayuda",
@@ -4879,10 +4883,11 @@
         "confirmMessage": "Tienes cambios sin guardar en este paso. Cambiar de modo los descartará.",
         "confirmAction": "Cambiar y descartar"
       },
-      "contextPaneLabel": "Contexto del paso",
       "optional": "Opcional",
       "rationale": {
-        "heading": "¿Por qué este paso?"
+        "heading": "¿Por qué este paso?",
+        "toggle": "¿Por qué este paso?",
+        "close": "Cerrar ayuda"
       },
       "readonlyLabel": "Solo vista",
       "resumeBanner": "Continuando donde lo dejaste — última edición {{lastEdited}}.",

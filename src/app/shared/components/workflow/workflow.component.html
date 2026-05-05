@@ -1,36 +1,37 @@
 <!--
-  Workflow shell layout (Option C — adopted 2026-05-04 after the part-UX
-  research pass):
+  Workflow shell layout — refined again 2026-05-05 (form-cramping pass v2).
 
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │ Title · breadcrumb              [mode toggle] │ ×  ← header chrome  │
-  ├─────────────────────────────────────────────────────────────────────┤
-  │ rail │ form column (primary surface)        │ context pane (bg)   │
-  │ 240  │  ┌───────────────────────────┐       │ ┌─────────────────┐ │
-  │      │  │ resume banner / errors     │      │ │ Why this step   │ │
-  │      │  │ step body (component)      │      │ │ (rationale)     │ │
-  │      │  └───────────────────────────┘       │ └─────────────────┘ │
-  │      │  ┌─── footer (Back · Continue) ───┐ │ ┌─────────────────┐ │
-  │      │                                     │ │ Related record  │ │
-  │      │                                     │ │ (when present)  │ │
-  │      │                                     │ └─────────────────┘ │
-  └──────┴─────────────────────────────────────┴─────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ RAW-00046                          [mode toggle] [?] │ ×            │ ← header
+  ├────────────────────────────────────────────────────────────────────┤
+  │ ① Basics  ›  ② Pref Vendor  ›  ③ Vendor Sources  ›  ④ Inventory …  │ ← steps carousel
+  ├────────────────────────────────────────────────────────────────────┤
+  │ form column (single, full-width — fills entire dialog width)        │
+  │  ┌─────────────────────────────────────────────────────────────┐    │
+  │  │ step body                                                    │   │
+  │  └─────────────────────────────────────────────────────────────┘    │
+  │  ┌── footer (Back · Continue) ──────────────────────────────────┐   │
+  └────────────────────────────────────────────────────────────────────┘
+
+  When the user taps "?" in the header, a transient sidecar slides over
+  the right edge of the form column (overlay, not layout-affecting).
 
   Decisions:
-   • Close button + mode toggle live in the dialog HEADER, anchored
-     top-right; persistent regardless of step content height. (Material
-     dialog convention; matches Salesforce, Fiori, Business Central.)
-   • Step rail + context pane both sticky within the dialog body — they
-     don't scroll with the form column.
-   • Right context pane uses var(--bg) (page background) to visually
-     demote vs. the form's var(--surface). Polaris's primary/secondary
-     proportion convention.
-   • Below 1024px the right pane drops below the form as a collapsible
-     "Why this step" panel. NN/g wizard guideline 7 ("help next to the
-     wizard, not covering it") translated to small viewports.
+   • Steps are a horizontal carousel under the header (was a 240px left
+     rail). Frees the entire dialog width for the form, which made the
+     vendor-sources / multi-field steps stop feeling cramped. Carousel
+     scrolls horizontally when the step set is wider than the dialog.
+   • The current step gets a primary-tinted pill; complete steps show a
+     check; locked steps a lock + dimmed text; error steps red.
+   • Persistent right rationale pane removed (2026-05-04). Replaced with
+     on-demand "?" sidecar that overlays the form column instead of
+     competing with it for layout space (Whitenton "progressive
+     disclosure"; NN/g help-on-demand guideline).
+   • Sidecar is purely transient: closes on any step-jump, mode-toggle,
+     or by tapping "?" again. No persistence — defaults to closed every
+     mount, so the user always lands on the dense layout.
    • Footer stays inside the form column so the primary action anchors
-     to the user's working surface (Wroblewski). Not bottom-right of the
-     entire dialog.
+     to the user's working surface (Wroblewski).
 -->
 <div class="workflow-shell" [class.workflow-shell--guided]="mode() === 'guided'" [class.workflow-shell--express]="mode() === 'express'">
   <header class="workflow-shell__header">
@@ -90,6 +91,24 @@
 
       <span class="workflow-shell__header-divider" aria-hidden="true"></span>
 
+      <!-- "?" icon — toggles the rationale sidecar. Only useful when the
+           current step has a rationale string defined; hidden otherwise.
+           The pane is purely transient — no persisted state, auto-
+           dismissed on any step / mode change. -->
+      @if (currentStepRationaleKey()) {
+        <button
+          type="button"
+          class="icon-btn"
+          [class.icon-btn--active]="rationaleOpen()"
+          [attr.aria-label]="'workflow.shell.rationale.toggle' | translate"
+          [attr.aria-pressed]="rationaleOpen()"
+          [matTooltip]="'workflow.shell.rationale.toggle' | translate"
+          data-testid="workflow-rationale-toggle"
+          (click)="toggleRationale()">
+          <span class="material-icons-outlined">help_outline</span>
+        </button>
+      }
+
       <button
         type="button"
         class="icon-btn workflow-shell__close-btn"
@@ -102,150 +121,95 @@
     </div>
   </header>
 
-  <div class="workflow-shell__body">
-    @if (mode() === 'guided') {
-      <nav class="workflow-shell__rail" [attr.aria-label]="'workflow.shell.steps.heading' | translate" data-testid="workflow-rail">
-        <ol class="workflow-shell__rail-list">
-          @for (step of steps(); track step.id; let i = $index) {
-            <li class="workflow-step"
-                [class.workflow-step--current]="isCurrent(step)"
-                [class.workflow-step--complete]="isComplete(step)"
-                [class.workflow-step--locked]="isFutureStep(step)"
-                [class.workflow-step--has-error]="hasError(step)">
-              <button
-                type="button"
-                class="workflow-step__btn"
-                [disabled]="isFutureStep(step)"
-                [attr.aria-current]="isCurrent(step) ? 'step' : null"
-                [attr.aria-disabled]="isFutureStep(step)"
-                [attr.data-testid]="'workflow-step-' + step.id"
-                (click)="jumpTo(step)">
-                <span class="workflow-step__indicator" aria-hidden="true">
-                  @if (hasError(step)) {
-                    <span class="material-icons-outlined">priority_high</span>
-                  } @else if (isComplete(step)) {
-                    <span class="material-icons-outlined">check</span>
-                  } @else if (isFutureStep(step)) {
-                    <span class="material-icons-outlined">lock</span>
-                  } @else {
-                    <span class="workflow-step__index">{{ i + 1 }}</span>
-                  }
-                </span>
-                <span class="workflow-step__label">{{ step.labelKey | translate }}</span>
-                @if (!step.required) {
-                  <span class="workflow-step__optional">{{ 'workflow.shell.optional' | translate }}</span>
-                }
-              </button>
-            </li>
-          }
-        </ol>
-      </nav>
-
-      <div class="workflow-shell__main">
-        <main class="workflow-shell__step-content" data-testid="workflow-step-content">
-          <!-- Resume affordance is now a list-level concern, not a page-level
-               banner: in-progress drafts surface as row indicators on the
-               parts list (entity-less runs in a "Drafts" section at the top).
-               Putting it inline here was confusing — it conflated "Add new"
-               (always fresh) with "resume", and triggered false-positives
-               whenever the run was loaded with a stale lastActivityAt. -->
-
-          @if (currentStepErrors(); as errs) {
-            @if (errs.length > 0) {
-              <div class="workflow-shell__step-errors" role="alert" data-testid="workflow-step-errors">
-                <div class="workflow-shell__step-errors-heading">
-                  <span class="material-icons-outlined">error_outline</span>
-                  {{ 'workflow.shell.stepErrors.heading' | translate }}
-                </div>
-                <ul class="workflow-shell__step-errors-list">
-                  @for (e of errs; track e.validatorId) {
-                    <li>{{ e.missingMessageKey | translate }}</li>
-                  }
-                </ul>
-              </div>
-            }
-          }
-          <ng-container *ngComponentOutlet="currentStepComponent(); inputs: stepInputs()" />
-        </main>
-
-        @if (!readonly()) {
-        <footer class="workflow-shell__footer">
-          <div class="workflow-shell__footer-left">
+  <!--
+    Steps carousel — horizontal scrollable strip under the header.
+    Hidden in express mode (one-shot consolidated view, no steps).
+  -->
+  @if (mode() === 'guided') {
+    <nav class="workflow-shell__steps"
+      [attr.aria-label]="'workflow.shell.steps.heading' | translate"
+      data-testid="workflow-steps">
+      <ol class="workflow-shell__steps-list">
+        @for (step of steps(); track step.id; let i = $index; let last = $last) {
+          <li class="workflow-step workflow-step--carousel"
+              [class.workflow-step--current]="isCurrent(step)"
+              [class.workflow-step--complete]="isComplete(step)"
+              [class.workflow-step--locked]="isFutureStep(step)"
+              [class.workflow-step--has-error]="hasError(step)">
             <button
               type="button"
-              class="action-btn"
-              [disabled]="isFirstStep()"
-              [attr.aria-label]="'workflow.shell.actions.back' | translate"
-              data-testid="workflow-back"
-              (click)="back()">
-              <span class="material-icons-outlined">chevron_left</span>
-              <span>{{ 'workflow.shell.actions.back' | translate }}</span>
-            </button>
-          </div>
-
-          <div class="workflow-shell__footer-right">
-            @if (currentStep(); as step) {
-              @if (!step.required) {
-                <button
-                  type="button"
-                  class="action-btn"
-                  data-testid="workflow-skip"
-                  (click)="skip()">
-                  <span>{{ 'workflow.shell.actions.skip' | translate }}</span>
-                </button>
-              }
-            }
-
-            <app-validation-button class="validation-button--inline" [violations]="workflowService.currentStepViolations">
-              <button
-                type="button"
-                class="action-btn action-btn--primary"
-                [disabled]="!workflowService.currentStepValid()"
-                [attr.aria-label]="(isLastStep() ? 'workflow.shell.actions.complete' : 'workflow.shell.actions.continue') | translate"
-                data-testid="workflow-next"
-                (click)="next()">
-                @if (isLastStep()) {
+              class="workflow-step__btn"
+              [disabled]="isFutureStep(step)"
+              [attr.aria-current]="isCurrent(step) ? 'step' : null"
+              [attr.aria-disabled]="isFutureStep(step)"
+              [attr.data-testid]="'workflow-step-' + step.id"
+              [matTooltip]="(step.labelKey | translate) + (step.required ? '' : ' (' + ('workflow.shell.optional' | translate) + ')')"
+              matTooltipPosition="below"
+              (click)="jumpTo(step)">
+              <span class="workflow-step__indicator" aria-hidden="true">
+                @if (hasError(step)) {
+                  <span class="material-icons-outlined">priority_high</span>
+                } @else if (isComplete(step)) {
                   <span class="material-icons-outlined">check</span>
-                  <span>{{ 'workflow.shell.actions.complete' | translate }}</span>
+                } @else if (isFutureStep(step)) {
+                  <span class="material-icons-outlined">lock</span>
                 } @else {
-                  <span>{{ 'workflow.shell.actions.continue' | translate }}</span>
-                  <span class="material-icons-outlined">chevron_right</span>
+                  <span class="workflow-step__index">{{ i + 1 }}</span>
                 }
-              </button>
-            </app-validation-button>
-          </div>
-        </footer>
+              </span>
+              <span class="workflow-step__label">{{ step.labelKey | translate }}</span>
+              @if (!step.required) {
+                <span class="workflow-step__optional">{{ 'workflow.shell.optional' | translate }}</span>
+              }
+            </button>
+            @if (!last) {
+              <span class="workflow-shell__step-sep-icon material-icons-outlined" aria-hidden="true">chevron_right</span>
+            }
+          </li>
         }
-      </div>
+      </ol>
+    </nav>
+  }
 
-      <!--
-        Right context pane. Static rationale today + reserved slots for
-        related-record summary and AI suggestion (slot stays empty until
-        those features land — three-block ceiling per Section 4 of the
-        UX research). Below 1024px the pane drops beneath the form
-        (collapsed by default) via SCSS responsive rules.
-      -->
-      @if (currentStepRationaleKey(); as ratKey) {
-        <aside class="workflow-shell__context-pane"
-          [attr.aria-label]="'workflow.shell.contextPaneLabel' | translate"
-          data-testid="workflow-context-pane">
-          <button type="button"
-            class="workflow-shell__context-collapse"
-            [attr.aria-expanded]="contextPaneExpanded()"
-            data-testid="workflow-context-collapse"
-            (click)="toggleContextPane()">
-            <span class="material-icons-outlined">info</span>
-            <span class="workflow-shell__context-heading">{{ 'workflow.shell.rationale.heading' | translate }}</span>
-            <span class="material-icons-outlined workflow-shell__context-chevron">
-              {{ contextPaneExpanded() ? 'expand_less' : 'expand_more' }}
-            </span>
-          </button>
-          @if (contextPaneExpanded()) {
-            <div class="workflow-shell__context-body">
-              <p class="workflow-shell__context-text" [innerHTML]="ratKey | translate"></p>
+  <div class="workflow-shell__body">
+    @if (mode() === 'guided') {
+      <main class="workflow-shell__step-content" data-testid="workflow-step-content">
+        @if (currentStepErrors(); as errs) {
+          @if (errs.length > 0) {
+            <div class="workflow-shell__step-errors" role="alert" data-testid="workflow-step-errors">
+              <div class="workflow-shell__step-errors-heading">
+                <span class="material-icons-outlined">error_outline</span>
+                {{ 'workflow.shell.stepErrors.heading' | translate }}
+              </div>
+              <ul class="workflow-shell__step-errors-list">
+                @for (e of errs; track e.validatorId) {
+                  <li>{{ e.missingMessageKey | translate }}</li>
+                }
+              </ul>
             </div>
           }
-        </aside>
+        }
+        <ng-container *ngComponentOutlet="currentStepComponent(); inputs: stepInputs()" />
+      </main>
+
+      <!--
+        On-demand rationale sidecar — uses the shared <app-slideout>
+        anchored to the right edge of the dialog body. Sits inside
+        __body (NOT __main) so it overlays only the scrollable step
+        content — the footer below stays visible/clickable when the
+        sidecar is open. Never participates in layout, so the form
+        column is always full-width.
+      -->
+      @if (currentStepRationaleKey(); as ratKey) {
+        <app-slideout
+          [open]="rationaleOpen()"
+          position="right"
+          size="320px"
+          icon="help_outline"
+          [title]="'workflow.shell.rationale.heading' | translate"
+          (closed)="rationaleOpen.set(false)">
+          <p class="workflow-shell__rationale-text" [innerHTML]="ratKey | translate"></p>
+        </app-slideout>
       }
     } @else {
       <main class="workflow-shell__express" data-testid="workflow-express-content">
@@ -253,6 +217,55 @@
       </main>
     }
   </div>
+
+  @if (mode() === 'guided' && !readonly()) {
+    <footer class="workflow-shell__footer">
+      <div class="workflow-shell__footer-left">
+        <button
+          type="button"
+          class="action-btn"
+          [disabled]="isFirstStep()"
+          [attr.aria-label]="'workflow.shell.actions.back' | translate"
+          data-testid="workflow-back"
+          (click)="back()">
+          <span class="material-icons-outlined">chevron_left</span>
+          <span>{{ 'workflow.shell.actions.back' | translate }}</span>
+        </button>
+      </div>
+
+      <div class="workflow-shell__footer-right">
+        @if (currentStep(); as step) {
+          @if (!step.required) {
+            <button
+              type="button"
+              class="action-btn"
+              data-testid="workflow-skip"
+              (click)="skip()">
+              <span>{{ 'workflow.shell.actions.skip' | translate }}</span>
+            </button>
+          }
+        }
+
+        <app-validation-button class="validation-button--inline" [violations]="workflowService.currentStepViolations">
+          <button
+            type="button"
+            class="action-btn action-btn--primary"
+            [disabled]="!workflowService.currentStepValid()"
+            [attr.aria-label]="(isLastStep() ? 'workflow.shell.actions.complete' : 'workflow.shell.actions.continue') | translate"
+            data-testid="workflow-next"
+            (click)="next()">
+            @if (isLastStep()) {
+              <span class="material-icons-outlined">check</span>
+              <span>{{ 'workflow.shell.actions.complete' | translate }}</span>
+            } @else {
+              <span>{{ 'workflow.shell.actions.continue' | translate }}</span>
+              <span class="material-icons-outlined">chevron_right</span>
+            }
+          </button>
+        </app-validation-button>
+      </div>
+    </footer>
+  }
   <!-- Express mode: the express component owns its own Save button (which
        patches the step + completes the run). A separate shell-level Mark
        Complete here would bypass the form's data and 409 with "entity not

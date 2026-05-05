@@ -27,11 +27,12 @@
 .part-workflow-page {
   &__shell {
     width: 100%;
-    // Guided mode dialog is 1280px (per part-UX research, 2026-05-04).
-    // Composition: 240px rail + ~720px form column + 296px context pane
-    // + ~24px gap-equivalent from internal borders. Three useful columns
-    // instead of one form + dead band.
-    max-width: 1280px;
+    // Refined 2026-05-04 (form-cramping pass): with the left rail moved
+    // to a horizontal carousel in the header AND the rationale pane
+    // converted to an on-demand overlay sidecar, the shell is a single
+    // form column. Cap at 1600px for readability on ultrawide displays;
+    // shrink to viewport-minus-padding on smaller screens.
+    max-width: min(1600px, calc(100vw - #{$sp-2xl}));
     height: 100%;
     max-height: 90vh;
     background: var(--surface);
