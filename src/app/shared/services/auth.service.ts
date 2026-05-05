@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
 import { Observable, tap, catchError, of, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -66,6 +67,7 @@ export interface SetupTokenInfo {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly dialog = inject(MatDialog);
   private readonly _token = signal<string | null>(this.loadToken());
   private readonly _user = signal<AuthUser | null>(this.loadUser());
 
@@ -247,6 +249,13 @@ export class AuthService {
     this._user.set(null);
     localStorage.removeItem('qbe-token');
     localStorage.removeItem('qbe-user');
+    // Close any open MatDialog (detail dialogs, confirms, etc.) — every
+    // auth-loss path funnels through here (interceptor 401 redirect,
+    // explicit logout, cross-tab broadcast, SignalR auth failure, kiosk
+    // reset), so this is the single chokepoint that prevents an
+    // overlay from leaking onto /login. Reported bug: detail dialog
+    // stayed visible over the login page after the user was logged out.
+    this.dialog.closeAll();
   }
 
   /** Update local user state after self-service profile edit. */
