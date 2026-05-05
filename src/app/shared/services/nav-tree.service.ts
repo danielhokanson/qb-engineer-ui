@@ -20,17 +20,17 @@ export class NavTreeService {
   );
 
   // Pinned-top items: always rendered at the top of the sidebar regardless of
-  // which group the user has drilled into. Dashboard is the landing page —
-  // making it a single click from anywhere is more important than tucking it
-  // under the Operations group with the other workflow-specific tools.
-  private readonly allPinnedTopTree: NavItem[] = [
-    { icon: 'dashboard', label: 'Dashboard', i18nKey: 'nav.dashboard', route: '/dashboard', shortcut: ['Q', 'D'] },
-  ];
+  // which group the user has drilled into. Empty by default — Dashboard used
+  // to live here as a "one click from anywhere" landing-page shortcut, but
+  // the constant top-anchor read as more chrome than affordance, so it now
+  // lives inside the Operations group like the other workflow-specific tools.
+  private readonly allPinnedTopTree: NavItem[] = [];
 
   private readonly allMainTree: NavItem[] = [
     {
       icon: 'space_dashboard', label: 'Operations', i18nKey: 'navGroups.operations',
       children: [
+        { icon: 'dashboard', label: 'Dashboard', i18nKey: 'nav.dashboard', route: '/dashboard', shortcut: ['Q', 'D'] },
         { icon: 'view_kanban', label: 'Board', i18nKey: 'nav.kanban', route: '/kanban', shortcut: ['Q', 'K'], allowedRoles: ['Admin', 'Manager', 'Engineer', 'ProductionWorker'] },
         { icon: 'inbox', label: 'Backlog', i18nKey: 'nav.backlog', route: '/backlog', shortcut: ['Q', 'B'], allowedRoles: ['Admin', 'Manager', 'PM', 'Engineer'] },
         { icon: 'event_note', label: 'Planning', i18nKey: 'nav.planning', route: '/planning', allowedRoles: ['Admin', 'Manager', 'PM'] },
