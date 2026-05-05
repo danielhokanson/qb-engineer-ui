@@ -7,6 +7,156 @@
   gap: $sp-md;
   position: relative;
 
+  // ─── View-mode toggle (Inspector | Compare) ──────────────────────
+  // Small button group above the source list. Mirrors the toolbar
+  // toggle pattern used elsewhere; only shown when 2+ sources warrant
+  // the choice.
+  &__view-toggle {
+    display: inline-flex;
+    align-self: flex-end;
+    border: $border-width-thin solid var(--border);
+    background: var(--surface);
+  }
+
+  &__view-btn {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: $sp-xs $sp-md;
+    color: var(--text-secondary);
+    font-size: $font-size-xxs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-xs;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
+      color: var(--primary);
+    }
+
+    &--active {
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      color: var(--primary);
+    }
+
+    .material-icons-outlined {
+      font-size: $icon-size-sm;
+    }
+
+    + .vendor-sources__view-btn {
+      border-left: $border-width-thin solid var(--border);
+    }
+  }
+
+  // ─── Two-pane layout (Inspector default; Compare = single column) ──
+  &__layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $sp-md;
+
+    .vendor-sources--inspector & {
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+
+      @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+    min-width: 0;
+  }
+
+  // ─── Right-side inspector pane (Pattern C) ──────────────────────
+  // Sticks to the top of the dialog body's scroll context so the
+  // selected source's details remain visible while the user scrolls
+  // the list on the left.
+  &__inspector {
+    position: sticky;
+    top: $sp-md;
+    align-self: start;
+    background: color-mix(in srgb, var(--text-muted) 3%, var(--surface));
+    border: $border-width-thin solid var(--border);
+    padding: $sp-md;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    @include custom-scrollbar(6px);
+  }
+
+  &__inspector-header {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    flex-wrap: wrap;
+    padding-bottom: $sp-sm;
+    border-bottom: $border-width-thin solid var(--border);
+  }
+
+  // ─── Cross-vendor pricing view (Pattern: flat table) ────────────
+  &__pricing {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-sm;
+    padding: $sp-md;
+    border: $border-width-thin solid var(--border);
+    background: var(--surface);
+  }
+
+  &__pricing-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-sm;
+  }
+
+  &__pricing-title {
+    @include uppercase-label($font-size-xxs, 0.06em, 700);
+    color: var(--text-muted);
+  }
+
+  &__pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-size-sm;
+  }
+
+  &__pricing-pref {
+    margin-left: $sp-sm;
+  }
+
+  &__inspector-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $sp-sm;
+    padding: $sp-2xl $sp-md;
+    color: var(--text-muted);
+    text-align: center;
+
+    .material-icons-outlined {
+      font-size: $icon-size-hero;
+      color: var(--text-muted);
+      opacity: 0.4;
+    }
+
+    p {
+      margin: 0;
+      font-size: $font-size-sm;
+    }
+  }
+
   &__add {
     appearance: none;
     background: transparent;
@@ -87,6 +237,25 @@
     border-style: dashed;
   }
 
+  // Selected card in inspector mode — left accent in primary color +
+  // soft tint so the user immediately sees which source is reflected
+  // in the right inspector pane.
+  &--selected {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+    box-shadow: inset 3px 0 0 0 var(--primary);
+  }
+
+  // In inspector mode the cards are clickable to select.
+  .vendor-sources--inspector & {
+    cursor: pointer;
+    transition: background-color $transition-fast, border-color $transition-fast;
+
+    &:hover:not(.vendor-source--selected) {
+      background: color-mix(in srgb, var(--primary) 3%, var(--surface));
+    }
+  }
+
   &__header {
     display: flex;
     align-items: center;
@@ -100,6 +269,25 @@
     font-size: $font-size-md;
     font-weight: 600;
     color: var(--text);
+  }
+
+  // Currency badge inline next to vendor name. Subtle so the vendor
+  // identity stays the dominant glyph in the header row.
+  &__currency {
+    font-family: $font-family-mono;
+    font-size: $font-size-xxs;
+    color: var(--text-muted);
+    padding: 2px $sp-xs;
+    border: $border-width-thin solid var(--border);
+  }
+
+  // One-line summary of supplementary fields ("Lead 14d · MOQ 100 · DE
+  // · 2 tiers"). Right-aligned in the header so the user can scan
+  // multiple sources in inspector mode without expanding any details.
+  &__summary {
+    color: var(--text-muted);
+    font-size: $font-size-xs;
+    margin-right: $sp-sm;
   }
 
   &__chip {

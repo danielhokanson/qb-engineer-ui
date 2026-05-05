@@ -62,6 +62,23 @@ export type TierViewRow = VendorPartPriceTier & {
 };
 
 /**
+ * Row shape for the cross-vendor "Pricing" view — one row per tier
+ * across every source. Carries the vendor identity inline so the table
+ * is self-contained.
+ */
+export type FlatTierRow = {
+  tierId: number;
+  vendorPartId: number;
+  vendorCompanyName: string;
+  isPreferred: boolean;
+  minQuantity: number;
+  unitPrice: number;
+  currency: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+};
+
+/**
  * Vendor Sources panel — inline grouped editor for the (Part, Vendor)
  * intersection rows. Replaces the prior list-panel + edit-dialog +
  * tier-dialog stack with a single page surface where each vendor source
@@ -211,8 +228,13 @@ export class VendorSourcesPanelComponent {
    *  - 'compare' (Pattern B, on demand): cards stacked with summary line
    *    each; click an "Show details" affordance per card to accordion-
    *    expand its full details inline. Better for side-by-side scanning.
+   *  - 'pricing': flat cross-vendor table — one row per tier across
+   *    every source. Columns: Vendor | Min Qty | Unit Price | Effective
+   *    From. Sorted by min qty asc then vendor name. Same showHistory
+   *    toggle applies (superseded rows greyed-out when on). Best for
+   *    "where can I get this part cheapest at qty N?" comparisons.
    */
-  protected readonly viewMode = signal<'inspector' | 'compare'>('inspector');
+  protected readonly viewMode = signal<'inspector' | 'compare' | 'pricing'>('inspector');
 
   /** Which source card's details show in the right inspector pane. */
   protected readonly selectedSourceId = signal<number | null>(null);
@@ -225,6 +247,37 @@ export class VendorSourcesPanelComponent {
     const id = this.selectedSourceId();
     if (id == null) return null;
     return this.vendorParts().find(v => v.id === id) ?? null;
+  });
+
+  /**
+   * Flat list of every tier across every vendor source on this part —
+   * powers the "Pricing" view. Sorted by min_qty asc, then vendor name
+   * (alphabetical) within each min_qty bracket so the user reads down
+   * "at qty N, here's everyone." Respects the showTierHistory toggle:
+   * superseded rows appear (greyed by template class) only when on.
+   */
+  protected readonly allTiersFlat = computed<FlatTierRow[]>(() => {
+    const rows: FlatTierRow[] = [];
+    for (const vp of this.vendorParts()) {
+      for (const t of vp.priceTiers ?? []) {
+        if (!this.showTierHistory() && t.effectiveTo) continue;
+        rows.push({
+          tierId: t.id,
+          vendorPartId: vp.id,
+          vendorCompanyName: vp.vendorCompanyName,
+          isPreferred: vp.isPreferred,
+          minQuantity: t.minQuantity,
+          unitPrice: t.unitPrice,
+          currency: t.currency,
+          effectiveFrom: t.effectiveFrom,
+          effectiveTo: t.effectiveTo,
+        });
+      }
+    }
+    rows.sort((a, b) =>
+      a.minQuantity - b.minQuantity
+      || a.vendorCompanyName.localeCompare(b.vendorCompanyName));
+    return rows;
   });
 
   /** Sorted view for rendering — preferred first, alphabetical otherwise. */
@@ -287,6 +340,18 @@ export class VendorSourcesPanelComponent {
       .subscribe((vendorId) => {
         if (typeof vendorId === 'number') this.onVendorSelected(vendorId);
       });
+
+    // Inspector mode: auto-select the preferred (or first) source when
+    // nothing is selected and sources are present. Single-source case
+    // never makes the user click — the inspector pane just shows it.
+    effect(() => {
+      if (this.viewMode() !== 'inspector') return;
+      if (this.selectedSourceId() != null) return;
+      const rows = this.sortedRows();
+      if (rows.length === 0) return;
+      const preferred = rows.find(r => r.isPreferred);
+      this.selectedSourceId.set((preferred ?? rows[0]).id);
+    });
   }
 
   // ─── Loading ────────────────────────────────────────────────────────

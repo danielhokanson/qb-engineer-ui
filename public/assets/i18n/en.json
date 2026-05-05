@@ -992,6 +992,30 @@
       "placeholderMinQty": "100",
       "placeholderPrice": "0.00"
     },
+    "viewMode": {
+      "label": "View mode",
+      "inspector": "Inspector",
+      "compare": "Compare",
+      "pricing": "Pricing"
+    },
+    "pricing": {
+      "title": "Pricing across all vendors",
+      "col": {
+        "vendor": "Vendor"
+      },
+      "empty": {
+        "message": "No pricing tiers across any vendor source.",
+        "help": "Add a vendor source and a price tier to see consolidated pricing here."
+      }
+    },
+    "details": {
+      "show": "Show details",
+      "hide": "Hide details"
+    },
+    "inspector": {
+      "label": "Selected vendor source details",
+      "placeholder": "Select a vendor source on the left to see and edit its details here."
+    },
     "removeTier": {
       "confirmTitle": "Remove this price tier?",
       "confirmMessage": "Removing the tier closes it for any future PO that would have read this price. Existing POs already in flight are unaffected."
