@@ -293,14 +293,27 @@ export class PartWorkflowPageComponent {
   protected onModeChanged(mode: 'express' | 'guided'): void {
     const run = this.run();
     if (!run || run.mode === mode) return;
-    this.workflowService.setMode(run.id, mode).subscribe({
-      next: (updated) => {
-        this.run.set(updated);
-        this.workflowService.currentRun.set(updated);
-        this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { mode },
-          queryParamsHandling: 'merge',
+    // Flush the active step's in-flight form edits BEFORE switching modes.
+    // Without this, typing into the basics-step's Name field then clicking
+    // Express loses the typed value: the express form mounts and seeds
+    // from the server entity which never received the patch. Bug repro:
+    // type "Bob Plastic" in guided basics → click Express → form shows
+    // "Bob Plastic" but validation says "Name is required" because the
+    // express form's FormControl was seeded from a stale (no-Name)
+    // entity snapshot. saveCurrentStep is a no-op when nothing is
+    // registered or the form is pristine.
+    this.workflowService.saveCurrentStep().subscribe({
+      next: () => {
+        this.workflowService.setMode(run.id, mode).subscribe({
+          next: (updated) => {
+            this.run.set(updated);
+            this.workflowService.currentRun.set(updated);
+            this.router.navigate([], {
+              relativeTo: this.route,
+              queryParams: { mode },
+              queryParamsHandling: 'merge',
+            });
+          },
         });
       },
     });
