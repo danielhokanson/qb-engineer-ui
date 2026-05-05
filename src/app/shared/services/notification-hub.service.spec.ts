@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
+import { of } from 'rxjs';
+
 import { NotificationHubService } from './notification-hub.service';
 import { SignalrService } from './signalr.service';
 import { NotificationService } from './notification.service';
@@ -40,7 +42,12 @@ describe('NotificationHubService', () => {
     };
 
     mockCapabilityService = {
-      load: vi.fn(),
+      // load() returns a cold Observable<void>; the SignalR
+      // capabilityChanged handler subscribes to it (the bug fixed in
+      // PR #55: without the .subscribe() the descriptor never
+      // re-fetched). Returning of(undefined) makes the mock match the
+      // real shape so the subscribe() call doesn't blow up.
+      load: vi.fn().mockReturnValue(of(undefined)),
     };
 
     TestBed.configureTestingModule({
