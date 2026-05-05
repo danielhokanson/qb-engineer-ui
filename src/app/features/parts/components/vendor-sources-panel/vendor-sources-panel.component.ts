@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
+import { Observable, catchError, forkJoin, map, of, tap, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -26,11 +27,24 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
+import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
+import { FormValidationService } from '../../../../shared/services/form-validation.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
 import { VendorQuickCreateDialogComponent, VendorQuickCreateDialogData } from '../../../vendors/components/vendor-quick-create-dialog/vendor-quick-create-dialog.component';
 import { VendorPart, VendorPartPriceTier } from '../../models/vendor-part.model';
 import { VendorPartsService } from '../../services/vendor-parts.service';
+
+/**
+ * A new price tier that the user has typed but not yet committed to the
+ * server. Lives in `pendingTiersByVp` until the panel-level Save button
+ * iterates them and POSTs each. Identified by a stable temp id so the
+ * trackBy stays stable across re-renders even when the list grows.
+ */
+interface PendingTier {
+  tempId: string;
+  form: FormGroup;
+}
 
 /**
  * Vendor Sources panel — inline grouped editor for the (Part, Vendor)
@@ -80,7 +94,7 @@ import { VendorPartsService } from '../../services/vendor-parts.service';
     CommonModule, ReactiveFormsModule, TranslatePipe, MatTooltipModule,
     InputComponent, TextareaComponent, DatepickerComponent,
     CurrencyInputComponent, EntityPickerComponent, SelectComponent,
-    EmptyStateComponent, LoadingBlockDirective,
+    EmptyStateComponent, LoadingBlockDirective, ValidationButtonComponent,
   ],
   templateUrl: './vendor-sources-panel.component.html',
   styleUrl: './vendor-sources-panel.component.scss',
@@ -249,13 +263,25 @@ export class VendorSourcesPanelComponent {
   /** Stub key for the preferred-vendor-no-row-yet group. */
   protected readonly STUB_ID = -1;
 
+  /**
+   * Currency string for the stub article's price-tier table column header
+   * + currency-input symbol. Reads from the stub form (which defaults to
+   * USD on create; user can swap via the Currency select). Bumps via
+   * formsTicker so the table re-renders on currency change.
+   */
+  protected stubCurrency(): string {
+    this.formsTicker();
+    const form = this.rowForms.get(this.STUB_ID);
+    return (form?.get('currency')?.value as string | null) ?? 'USD';
+  }
+
   /** Returns the form for a row, creating it if first access. */
   protected formFor(row: VendorPart | null): FormGroup {
     const key = row?.id ?? this.STUB_ID;
     let form = this.rowForms.get(key);
     if (!form) {
       form = this.fb.group({
-        vendorPartNumber: [row?.vendorPartNumber ?? '', [Validators.maxLength(100)]],
+        vendorPartNumber: [row?.vendorPartNumber ?? '', [Validators.required, Validators.maxLength(100)]],
         manufacturerName: [row?.manufacturerName ?? '', [Validators.maxLength(200)]],
         vendorMpn: [row?.vendorMpn ?? '', [Validators.maxLength(100)]],
         leadTimeDays: [row?.leadTimeDays ?? null, [Validators.min(0)]],
@@ -268,13 +294,104 @@ export class VendorSourcesPanelComponent {
         notes: [row?.notes ?? '', [Validators.maxLength(2000)]],
         currency: [row?.currency ?? 'USD', [Validators.required, Validators.maxLength(3)]],
       });
+      // Bump the panel-level reactivity ticker whenever this row's status
+      // changes so panelViolations / panelValid recompute. takeUntilDestroyed
+      // ensures the subscription dies with the component.
+      form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+        this.formsTicker.update(v => v + 1);
+      });
       this.rowForms.set(key, form);
+      // First-tick bump so a freshly-created form's invalid-state surfaces
+      // without waiting for a status change.
+      queueMicrotask(() => this.formsTicker.update(v => v + 1));
     }
     return form;
   }
 
-  /** Compose the tierForms key — one form per (vendorPart, tier) edit slot. */
-  protected tierKey(vpId: number, tierId: number | 'new'): string {
+  // ─── Panel-level validation aggregation ─────────────────────────────
+  //
+  // The panel hosts N row forms, one per vendor source. The Save button
+  // (per CLAUDE.md "Save Action — Required on Every Editable Surface")
+  // gates on ALL row forms being valid, with a `<app-validation-button>`
+  // surfacing the why. Aggregation walks every row form via formsTicker
+  // (bumped from each form's statusChanges) so the computed signals
+  // recompute reactively.
+  private readonly formsTicker = signal(0);
+
+  private readonly violationLabels: Record<string, string> = {
+    vendorPartNumber: 'Vendor Part #',
+    manufacturerName: 'Manufacturer',
+    vendorMpn: 'Manufacturer Part #',
+    leadTimeDays: 'Lead Time (days)',
+    minOrderQty: 'Min Order Qty',
+    packSize: 'Pack Size',
+    countryOfOrigin: 'Country of Origin',
+    htsCode: 'HTS Code',
+    certifications: 'Certifications',
+    notes: 'Notes',
+    currency: 'Currency',
+    minQuantity: 'Tier Min Qty',
+    unitPrice: 'Tier Unit Price',
+    effectiveFrom: 'Tier Effective From',
+  };
+
+  protected readonly panelViolations = computed<string[]>(() => {
+    this.formsTicker(); // dependency
+    const out: string[] = [];
+    for (const [, form] of this.rowForms.entries()) {
+      const vendorName = this.vendorNameForForm(form);
+      const items = FormValidationService.collectViolations(form, this.violationLabels);
+      for (const msg of items) {
+        out.push(vendorName ? `${vendorName}: ${msg}` : msg);
+      }
+    }
+    // Pending tiers also gate Save — surface their problems with the
+    // owning vendor's name + a "(new tier)" suffix so the popover row
+    // points the user at the right place.
+    for (const [vpId, list] of this.pendingTiersByVp().entries()) {
+      const vendorName = vpId === this.STUB_ID
+        ? this.preferredVendorName() || ''
+        : this.vendorParts().find(v => v.id === vpId)?.vendorCompanyName ?? '';
+      for (const p of list) {
+        const items = FormValidationService.collectViolations(p.form, this.violationLabels);
+        for (const msg of items) {
+          out.push(vendorName ? `${vendorName} (new tier): ${msg}` : `New tier: ${msg}`);
+        }
+      }
+    }
+    return out;
+  });
+
+  protected readonly panelValid = computed<boolean>(() => {
+    this.formsTicker();
+    for (const [, form] of this.rowForms.entries()) {
+      if (form.invalid) return false;
+    }
+    for (const list of this.pendingTiersByVp().values()) {
+      for (const p of list) {
+        if (p.form.invalid) return false;
+      }
+    }
+    return true;
+  });
+
+  private vendorNameForForm(form: FormGroup): string {
+    for (const [key, f] of this.rowForms.entries()) {
+      if (f !== form) continue;
+      if (key === this.STUB_ID) return this.preferredVendorName() || '';
+      return this.vendorParts().find(v => v.id === key)?.vendorCompanyName ?? '';
+    }
+    return '';
+  }
+
+  /**
+   * Compose the tierForms key — one form per (vendorPart, tier) edit slot.
+   * `tierId` can be a real numeric tier id (cell-edit on an existing
+   * tier), `'new'` (the always-empty bottom row), or a `'pending-N'`
+   * temp id (a tier the user typed but hasn't saved yet — see
+   * pendingTiersByVp).
+   */
+  protected tierKey(vpId: number, tierId: number | string): string {
     return `${vpId}:${tierId}`;
   }
 
@@ -308,16 +425,32 @@ export class VendorSourcesPanelComponent {
 
   // ─── Save-on-blur for 1:1 fields ────────────────────────────────────
   /**
-   * Called from blur events on any per-row field. For real rows: PATCHes
-   * the row with the form's current values if dirty. For the stub row
-   * (preferred vendor with no VendorPart yet): creates the row first via
-   * POST, then continues editing.
+   * Called from blur events on any per-row field. Wraps saveRow$ with a
+   * fire-and-forget subscribe so the existing on-blur path stays unchanged
+   * (most callers don't care about completion). The Observable form is
+   * onSaveAll's batch-orchestrator path — it needs to chain stub-creates
+   * BEFORE pending-tier inserts so the tiers can land under the real
+   * (just-materialized) vendor-part id.
    */
   protected saveRow(row: VendorPart | null): void {
+    this.saveRow$(row).subscribe();
+  }
+
+  /**
+   * Observable variant of saveRow. Returns:
+   *   • the just-created VendorPart for stubs (after adoptStubMaterializedRow
+   *     re-keys forms + pending tiers under the new id),
+   *   • the unchanged row for existing rows after PATCH succeeds,
+   *   • of(null) when there's nothing to save (form pristine/invalid/no
+   *     part id/no vendor for stub).
+   * Errors surface to the caller; the snackbar fires on the way out via
+   * tap-error.
+   */
+  private saveRow$(row: VendorPart | null): Observable<VendorPart | null> {
     const partId = this.partId();
-    if (partId == null) return;
+    if (partId == null) return of(null);
     const form = this.formFor(row);
-    if (!form.dirty || form.invalid) return;
+    if (!form.dirty || form.invalid) return of(null);
     const v = form.getRawValue();
     const payload = {
       vendorPartNumber: v.vendorPartNumber || null,
@@ -337,31 +470,110 @@ export class VendorSourcesPanelComponent {
     if (!row) {
       // Stub: materialize with the preferred vendor + this part.
       const vendorId = this.preferredVendorId();
-      if (vendorId == null) return;
-      this.vendorPartsService.create({
+      if (vendorId == null) return of(null);
+      return this.vendorPartsService.create({
         vendorId, partId, isPreferred: true, ...payload,
-      }).subscribe({
-        next: (created) => {
-          // Move the stub form's key to the real id so subsequent edits
-          // attach to the right row.
-          this.rowForms.delete(this.STUB_ID);
-          form.markAsPristine();
-          this.rowForms.set(created.id, form);
-          this.load(partId);
+      }).pipe(
+        tap((created) => {
+          this.adoptStubMaterializedRow(form, created);
           this.changed.emit();
-        },
-        error: () => this.snackbar.error(this.translate.instant('vendorSources.saveFailed')),
-      });
-    } else {
-      this.vendorPartsService.update(row.id, payload).subscribe({
-        next: () => {
-          form.markAsPristine();
-          // No reload — local state is the truth, server confirmed.
-          this.changed.emit();
-        },
-        error: () => this.snackbar.error(this.translate.instant('vendorSources.saveFailed')),
-      });
+        }),
+        catchError((err) => {
+          this.snackbar.error(this.translate.instant('vendorSources.saveFailed'));
+          return throwError(() => err);
+        }),
+      );
     }
+
+    return this.vendorPartsService.update(row.id, payload).pipe(
+      tap(() => {
+        form.markAsPristine();
+        this.changed.emit();
+      }),
+      map(() => row),
+      catchError((err) => {
+        this.snackbar.error(this.translate.instant('vendorSources.saveFailed'));
+        return throwError(() => err);
+      }),
+    );
+  }
+
+  /**
+   * Stub→real transition. Called from saveRow's stub-success path.
+   *
+   * Two bugs this fixes that the naive "delete STUB_ID, set createdId, load()"
+   * sequence introduced:
+   *
+   *   1. Validation reset — when delete(STUB_ID) ran but vendorParts() hadn't
+   *      yet been refreshed (load is async), the next change-detection tick
+   *      re-rendered the still-visible stub article, called formFor(null),
+   *      which re-created an EMPTY form B at STUB_ID. Now there were two
+   *      forms: form A at createdId ("3g45e3", valid) and form B at STUB_ID
+   *      (empty, fails Validators.required). panelViolations walks the whole
+   *      map and surfaces form B's violation forever — "Vendor Part # is
+   *      required" even though the visible field showed the value.
+   *
+   *   2. Pending tiers + the empty-tier 'new' form for the stub were keyed
+   *      under STUB_ID; onSaveAll skipped STUB_ID-keyed pending tiers (no
+   *      real vp id to POST against), so any tier the user typed during
+   *      the stub phase was lost when they Saved.
+   *
+   * Fix: optimistically merge the created row into vendorParts() BEFORE
+   * load(), so preferredStubVisible() flips false on the same tick — the
+   * stub article is removed from the DOM in the very next CD pass and
+   * formFor(null) is never called again. Re-key every STUB_ID-keyed
+   * tier form + pending tier under createdId so the data the user
+   * entered while in stub mode survives the transition.
+   */
+  private adoptStubMaterializedRow(form: FormGroup, created: VendorPart): void {
+    // 1) Re-key the row form.
+    this.rowForms.delete(this.STUB_ID);
+    form.markAsPristine();
+    this.rowForms.set(created.id, form);
+
+    // 2) Re-key every tier form keyed under STUB_ID.
+    const stubPrefix = `${this.STUB_ID}:`;
+    const newPrefix = `${created.id}:`;
+    for (const oldKey of Array.from(this.tierForms.keys())) {
+      if (!oldKey.startsWith(stubPrefix)) continue;
+      const newKey = newPrefix + oldKey.slice(stubPrefix.length);
+      const tierForm = this.tierForms.get(oldKey);
+      if (tierForm) {
+        this.tierForms.delete(oldKey);
+        this.tierForms.set(newKey, tierForm);
+      }
+    }
+
+    // 3) Re-key pending-tier list from STUB_ID to created.id.
+    const pendingMap = new Map(this.pendingTiersByVp());
+    const stubPending = pendingMap.get(this.STUB_ID);
+    if (stubPending && stubPending.length > 0) {
+      pendingMap.delete(this.STUB_ID);
+      const existing = pendingMap.get(created.id) ?? [];
+      pendingMap.set(created.id, [...existing, ...stubPending]);
+      this.pendingTiersByVp.set(pendingMap);
+    } else if (pendingMap.has(this.STUB_ID)) {
+      pendingMap.delete(this.STUB_ID);
+      this.pendingTiersByVp.set(pendingMap);
+    }
+
+    // 4) Optimistically merge the created row into vendorParts so
+    //    preferredStubVisible() flips false RIGHT NOW — before load()
+    //    completes. This is the key step: it prevents the orphan-form
+    //    bug by ensuring formFor(null) is never called again for this
+    //    stub. load() still runs to pick up server-side defaults
+    //    (lastQuotedDate, computed price tier counts, etc.).
+    this.vendorParts.update(list => {
+      if (list.some(v => v.id === created.id)) return list;
+      return [...list, created];
+    });
+
+    // 5) Bump the validation ticker so panelViolations recomputes against
+    //    the new key and clears any stale stub-keyed violations.
+    this.formsTicker.update(n => n + 1);
+
+    const partId = this.partId();
+    if (partId != null) this.load(partId);
   }
 
   // ─── Tier edit / commit / remove (SCD Type 2) ────────────────────────
@@ -429,6 +641,118 @@ export class VendorSourcesPanelComponent {
       },
       error: () => this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed')),
     });
+  }
+
+  // ─── Pending new tiers (batch-save via panel Save) ──────────────────
+  //
+  // 2026-05-05 user direction: "Each row can be given a temporary id and
+  // iterated over and saved as a batch." So the bottom empty row, once
+  // edited, becomes a PENDING tier (local-only) and a fresh empty row
+  // takes its slot. Pending tiers are visualized as additional rows but
+  // never round-trip the server until the user clicks the panel Save —
+  // at which point onSaveAll iterates the pending list and POSTs each
+  // one in parallel.
+  //
+  // Keys + state:
+  //   • The always-empty bottom slot stays keyed by 'new' in tierForms.
+  //   • Each pending tier holds its FormGroup + a stable temp id so
+  //     Angular's track function can keep DOM stable when the user
+  //     types in adjacent rows.
+  //   • pendingTiersByVp is the per-vendor-part list, signal-backed so
+  //     the table re-renders when promote/remove happens.
+
+  private nextPendingTierIndex = 0;
+
+  protected readonly pendingTiersByVp = signal<Map<number, PendingTier[]>>(new Map());
+
+  protected pendingTiers(vpId: number): PendingTier[] {
+    return this.pendingTiersByVp().get(vpId) ?? [];
+  }
+
+  /**
+   * On (focusout) from the empty bottom row, if focus is leaving the row
+   * entirely AND the user has typed something, promote the form to a
+   * pending tier and let `tierFormFor(vpId, 'new')` lazily create a fresh
+   * empty form for the next iteration. NO server call here — the panel
+   * Save button is the only commit path.
+   */
+  protected onEmptyRowFocusOut(e: FocusEvent, vpId: number): void {
+    const row = e.currentTarget as HTMLElement | null;
+    if (!row) return;
+    const next = e.relatedTarget as Node | null;
+    if (next && row.contains(next)) return; // still inside the row
+    this.promoteEmptyRowToPending(vpId);
+  }
+
+  /**
+   * Enter-key shortcut on the empty bottom row — same promote-to-pending
+   * pathway as focusout, so power users can stay on the keyboard.
+   */
+  protected onEmptyRowEnter(vpId: number): void {
+    this.promoteEmptyRowToPending(vpId);
+  }
+
+  private promoteEmptyRowToPending(vpId: number): void {
+    const emptyKey = this.tierKey(vpId, 'new');
+    const form = this.tierForms.get(emptyKey);
+    if (!form || !form.dirty) return;
+    const v = form.getRawValue();
+    // Skip rows where the user typed and erased — only effectiveFrom
+    // (which auto-defaults) is left. Without this, a tab-through would
+    // promote a useless row.
+    const hasUserContent = (v.minQuantity != null && v.minQuantity !== '') ||
+                           (v.unitPrice != null && v.unitPrice !== '');
+    if (!hasUserContent) return;
+    // Reuse the form by moving it into the pending list and dropping
+    // the 'new' key — the next access to tierFormFor(vpId, 'new')
+    // builds a fresh empty form for the bottom slot.
+    this.tierForms.delete(emptyKey);
+    const tempId = `pending-${++this.nextPendingTierIndex}`;
+    const pendingKey = this.tierKey(vpId, tempId);
+    this.tierForms.set(pendingKey, form);
+    // Wire the new form into the validity ticker so panelValid /
+    // panelViolations recompute when the user edits a pending row.
+    form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.formsTicker.update(n => n + 1);
+    });
+    const map = new Map(this.pendingTiersByVp());
+    const list = map.get(vpId) ?? [];
+    map.set(vpId, [...list, { tempId, form }]);
+    this.pendingTiersByVp.set(map);
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** Drop a pending tier without saving — the user clicked its X. */
+  protected removePendingTier(vpId: number, tempId: string): void {
+    const map = new Map(this.pendingTiersByVp());
+    const list = (map.get(vpId) ?? []).filter(p => p.tempId !== tempId);
+    map.set(vpId, list);
+    this.pendingTiersByVp.set(map);
+    this.tierForms.delete(this.tierKey(vpId, tempId));
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** Discard all pending tiers — used by the panel-level Cancel path. */
+  private clearPendingTiers(): void {
+    for (const list of this.pendingTiersByVp().values()) {
+      for (const p of list) {
+        // Leave the form in tierForms long enough for any focused field
+        // to settle, then remove on the next tick. (Synchronous delete
+        // would null-out the form binding while a blur handler is still
+        // reading it on its way out.)
+        const vpId = this.findVpIdForPendingForm(p.form);
+        if (vpId != null) this.tierForms.delete(this.tierKey(vpId, p.tempId));
+      }
+    }
+    this.pendingTiersByVp.set(new Map());
+    this.formsTicker.update(n => n + 1);
+  }
+
+  private findVpIdForPendingForm(form: FormGroup): number | null {
+    for (const [vpId, list] of this.pendingTiersByVp().entries()) {
+      if (list.some(p => p.form === form)) return vpId;
+    }
+    return null;
   }
 
   /** Reload tiers — pulls history when the toggle is on. */
@@ -564,22 +888,95 @@ export class VendorSourcesPanelComponent {
    * top user complaint about this panel.
    */
   protected onSaveAll(): void {
+    // Two-phase orchestration so price tiers entered against the
+    // preferred-vendor stub (or any other not-yet-materialized row)
+    // can land under their REAL vp.id after the create() POST completes.
+    //
+    // Phase 1: every dirty row form. saveRow$ for the stub returns the
+    //   newly-created VendorPart and (via adoptStubMaterializedRow)
+    //   re-keys STUB_ID-prefixed pending tiers + tier forms under the
+    //   real id. PATCH calls for already-materialized rows just emit
+    //   the unchanged row.
+    //
+    // Phase 2: every pending tier across all vendors. By the time we
+    //   reach Phase 2, no STUB_ID-keyed pending tiers exist (the stub
+    //   re-key in Phase 1 promoted them to the real id, or there was
+    //   no stub to begin with). POSTs run in parallel via forkJoin.
+    //
+    // forkJoin waits for ALL inner observables to complete (or any to
+    // error) before emitting. After both phases land, we reload, clear
+    // local pending state, and exit edit mode.
+    const partId = this.partId();
+
+    const rowSaves: Observable<VendorPart | null>[] = [];
     for (const [key, form] of this.rowForms.entries()) {
       if (!form.dirty || form.invalid) continue;
       const row = key === this.STUB_ID
         ? null
         : (this.vendorParts().find(v => v.id === key) ?? null);
-      this.saveRow(row);
+      rowSaves.push(this.saveRow$(row));
     }
-    this.cancelled.emit();
+
+    const phase1$ = rowSaves.length > 0 ? forkJoin(rowSaves) : of([]);
+
+    phase1$.subscribe({
+      next: () => {
+        // Phase 2 — fire pending-tier POSTs after rows have materialized.
+        const pendingMap = this.pendingTiersByVp();
+        const tierSaves: Observable<unknown>[] = [];
+        for (const [vpId, list] of pendingMap.entries()) {
+          if (vpId === this.STUB_ID) continue; // shouldn't happen post-Phase-1; defensive
+          for (const p of list) {
+            if (p.form.invalid) continue;
+            const v = p.form.getRawValue();
+            tierSaves.push(
+              this.vendorPartsService.addPriceTier(vpId, {
+                minQuantity: v.minQuantity!,
+                unitPrice: v.unitPrice!,
+                effectiveFrom: v.effectiveFrom
+                  ? new Date(v.effectiveFrom).toISOString()
+                  : null,
+              }).pipe(
+                tap(() => this.tierForms.delete(this.tierKey(vpId, p.tempId))),
+              ),
+            );
+          }
+        }
+
+        const phase2$ = tierSaves.length > 0 ? forkJoin(tierSaves) : of([]);
+        phase2$.subscribe({
+          next: () => {
+            this.pendingTiersByVp.set(new Map());
+            this.formsTicker.update(n => n + 1);
+            if (partId != null) this.reload(partId);
+            this.changed.emit();
+            this.cancelled.emit();
+          },
+          error: () => {
+            this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed'));
+            // Even on tier-save failure, the rows are saved — reload so
+            // the UI matches server state, but DON'T clear the pending
+            // list so the user sees what didn't land.
+            if (partId != null) this.reload(partId);
+            this.changed.emit();
+          },
+        });
+      },
+      error: () => {
+        // Row-save failed; saveRow$ already toasted. Don't proceed to
+        // tier inserts — leave the panel open so the user can retry.
+      },
+    });
   }
 
   /**
-   * Discard any in-progress field edits by reloading from the server
-   * (the source of truth — auto-save-on-blur means committed edits
-   * are already there) and signal the parent to exit edit mode.
+   * Discard any in-progress field edits + every pending new tier (which
+   * never round-tripped the server) by reloading from the source of
+   * truth and clearing the pending list, then signal the parent to exit
+   * edit mode.
    */
   protected onCancel(): void {
+    this.clearPendingTiers();
     const id = this.partId();
     if (id != null) this.load(id);
     this.cancelled.emit();
