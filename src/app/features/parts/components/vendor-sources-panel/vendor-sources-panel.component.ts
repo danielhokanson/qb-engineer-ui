@@ -47,6 +47,24 @@ interface PendingTier {
 }
 
 /**
+ * Flat row for the cross-vendor "Pricing" view — one row per tier
+ * across every vendor source, sorted by min qty then vendor name.
+ * Carries the vendor identity inline so the table is self-contained
+ * (no joins needed at the template level).
+ */
+interface FlatTierRow {
+  tierId: number;
+  vendorPartId: number;
+  vendorCompanyName: string;
+  isPreferred: boolean;
+  minQuantity: number;
+  unitPrice: number;
+  currency: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+}
+
+/**
  * Vendor Sources panel — inline grouped editor for the (Part, Vendor)
  * intersection rows. Replaces the prior list-panel + edit-dialog +
  * tier-dialog stack with a single page surface where each vendor source
@@ -190,6 +208,101 @@ export class VendorSourcesPanelComponent {
     return !this.vendorParts().some(v => v.vendorId === pvId);
   });
 
+  // ─── View modes (re-introduced from PR #51) ─────────────────────────
+  //
+  // Three presentations of the same source list:
+  //   • 'inspector' (default, Pattern C): cards collapsed to header +
+  //     summary + tier table; full per-source 1:1 fields shown in a
+  //     right-side property inspector for the selected card. Best for
+  //     quick scanning + drill-down.
+  //   • 'compare' (Pattern B): cards stacked with a per-card expand
+  //     chevron that accordion-expands the full 1:1 fields inline.
+  //     Best for side-by-side comparison.
+  //   • 'pricing': flat cross-vendor table — one row per tier across
+  //     every source, sorted by min qty asc then vendor name. Answers
+  //     "where can I buy this part cheapest at qty N?" at a glance.
+
+  protected readonly viewMode = signal<'inspector' | 'compare' | 'pricing'>('inspector');
+
+  /** Which source card's details show in the right inspector pane. */
+  protected readonly selectedSourceId = signal<number | null>(null);
+
+  /** In compare mode, which cards have their details accordion expanded. */
+  protected readonly expandedDetailIds = signal<Set<number>>(new Set());
+
+  /** Resolves the selected source object for the inspector pane. */
+  protected readonly selectedSource = computed<VendorPart | null>(() => {
+    const id = this.selectedSourceId();
+    if (id == null) return null;
+    return this.vendorParts().find(v => v.id === id) ?? null;
+  });
+
+  /**
+   * Flat list of every tier across every vendor source on this part —
+   * powers the "Pricing" view. Sorted by min_qty asc, then vendor name
+   * within each min_qty bracket so the user reads down "at qty N,
+   * here's everyone." Respects the showTierHistory toggle: superseded
+   * rows appear (greyed by template class) only when on.
+   */
+  protected readonly allTiersFlat = computed<FlatTierRow[]>(() => {
+    const rows: FlatTierRow[] = [];
+    for (const vp of this.vendorParts()) {
+      for (const t of vp.priceTiers ?? []) {
+        if (!this.showTierHistory() && t.effectiveTo) continue;
+        rows.push({
+          tierId: t.id,
+          vendorPartId: vp.id,
+          vendorCompanyName: vp.vendorCompanyName,
+          isPreferred: vp.isPreferred,
+          minQuantity: t.minQuantity,
+          unitPrice: t.unitPrice,
+          currency: t.currency,
+          effectiveFrom: t.effectiveFrom,
+          effectiveTo: t.effectiveTo,
+        });
+      }
+    }
+    rows.sort((a, b) =>
+      a.minQuantity - b.minQuantity
+      || a.vendorCompanyName.localeCompare(b.vendorCompanyName));
+    return rows;
+  });
+
+  /** Per-card "expanded?" check used by the compare-mode accordion. */
+  protected isExpanded(vpId: number): boolean {
+    return this.expandedDetailIds().has(vpId);
+  }
+
+  /** Compare-mode chevron handler — toggle this card's accordion. */
+  protected toggleDetails(vpId: number): void {
+    const next = new Set(this.expandedDetailIds());
+    if (next.has(vpId)) next.delete(vpId);
+    else next.add(vpId);
+    this.expandedDetailIds.set(next);
+  }
+
+  /** Inspector-mode card click — selects the card for the right pane. */
+  protected selectSource(vpId: number): void {
+    this.selectedSourceId.set(vpId);
+  }
+
+  /**
+   * Header-line summary for a vendor source — small dim text shown in
+   * inspector / compare mode card headers so the user gets the gist
+   * without expanding. Format: "Lead Nd · MOQ N · CC · N tiers".
+   * Each piece is omitted when not present so single-piece rows don't
+   * read as full of placeholders.
+   */
+  protected summary(row: VendorPart): string {
+    const parts: string[] = [];
+    if (row.leadTimeDays != null) parts.push(`Lead ${row.leadTimeDays}d`);
+    if (row.minOrderQty != null) parts.push(`MOQ ${row.minOrderQty}`);
+    if (row.countryOfOrigin) parts.push(row.countryOfOrigin);
+    const tierCount = (row.priceTiers ?? []).filter(t => !t.effectiveTo).length;
+    if (tierCount > 0) parts.push(`${tierCount} tier${tierCount === 1 ? '' : 's'}`);
+    return parts.join(' · ');
+  }
+
   /** Per-row dirty-tracking forms. Indexed by vendorPart id (or -1 for
    *  the preferred stub row). FormGroup created lazily as rows are seen. */
   protected readonly rowForms = new Map<number, FormGroup>();
@@ -232,6 +345,18 @@ export class VendorSourcesPanelComponent {
       .subscribe((vendorId) => {
         if (typeof vendorId === 'number') this.onVendorSelected(vendorId);
       });
+
+    // Inspector mode: auto-select the preferred (or first) source when
+    // nothing is selected and sources are present. Single-source case
+    // never makes the user click — the inspector pane just shows it.
+    effect(() => {
+      if (this.viewMode() !== 'inspector') return;
+      if (this.selectedSourceId() != null) return;
+      const rows = this.sortedRows();
+      if (rows.length === 0) return;
+      const preferred = rows.find(r => r.isPreferred);
+      this.selectedSourceId.set((preferred ?? rows[0]).id);
+    });
   }
 
   // ─── Loading ────────────────────────────────────────────────────────

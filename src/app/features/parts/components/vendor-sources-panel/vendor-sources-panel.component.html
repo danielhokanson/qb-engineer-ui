@@ -1,80 +1,242 @@
-<section class="vendor-sources" [class.vendor-sources--readonly]="!editing()" [appLoadingBlock]="loading()" data-testid="vendor-sources">
+<section class="vendor-sources"
+  [class.vendor-sources--readonly]="!editing()"
+  [class.vendor-sources--inspector]="viewMode() === 'inspector'"
+  [class.vendor-sources--compare]="viewMode() === 'compare'"
+  [class.vendor-sources--pricing]="viewMode() === 'pricing'"
+  [appLoadingBlock]="loading()"
+  data-testid="vendor-sources">
 
-  <!-- ─── Preferred-vendor stub ─────────────────────────────────────
-       Renders when Part.preferredVendorId is set but no VendorPart row
-       exists for that pairing yet. The same form is used in both edit
-       and read-only modes — the [isReadonly] propagation on every
-       <app-input> etc. handles the visual swap (no chrome, no caret,
-       muted action affordances) without changing layout dimensions. -->
-  @if (preferredStubVisible()) {
-    <article class="vendor-source vendor-source--preferred vendor-source--stub" data-testid="vendor-source-stub">
-      <header class="vendor-source__header">
-        <span class="vendor-source__name">{{ preferredVendorName() }}</span>
-        <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
-        @if (editing()) {
-          <span class="vendor-source__chip vendor-source__chip--warn">
-            <span class="material-icons-outlined">edit</span>
-            {{ 'vendorSources.stubHint' | translate }}
-          </span>
-        } @else {
-          <span class="vendor-source__chip vendor-source__chip--warn">
-            <span class="material-icons-outlined">info</span>
-            {{ 'vendorSources.stubHintReadonly' | translate }}
-          </span>
-        }
-      </header>
-      <ng-container *ngTemplateOutlet="rowFields; context: { row: null, form: formFor(null) }" />
-      <!-- Stub price-tier table — the user can enter tiers BEFORE saving.
-           On panel Save, the stub materializes first (POST vendor-part)
-           and the pending tiers are re-keyed under the new vp.id then
-           POSTed in sequence. Currency is read from the stub form so
-           changing the currency selector updates the column header. -->
-      <ng-container *ngTemplateOutlet="tierTable; context: { vpId: STUB_ID, currency: stubCurrency(), row: null }" />
-    </article>
+  <!-- ─── View-mode toggle bar ────────────────────────────────────────
+       Three modes: Inspector (default — compact cards + right-side
+       detail pane), Compare (cards stacked with per-card accordion for
+       side-by-side scanning), Pricing (flat cross-vendor tier table).
+       Hidden when there's no source list to switch over. -->
+  @if (sortedRows().length > 0 || preferredStubVisible()) {
+    <div class="vendor-sources__view-toggle"
+      role="group"
+      [attr.aria-label]="'vendorSources.viewMode.label' | translate">
+      <button type="button"
+        class="vendor-sources__view-btn"
+        [class.vendor-sources__view-btn--active]="viewMode() === 'inspector'"
+        [attr.aria-pressed]="viewMode() === 'inspector'"
+        data-testid="view-mode-inspector"
+        (click)="viewMode.set('inspector')">
+        <span class="material-icons-outlined">view_sidebar</span>
+        <span>{{ 'vendorSources.viewMode.inspector' | translate }}</span>
+      </button>
+      <button type="button"
+        class="vendor-sources__view-btn"
+        [class.vendor-sources__view-btn--active]="viewMode() === 'compare'"
+        [attr.aria-pressed]="viewMode() === 'compare'"
+        data-testid="view-mode-compare"
+        (click)="viewMode.set('compare')">
+        <span class="material-icons-outlined">compare_arrows</span>
+        <span>{{ 'vendorSources.viewMode.compare' | translate }}</span>
+      </button>
+      <button type="button"
+        class="vendor-sources__view-btn"
+        [class.vendor-sources__view-btn--active]="viewMode() === 'pricing'"
+        [attr.aria-pressed]="viewMode() === 'pricing'"
+        data-testid="view-mode-pricing"
+        (click)="viewMode.set('pricing')">
+        <span class="material-icons-outlined">price_check</span>
+        <span>{{ 'vendorSources.viewMode.pricing' | translate }}</span>
+      </button>
+    </div>
   }
 
-  <!-- ─── Existing rows (preferred first, then alpha) ──────────────── -->
-  @for (row of sortedRows(); track row.id) {
-    <article class="vendor-source"
-      [class.vendor-source--preferred]="row.isPreferred"
-      [class.vendor-source--no-tiers]="hasNoTiers(row)"
-      [attr.data-testid]="'vendor-source-' + row.id">
+  <!-- ─── Pricing view ────────────────────────────────────────────────
+       Replaces the source-list layout when active. Flat table across
+       every vendor source, sorted by min qty asc then vendor name. -->
+  @if (viewMode() === 'pricing') {
+    @if (allTiersFlat().length === 0) {
+      <app-empty-state
+        icon="sell"
+        [message]="'vendorSources.pricing.empty.message' | translate"
+        [helpText]="'vendorSources.pricing.empty.help' | translate" />
+    } @else {
+      <table class="vendor-sources__pricing-table">
+        <thead>
+          <tr>
+            <th>{{ 'vendorSources.pricing.col.vendor' | translate }}</th>
+            <th>{{ 'vendorSources.tier.minQty' | translate }}</th>
+            <th>{{ 'vendorSources.tier.unitPrice' | translate }}</th>
+            <th>{{ 'vendorSources.tier.effectiveFrom' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of allTiersFlat(); track row.tierId) {
+            <tr [class.tier-row--superseded]="!!row.effectiveTo"
+                [attr.data-testid]="'pricing-row-' + row.tierId">
+              <td>
+                <span class="vendor-sources__pricing-vendor">{{ row.vendorCompanyName }}</span>
+                @if (row.isPreferred) {
+                  <span class="vendor-source__chip vendor-source__chip--preferred">
+                    {{ 'vendorSources.preferred' | translate }}
+                  </span>
+                }
+              </td>
+              <td>{{ row.minQuantity }}+</td>
+              <td>{{ currencySymbol(row.currency) }}{{ row.unitPrice }} {{ row.currency }}</td>
+              <td>
+                {{ row.effectiveFrom | date:'mediumDate' }}
+                @if (row.effectiveTo) {
+                  <span class="tier-row__effective-to"> → {{ row.effectiveTo | date:'mediumDate' }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  } @else {
+    <!-- ─── Inspector / Compare layout ─────────────────────────────
+         Both share the source-list rendering; differences are:
+          - Inspector: cards compact (header + tier table only); the
+            selected source's full 1:1 fields render in a right-side
+            inspector pane.
+          - Compare: cards have an accordion chevron that expands the
+            full 1:1 fields inline, no right pane. -->
+    <div class="vendor-sources__layout">
+      <div class="vendor-sources__list">
 
-      <header class="vendor-source__header">
-        <span class="vendor-source__name">{{ row.vendorCompanyName }}</span>
-        @if (row.isPreferred) {
-          <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
-        }
-        @if (hasNoTiers(row)) {
-          <span class="vendor-source__chip vendor-source__chip--warn">
-            <span class="material-icons-outlined">price_change</span>
-            {{ 'vendorSources.noTiersWarning' | translate }}
-          </span>
-        }
-        <span class="vendor-source__spacer"></span>
-        @if (editing() && !row.isPreferred) {
-          <button type="button" class="action-btn action-btn--sm"
-            [attr.data-testid]="'vendor-source-set-preferred-' + row.id"
-            (click)="setAsPreferred(row)">
-            <span class="material-icons-outlined">star</span>
-            <span>{{ 'vendorSources.setAsPreferred' | translate }}</span>
-          </button>
-        }
-        @if (editing()) {
-          <button type="button" class="icon-btn icon-btn--danger"
-            [attr.aria-label]="'vendorSources.removeRow.aria' | translate: { vendor: row.vendorCompanyName }"
-            [matTooltip]="'common.remove' | translate"
-            [attr.data-testid]="'vendor-source-remove-' + row.id"
-            (click)="removeRow(row)">
-            <span class="material-icons-outlined">delete</span>
-          </button>
-        }
-      </header>
+        <!-- ─── Preferred-vendor stub ──────────────────────────────
+             Renders when Part.preferredVendorId is set but no VendorPart
+             row exists yet. Same compact-vs-expanded rules as real rows. -->
+        @if (preferredStubVisible()) {
+          <article class="vendor-source vendor-source--preferred vendor-source--stub"
+            [class.vendor-source--selected]="viewMode() === 'inspector' && selectedSourceId() === STUB_ID"
+            [attr.data-testid]="'vendor-source-stub'"
+            [attr.tabindex]="viewMode() === 'inspector' ? 0 : null"
+            [attr.role]="viewMode() === 'inspector' ? 'button' : null"
+            [attr.aria-pressed]="viewMode() === 'inspector' ? selectedSourceId() === STUB_ID : null"
+            (click)="viewMode() === 'inspector' && selectSource(STUB_ID)"
+            (keydown.enter)="viewMode() === 'inspector' && selectSource(STUB_ID)"
+            (keydown.space)="viewMode() === 'inspector' && selectSource(STUB_ID); $event.preventDefault()">
+            <header class="vendor-source__header">
+              <span class="vendor-source__name">{{ preferredVendorName() }}</span>
+              <span class="vendor-source__currency">{{ stubCurrency() }}</span>
+              <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
+              @if (editing()) {
+                <span class="vendor-source__chip vendor-source__chip--warn">
+                  <span class="material-icons-outlined">edit</span>
+                  {{ 'vendorSources.stubHint' | translate }}
+                </span>
+              } @else {
+                <span class="vendor-source__chip vendor-source__chip--warn">
+                  <span class="material-icons-outlined">info</span>
+                  {{ 'vendorSources.stubHintReadonly' | translate }}
+                </span>
+              }
+              <span class="vendor-source__spacer"></span>
+              @if (viewMode() === 'compare') {
+                <button type="button" class="icon-btn"
+                  [attr.aria-label]="(isExpanded(STUB_ID) ? 'vendorSources.details.hide' : 'vendorSources.details.show') | translate"
+                  [matTooltip]="(isExpanded(STUB_ID) ? 'vendorSources.details.hide' : 'vendorSources.details.show') | translate"
+                  data-testid="vendor-source-details-toggle-stub"
+                  (click)="$event.stopPropagation(); toggleDetails(STUB_ID)">
+                  <span class="material-icons-outlined">{{ isExpanded(STUB_ID) ? 'expand_less' : 'expand_more' }}</span>
+                </button>
+              }
+            </header>
 
-      <ng-container *ngTemplateOutlet="rowFields; context: { row: row, form: formFor(row) }" />
+            @if (viewMode() === 'compare' && isExpanded(STUB_ID)) {
+              <ng-container *ngTemplateOutlet="rowFields; context: { row: null, form: formFor(null) }" />
+            }
+            <ng-container *ngTemplateOutlet="tierTable; context: { vpId: STUB_ID, currency: stubCurrency(), row: null }" />
+          </article>
+        }
 
-      <ng-container *ngTemplateOutlet="tierTable; context: { vpId: row.id, currency: row.currency, row: row }" />
-    </article>
+        <!-- ─── Existing rows (preferred first, then alpha) ──────── -->
+        @for (row of sortedRows(); track row.id) {
+          <article class="vendor-source"
+            [class.vendor-source--preferred]="row.isPreferred"
+            [class.vendor-source--no-tiers]="hasNoTiers(row)"
+            [class.vendor-source--selected]="viewMode() === 'inspector' && selectedSourceId() === row.id"
+            [attr.data-testid]="'vendor-source-' + row.id"
+            [attr.tabindex]="viewMode() === 'inspector' ? 0 : null"
+            [attr.role]="viewMode() === 'inspector' ? 'button' : null"
+            [attr.aria-pressed]="viewMode() === 'inspector' ? selectedSourceId() === row.id : null"
+            (click)="viewMode() === 'inspector' && selectSource(row.id)"
+            (keydown.enter)="viewMode() === 'inspector' && selectSource(row.id)"
+            (keydown.space)="viewMode() === 'inspector' && selectSource(row.id); $event.preventDefault()">
+
+            <header class="vendor-source__header">
+              <span class="vendor-source__name">{{ row.vendorCompanyName }}</span>
+              <span class="vendor-source__currency">{{ row.currency }}</span>
+              @if (row.isPreferred) {
+                <span class="vendor-source__chip vendor-source__chip--preferred">{{ 'vendorSources.preferred' | translate }}</span>
+              }
+              @if (hasNoTiers(row)) {
+                <span class="vendor-source__chip vendor-source__chip--warn">
+                  <span class="material-icons-outlined">price_change</span>
+                  {{ 'vendorSources.noTiersWarning' | translate }}
+                </span>
+              }
+              <span class="vendor-source__spacer"></span>
+              @if (summary(row); as s) {
+                <span class="vendor-source__summary">{{ s }}</span>
+              }
+              @if (editing() && !row.isPreferred) {
+                <button type="button" class="action-btn action-btn--sm"
+                  [attr.data-testid]="'vendor-source-set-preferred-' + row.id"
+                  (click)="$event.stopPropagation(); setAsPreferred(row)">
+                  <span class="material-icons-outlined">star</span>
+                  <span>{{ 'vendorSources.setAsPreferred' | translate }}</span>
+                </button>
+              }
+              @if (editing()) {
+                <button type="button" class="icon-btn icon-btn--danger"
+                  [attr.aria-label]="'vendorSources.removeRow.aria' | translate: { vendor: row.vendorCompanyName }"
+                  [matTooltip]="'common.remove' | translate"
+                  [attr.data-testid]="'vendor-source-remove-' + row.id"
+                  (click)="$event.stopPropagation(); removeRow(row)">
+                  <span class="material-icons-outlined">delete</span>
+                </button>
+              }
+              @if (viewMode() === 'compare') {
+                <button type="button" class="icon-btn"
+                  [attr.aria-label]="(isExpanded(row.id) ? 'vendorSources.details.hide' : 'vendorSources.details.show') | translate"
+                  [matTooltip]="(isExpanded(row.id) ? 'vendorSources.details.hide' : 'vendorSources.details.show') | translate"
+                  [attr.data-testid]="'vendor-source-details-toggle-' + row.id"
+                  (click)="$event.stopPropagation(); toggleDetails(row.id)">
+                  <span class="material-icons-outlined">{{ isExpanded(row.id) ? 'expand_less' : 'expand_more' }}</span>
+                </button>
+              }
+            </header>
+
+            <!-- Inspector hides the 1:1 fields here (they live in the
+                 right pane). Compare mode shows them inline only when the
+                 user expanded this card via the chevron. -->
+            @if (viewMode() === 'compare' && isExpanded(row.id)) {
+              <ng-container *ngTemplateOutlet="rowFields; context: { row: row, form: formFor(row) }" />
+            }
+
+            <ng-container *ngTemplateOutlet="tierTable; context: { vpId: row.id, currency: row.currency, row: row }" />
+          </article>
+        }
+      </div>
+
+      <!-- ─── Inspector right pane (Pattern C) ───────────────────────
+           Sticks to the top of the dialog body's scroll context so the
+           selected source's full 1:1 fields stay visible while the user
+           scrolls the source list. Hidden in compare/pricing modes. -->
+      @if (viewMode() === 'inspector') {
+        <aside class="vendor-sources__inspector"
+          [attr.aria-label]="'vendorSources.inspector.label' | translate"
+          data-testid="vendor-sources-inspector">
+          @if (selectedSourceId() === STUB_ID && preferredStubVisible()) {
+            <ng-container *ngTemplateOutlet="rowFields; context: { row: null, form: formFor(null) }" />
+          } @else if (selectedSource(); as sel) {
+            <ng-container *ngTemplateOutlet="rowFields; context: { row: sel, form: formFor(sel) }" />
+          } @else {
+            <div class="vendor-sources__inspector-placeholder">
+              {{ 'vendorSources.inspector.placeholder' | translate }}
+            </div>
+          }
+        </aside>
+      }
+    </div>
   }
 
   <!-- ─── Add another vendor source — editing mode only ───────────── -->
