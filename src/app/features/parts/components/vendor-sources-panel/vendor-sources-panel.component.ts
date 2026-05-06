@@ -34,6 +34,7 @@ import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
 import { VendorQuickCreateDialogComponent, VendorQuickCreateDialogData } from '../../../vendors/components/vendor-quick-create-dialog/vendor-quick-create-dialog.component';
 import { VendorPart, VendorPartPriceTier } from '../../models/vendor-part.model';
 import { VendorPartsService } from '../../services/vendor-parts.service';
+import { toIsoDate } from '../../../../shared/utils/date.utils';
 
 /**
  * A new price tier that the user has typed but not yet committed to the
@@ -1183,9 +1184,14 @@ export class VendorSourcesPanelComponent {
               this.vendorPartsService.addPriceTier(vpId, {
                 minQuantity: v.minQuantity!,
                 unitPrice: v.unitPrice!,
-                effectiveFrom: v.effectiveFrom
-                  ? new Date(v.effectiveFrom).toISOString()
-                  : null,
+                // toIsoDate sends midnight-UTC of the picked LOCAL date
+                // (YYYY-MM-DDT00:00:00Z). Plain .toISOString() would
+                // send midnight-LOCAL converted to UTC, which lands
+                // hours in the future for negative-UTC timezones — and
+                // the server's "currently effective" filter
+                // (effective_from <= now) would then exclude the just-
+                // created active tier from non-history queries.
+                effectiveFrom: toIsoDate(v.effectiveFrom),
               }).pipe(
                 tap(() => this.tierForms.delete(this.tierKey(vpId, tempId))),
               ),
@@ -1207,9 +1213,14 @@ export class VendorSourcesPanelComponent {
               this.vendorPartsService.addPriceTier(vp.id, {
                 minQuantity: v.minQuantity!,
                 unitPrice: v.unitPrice!,
-                effectiveFrom: v.effectiveFrom
-                  ? new Date(v.effectiveFrom).toISOString()
-                  : null,
+                // toIsoDate sends midnight-UTC of the picked LOCAL date
+                // (YYYY-MM-DDT00:00:00Z). Plain .toISOString() would
+                // send midnight-LOCAL converted to UTC, which lands
+                // hours in the future for negative-UTC timezones — and
+                // the server's "currently effective" filter
+                // (effective_from <= now) would then exclude the just-
+                // created active tier from non-history queries.
+                effectiveFrom: toIsoDate(v.effectiveFrom),
               }),
             );
           }
