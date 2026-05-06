@@ -18,6 +18,7 @@ import { SnackbarService } from '../../shared/services/snackbar.service';
 import { ColumnDef } from '../../shared/models/column-def.model';
 
 import { SchedulingService } from './services/scheduling.service';
+import { toDateOnly } from '../../shared/utils/date.utils';
 import {
   ScheduleRun,
   ScheduledOperation,
@@ -199,8 +200,9 @@ export class SchedulingComponent {
   private loadGanttData(): void {
     this.loading.set(true);
     const now = new Date();
-    const from = now.toISOString().split('T')[0];
-    const to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // DateOnly query params; toDateOnly takes the local calendar date.
+    const from = toDateOnly(now)!;
+    const to = toDateOnly(new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000))!;
     this.schedulingService.getGanttData(from, to).subscribe({
       next: ops => { this.ganttOps.set(ops); this.loading.set(false); },
       error: () => this.loading.set(false),
@@ -242,8 +244,8 @@ export class SchedulingComponent {
   // Actions
   protected executeSchedule(): void {
     const now = new Date();
-    const from = now.toISOString().split('T')[0];
-    const to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const from = toDateOnly(now)!;
+    const to = toDateOnly(new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000))!;
 
     this.schedulingService.runScheduler({
       direction: 'Forward',

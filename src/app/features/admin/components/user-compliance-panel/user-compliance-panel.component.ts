@@ -13,6 +13,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { DatepickerComponent } from '../../../../shared/components/datepicker/datepicker.component';
+import { toIsoDate } from '../../../../shared/utils/date.utils';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
 import { ColumnCellDirective } from '../../../../shared/directives/column-cell.directive';
 import { ColumnDef } from '../../../../shared/models/column-def.model';
@@ -201,9 +202,12 @@ export class UserCompliancePanelComponent {
       return;
     }
     this.payrollService.uploadPayStub(id, {
-      payDate: payDate.toISOString(),
-      payPeriodStart: periodStart.toISOString(),
-      payPeriodEnd: periodEnd.toISOString(),
+      // Calendar dates — use toIsoDate so the local date the user picked
+      // is preserved as midnight-UTC of that date. Plain .toISOString()
+      // would shift the day for any negative-UTC timezone.
+      payDate: toIsoDate(payDate)!,
+      payPeriodStart: toIsoDate(periodStart)!,
+      payPeriodEnd: toIsoDate(periodEnd)!,
       grossPay: parseFloat(grossPay),
       netPay: parseFloat(netPay),
       fileAttachmentId: fileId,

@@ -19,6 +19,7 @@ import { ValidationButtonComponent } from '../../../shared/components/validation
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
+import { toDateOnly } from '../../../shared/utils/date.utils';
 
 @Component({
   selector: 'app-eco-list',
@@ -162,7 +163,8 @@ export class EcoListComponent implements OnInit {
       priority: form.priority,
       reasonForChange: form.reasonForChange || undefined,
       impactAnalysis: form.impactAnalysis || undefined,
-      effectiveDate: form.effectiveDate ? form.effectiveDate.toISOString().split('T')[0] : undefined,
+      // Server expects DateOnly. toDateOnly takes the local calendar date.
+      effectiveDate: toDateOnly(form.effectiveDate) ?? undefined,
     }).subscribe({
       next: () => {
         this.snackbar.success('ECO created');

@@ -34,7 +34,7 @@ import { VendorListItem } from '../../../vendors/models/vendor-list-item.model';
 import { VendorQuickCreateDialogComponent, VendorQuickCreateDialogData } from '../../../vendors/components/vendor-quick-create-dialog/vendor-quick-create-dialog.component';
 import { VendorPart, VendorPartPriceTier } from '../../models/vendor-part.model';
 import { VendorPartsService } from '../../services/vendor-parts.service';
-import { toIsoDate } from '../../../../shared/utils/date.utils';
+import { toDateOnly, toIsoDate } from '../../../../shared/utils/date.utils';
 
 /**
  * A new price tier that the user has typed but not yet committed to the
@@ -651,7 +651,10 @@ export class VendorSourcesPanelComponent {
       countryOfOrigin: v.countryOfOrigin || null,
       htsCode: v.htsCode || null,
       certifications: v.certifications || null,
-      lastQuotedDate: v.lastQuotedDate ? new Date(v.lastQuotedDate).toISOString().slice(0, 10) : null,
+      // Server expects DateOnly (YYYY-MM-DD). toDateOnly extracts the
+      // local calendar date — `.toISOString().slice(0, 10)` would take
+      // the UTC date which can differ for negative-UTC users.
+      lastQuotedDate: toDateOnly(v.lastQuotedDate),
       notes: v.notes || null,
       currency: v.currency || 'USD',
     };

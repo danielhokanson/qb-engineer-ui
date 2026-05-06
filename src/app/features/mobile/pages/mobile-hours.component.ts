@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../shared/services/auth.service';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LoadingBlockDirective } from '../../../shared/directives/loading-block.directive';
+import { toDateOnly } from '../../../shared/utils/date.utils';
 
 interface DailyHours {
   date: string;
@@ -77,8 +78,11 @@ export class MobileHoursComponent implements OnInit {
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
 
-    const startStr = weekStart.toISOString().split('T')[0];
-    const endStr = weekEnd.toISOString().split('T')[0];
+    // Server expects DateOnly query params. toDateOnly takes the local
+    // calendar date so the user's "this week" matches what they're
+    // looking at on their calendar regardless of UTC offset.
+    const startStr = toDateOnly(weekStart)!;
+    const endStr = toDateOnly(weekEnd)!;
 
     this.http.get<{ data: HourEntry[] }>('/api/v1/time-tracking/entries', {
       params: {
@@ -115,7 +119,7 @@ export class MobileHoursComponent implements OnInit {
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStart);
       date.setDate(weekStart.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateOnly(date)!;
       const dayEntries = entries.filter((e) => e.startTime?.startsWith(dateStr));
       const totalHours = dayEntries.reduce((sum, e) => sum + (e.hours ?? 0), 0);
 

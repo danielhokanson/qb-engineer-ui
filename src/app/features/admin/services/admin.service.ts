@@ -28,6 +28,7 @@ import { CompanyLocation, CompanyProfile } from '../models/company-location.mode
 import { IntegrationSettingsResult, IntegrationStatus, TestIntegrationResult } from '../models/integration-status.model';
 import { DomainEventFailure } from '../models/domain-event-failure.model';
 import { OutboxEntry, OutboxProvider, OutboxStatus } from '../models/outbox-entry.model';
+import { toIsoDate } from '../../../shared/utils/date.utils';
 import {
   RoleTemplate,
   RoleTemplateAssignee,
@@ -160,7 +161,10 @@ export class AdminService {
   // Pay Period Locking
   lockPayPeriod(lockThrough: Date): Observable<{ lockedCount: number }> {
     return this.http.post<{ lockedCount: number }>(`${environment.apiUrl}/time-tracking/lock-period`, {
-      lockThrough: lockThrough.toISOString(),
+      // Calendar date — toIsoDate preserves the local date as midnight-UTC
+      // (date-shift safe). .toISOString() would land an hour or six in the
+      // future for negative-UTC users.
+      lockThrough: toIsoDate(lockThrough)!,
     });
   }
 
