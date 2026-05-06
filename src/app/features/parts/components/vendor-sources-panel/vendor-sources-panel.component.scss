@@ -300,6 +300,11 @@
     width: 100%;
     border-collapse: collapse;
     font-size: $font-size-sm;
+    // colgroup widths are hints under the default `auto` layout —
+    // browsers can override them based on content. table-layout: fixed
+    // makes them authoritative so the calendar-toggle button never gets
+    // squeezed off the end of the date column.
+    table-layout: fixed;
 
     th {
       text-align: left;
@@ -445,18 +450,18 @@
 
   > .vendor-source {
     // Card width sized to fit the tier table without truncating: 7-figure
-    // qty + 9-figure currency + full mediumDate + per-row actions. With
-    // history the Effective To column adds another full date column and
-    // the card grows to keep the table from clipping.
+    // qty (100) + 9-figure currency (150) + full date + calendar toggle
+    // (150) + per-row actions (32) + ~30px padding/borders. With history
+    // the Effective To column (150) makes the card grow.
     flex: 0 0 auto;
-    width: 480px;
+    width: 520px;
     max-width: 100%;
     min-width: 0;
     display: flex;
     flex-direction: column;
 
     .vendor-sources--with-history & {
-      width: 600px;
+      width: 660px;
     }
   }
 
@@ -493,15 +498,16 @@
 // Tier-table column widths — fixed via colgroup so cards don't reflow
 // when content varies (small qty vs 7-figure qty, etc.) and so readonly
 // vs edit appear identical in size + position (per identity-cluster
-// pattern). Widths sized to fit:
+// pattern). Sized to fit:
 //   • minQty up to 9,999,999 (7-fig with separators) + spinner: 100px
 //   • unitPrice up to $999,999,999.99 (9-fig + change) + spinner: 150px
-//   • effectiveFrom + effectiveTo: full mediumDate ("May 5, 2026"): 120px
+//   • effectiveFrom / effectiveTo: "MM/dd/yyyy" + Material's calendar
+//     toggle button (~40px) + matInput horizontal padding: 150px
 //   • actions: single icon-button, no extra padding: 32px
 .vendor-source__tier-col--qty   { width: 100px; }
 .vendor-source__tier-col--price { width: 150px; }
 .vendor-source__tier-col--from,
-.vendor-source__tier-col--to    { width: 120px; }
+.vendor-source__tier-col--to    { width: 150px; }
 .vendor-source__tier-col--actions { width: 32px; }
 
 .vendor-source__tier-cell--to {

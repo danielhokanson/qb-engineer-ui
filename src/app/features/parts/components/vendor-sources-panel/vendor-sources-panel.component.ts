@@ -47,6 +47,25 @@ interface PendingTier {
 }
 
 /**
+ * One entry in the editable tier table — either a pending tier the user
+ * has typed but not saved, or the always-trailing blank slot at the
+ * bottom. The slotId is stable across kind flips: when an empty slot
+ * promotes to pending, the same slotId stays on it, so Angular's @for
+ * trackBy preserves the underlying TR DOM and the user's focused input
+ * never gets re-created. A NEW empty slot (with a new slotId) is
+ * appended below. Promote-on-input requires this stability — without
+ * it the user's keystrokes after the first one would land on the
+ * fresh empty row that replaced the one they were typing in, causing
+ * a per-keystroke promote spiral.
+ */
+interface TierSlot {
+  slotId: string;
+  kind: 'pending' | 'empty';
+  form: FormGroup;
+  tempId?: string;
+}
+
+/**
  * Flat row for the cross-vendor "Pricing" view — one row per tier
  * across every vendor source, sorted by min qty then vendor name.
  * Carries the vendor identity inline so the table is self-contained
@@ -179,11 +198,21 @@ export class VendorSourcesPanelComponent {
   protected readonly pendingDeletesByVp = signal<Map<number, Set<number>>>(new Map());
 
   /**
-   * Pending-tier tempIds whose green-glow fade-in animation is still
-   * playing. Driven by promoteEmptyRowToPending; auto-clears after the
-   * animation duration (1.2s).
+   * Slot ids whose green-glow fade-in animation is still playing. Used
+   * to highlight the NEW empty slot that just appeared below a row the
+   * user promoted, so the appearance reads as "your data was captured."
    */
-  protected readonly justAddedTempIds = signal<Set<string>>(new Set());
+  protected readonly justAddedSlotIds = signal<Set<string>>(new Set());
+
+  /**
+   * Tier slots (pending typed-but-not-saved + always-trailing empty)
+   * keyed by vendorPartId. Each vp always has at least one slot, and
+   * the LAST one is always kind='empty' so there's a place to type a
+   * new tier. See TierSlot above for why slotIds are stable across
+   * kind flips.
+   */
+  protected readonly tierSlotsByVp = signal<Map<number, TierSlot[]>>(new Map());
+  private slotIdCounter = 0;
 
   /** "Show history" toggle — when true the tier list returns superseded rows too. */
   protected readonly showTierHistory = signal(false);
@@ -469,13 +498,15 @@ export class VendorSourcesPanelComponent {
     }
     // Pending tiers gate Save — surface their problems with the owning
     // vendor's name + a "new tier #N" suffix where N is 1-based position
-    // within the pending list for that vendor.
-    for (const [vpId, list] of this.pendingTiersByVp().entries()) {
+    // within the pending list for that vendor. Empty trailing slots are
+    // skipped — they don't gate validity (the user hasn't typed yet).
+    for (const [vpId, slots] of this.tierSlotsByVp().entries()) {
       const vendorName = vpId === this.STUB_ID
         ? this.preferredVendorName() || ''
         : this.vendorParts().find(v => v.id === vpId)?.vendorCompanyName ?? '';
-      list.forEach((p, idx) => {
-        const items = FormValidationService.collectViolations(p.form, this.violationLabels);
+      const pending = slots.filter(s => s.kind === 'pending');
+      pending.forEach((s, idx) => {
+        const items = FormValidationService.collectViolations(s.form, this.violationLabels);
         for (const msg of items) {
           out.push(vendorName
             ? `${vendorName} (new tier #${idx + 1}): ${msg}`
@@ -500,9 +531,9 @@ export class VendorSourcesPanelComponent {
         if (form && form.invalid) return false;
       }
     }
-    for (const list of this.pendingTiersByVp().values()) {
-      for (const p of list) {
-        if (p.form.invalid) return false;
+    for (const slots of this.tierSlotsByVp().values()) {
+      for (const s of slots) {
+        if (s.kind === 'pending' && s.form.invalid) return false;
       }
     }
     return true;
@@ -677,17 +708,19 @@ export class VendorSourcesPanelComponent {
       }
     }
 
-    // 3) Re-key pending-tier list from STUB_ID to created.id.
-    const pendingMap = new Map(this.pendingTiersByVp());
-    const stubPending = pendingMap.get(this.STUB_ID);
-    if (stubPending && stubPending.length > 0) {
-      pendingMap.delete(this.STUB_ID);
-      const existing = pendingMap.get(created.id) ?? [];
-      pendingMap.set(created.id, [...existing, ...stubPending]);
-      this.pendingTiersByVp.set(pendingMap);
-    } else if (pendingMap.has(this.STUB_ID)) {
-      pendingMap.delete(this.STUB_ID);
-      this.pendingTiersByVp.set(pendingMap);
+    // 3) Re-key tier slots from STUB_ID to created.id (pending + the
+    //    trailing empty). Both kinds carry over so the user's typed
+    //    drafts AND the trailing empty slot land under the real vp id.
+    const slotsMap = new Map(this.tierSlotsByVp());
+    const stubSlots = slotsMap.get(this.STUB_ID);
+    if (stubSlots && stubSlots.length > 0) {
+      slotsMap.delete(this.STUB_ID);
+      const existing = slotsMap.get(created.id) ?? [];
+      slotsMap.set(created.id, [...existing, ...stubSlots]);
+      this.tierSlotsByVp.set(slotsMap);
+    } else if (slotsMap.has(this.STUB_ID)) {
+      slotsMap.delete(this.STUB_ID);
+      this.tierSlotsByVp.set(slotsMap);
     }
 
     // 4) Optimistically merge the created row into vendorParts so
@@ -780,124 +813,151 @@ export class VendorSourcesPanelComponent {
   }
 
   /** True while the green-glow fade-out animation is still playing. */
-  protected isJustAdded(tempId: string): boolean {
-    return this.justAddedTempIds().has(tempId);
+  protected isJustAdded(slotId: string): boolean {
+    return this.justAddedSlotIds().has(slotId);
   }
 
-  // ─── Pending new tiers (batch-save via panel Save) ──────────────────
+  // ─── Tier slots (pending + trailing empty, batch-saved via Save) ───
   //
-  // 2026-05-05 user direction: "Each row can be given a temporary id and
-  // iterated over and saved as a batch." So the bottom empty row, once
-  // edited, becomes a PENDING tier (local-only) and a fresh empty row
-  // takes its slot. Pending tiers are visualized as additional rows but
-  // never round-trip the server until the user clicks the panel Save —
-  // at which point onSaveAll iterates the pending list and POSTs each
-  // one in parallel.
+  // 2026-05-06: previously this was `pendingTiersByVp` (a list of
+  // user-typed-but-not-saved tiers) PLUS a separate static empty <tr>
+  // at the bottom. The split caused a focus-loss problem: when a user
+  // typed in the empty row, the row promoted (form moved to pending),
+  // and the static empty <tr>'s [formGroup] re-bound to a fresh form —
+  // losing focus + truncating mid-keystroke when promote-on-input
+  // fired per character.
   //
-  // Keys + state:
-  //   • The always-empty bottom slot stays keyed by 'new' in tierForms.
-  //   • Each pending tier holds its FormGroup + a stable temp id so
-  //     Angular's track function can keep DOM stable when the user
-  //     types in adjacent rows.
-  //   • pendingTiersByVp is the per-vendor-part list, signal-backed so
-  //     the table re-renders when promote/remove happens.
-
+  // The fix: one @for over `tierSlotsByVp` per vendor, where each slot
+  // has a stable slotId. When an empty slot promotes to pending, its
+  // slotId stays the same — Angular's trackBy keeps the underlying TR
+  // DOM, so the user's focused input element is preserved + their
+  // keystrokes continue going into the same form (now a pending tier).
+  // A new empty slot is appended below with a NEW slotId and a fresh
+  // form. The (input) handler checks slot.kind and bails for already-
+  // promoted slots, so subsequent keystrokes don't re-trigger promote.
   private nextPendingTierIndex = 0;
 
-  protected readonly pendingTiersByVp = signal<Map<number, PendingTier[]>>(new Map());
+  /**
+   * Returns the slot list for a vendor, lazily seeding it with one
+   * trailing empty slot if the vendor has never been touched. Template
+   * helper (called once per render in @for so each vp's slots survive
+   * across CD cycles).
+   */
+  protected tierSlots(vpId: number): TierSlot[] {
+    const existing = this.tierSlotsByVp().get(vpId);
+    if (existing) return existing;
+    // Lazy seeding inside a getter is normally a code smell, but the
+    // template needs the slots to exist on first render. Defer the
+    // signal mutation to a microtask so the current CD cycle isn't
+    // interrupted, and return the seeded list synchronously.
+    const seeded = [this.makeEmptySlot()];
+    queueMicrotask(() => {
+      const map = new Map(this.tierSlotsByVp());
+      if (!map.has(vpId)) {
+        map.set(vpId, seeded);
+        this.tierSlotsByVp.set(map);
+      }
+    });
+    return seeded;
+  }
 
+  /** Filter helper: only the pending tier slots for a vendor. */
+  protected pendingSlots(vpId: number): TierSlot[] {
+    return this.tierSlots(vpId).filter(s => s.kind === 'pending');
+  }
+
+  /** Backwards-compat shape for callers expecting (tempId, form) tuples. */
   protected pendingTiers(vpId: number): PendingTier[] {
-    return this.pendingTiersByVp().get(vpId) ?? [];
+    return this.pendingSlots(vpId).map(s => ({ tempId: s.tempId!, form: s.form }));
   }
 
   /**
-   * On (focusout) from the empty bottom row, if focus is leaving the row
-   * entirely AND the user has typed something, promote the form to a
-   * pending tier and let `tierFormFor(vpId, 'new')` lazily create a
-   * fresh empty form for the next iteration. NO server call here — the
-   * panel Save button is the only commit path. Promote-on-input was
-   * tried 2026-05-06 and reverted: it caused per-keystroke promotion
-   * (user's focus stays on the same DOM input which gets rebound to
-   * a new empty form, so each char triggered a fresh promote).
+   * Build a fresh empty slot. The form has the same Validators as
+   * pending so when the slot promotes nothing changes about the form;
+   * only the kind flag flips.
    */
-  protected onEmptyRowFocusOut(e: FocusEvent, vpId: number): void {
-    const row = e.currentTarget as HTMLElement | null;
-    if (!row) return;
-    const next = e.relatedTarget as Node | null;
-    if (next && row.contains(next)) return; // still inside the row
-    this.promoteEmptyRowToPending(vpId);
-  }
-
-  /**
-   * Enter-key shortcut on the empty bottom row — same promote path as
-   * focusout, so power users can stay on the keyboard.
-   */
-  protected onEmptyRowEnter(vpId: number): void {
-    this.promoteEmptyRowToPending(vpId);
-  }
-
-  /**
-   * Sweep every vendor's empty-row form and promote any that have user
-   * content but never received a focusout (e.g. user typed values then
-   * clicked Save without tabbing out). Belt-and-suspenders so onSaveAll
-   * never silently drops in-flight values.
-   */
-  private flushEmptyRowsBeforeSave(): void {
-    for (const vp of this.vendorParts()) {
-      this.promoteEmptyRowToPending(vp.id);
-    }
-    if (this.preferredStubVisible()) {
-      this.promoteEmptyRowToPending(this.STUB_ID);
-    }
-  }
-
-  private promoteEmptyRowToPending(vpId: number): void {
-    const emptyKey = this.tierKey(vpId, 'new');
-    const form = this.tierForms.get(emptyKey);
-    if (!form) return;
-    const v = form.getRawValue();
-    // Promote only when the user has typed something into qty or price.
-    // effectiveFrom auto-defaults to today, so it doesn't count.
-    const hasUserContent = (v.minQuantity != null && v.minQuantity !== '') ||
-                           (v.unitPrice != null && v.unitPrice !== '');
-    if (!hasUserContent) return;
-    // Reuse the form by moving it into the pending list and dropping
-    // the 'new' key — the next access to tierFormFor(vpId, 'new')
-    // builds a fresh empty form for the bottom slot.
-    this.tierForms.delete(emptyKey);
-    const tempId = `pending-${++this.nextPendingTierIndex}`;
-    const pendingKey = this.tierKey(vpId, tempId);
-    this.tierForms.set(pendingKey, form);
-    // Wire the new form into the validity ticker so panelValid /
-    // panelViolations recompute when the user edits a pending row.
+  private makeEmptySlot(): TierSlot {
+    const slotId = `slot-${++this.slotIdCounter}`;
+    const form = this.fb.group({
+      minQuantity: [null as number | null, [Validators.required, Validators.min(1)]],
+      unitPrice: [null as number | null, [Validators.required, Validators.min(0)]],
+      effectiveFrom: [new Date(), [Validators.required]],
+    });
     form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.formsTicker.update(n => n + 1);
     });
-    const map = new Map(this.pendingTiersByVp());
-    const list = map.get(vpId) ?? [];
-    map.set(vpId, [...list, { tempId, form }]);
-    this.pendingTiersByVp.set(map);
+    return { slotId, kind: 'empty', form };
+  }
 
-    // Green-glow fade-out on the newly-promoted row. Drops out of the
-    // set after the CSS animation finishes (1.2s).
-    const glowSet = new Set(this.justAddedTempIds());
-    glowSet.add(tempId);
-    this.justAddedTempIds.set(glowSet);
+  /**
+   * Fires on every input bubbling out of a tier slot's TR. For empty
+   * slots with user content, promote in place: flip the slot's kind to
+   * 'pending', assign a tempId, and append a brand-new empty slot
+   * below. The slotId stays stable so Angular's @for trackBy keeps the
+   * SAME TR DOM — the user's focused input element survives + their
+   * keystrokes continue going into the same form. Subsequent input
+   * events on the now-pending slot bail at the kind check.
+   */
+  protected onSlotInput(vpId: number, slot: TierSlot): void {
+    if (slot.kind !== 'empty') return;
+    const v = slot.form.getRawValue();
+    const hasUserContent = (v.minQuantity != null && v.minQuantity !== '') ||
+                           (v.unitPrice != null && v.unitPrice !== '');
+    if (!hasUserContent) return;
+
+    // Mutate the slot in place; same slotId + same form ref.
+    const tempId = `pending-${++this.nextPendingTierIndex}`;
+    slot.kind = 'pending';
+    slot.tempId = tempId;
+    // Mirror the form into tierForms so the existing pendingTiers /
+    // findVpIdForPendingForm helpers + onSaveAll can find it by
+    // (vpId, tempId) without changing.
+    this.tierForms.set(this.tierKey(vpId, tempId), slot.form);
+
+    // Append a NEW empty slot. Cloning the array into a new ref is
+    // what triggers the @for re-render — the slot mutation alone
+    // wouldn't be picked up since the array ref didn't change.
+    const newEmpty = this.makeEmptySlot();
+    const map = new Map(this.tierSlotsByVp());
+    const slots = [...(map.get(vpId) ?? [slot]), newEmpty];
+    map.set(vpId, slots);
+    this.tierSlotsByVp.set(map);
+
+    // Green-glow fade-out on the NEW empty slot below — visual
+    // confirmation that "your previous entry was captured, here's a
+    // fresh row." Drops out after the CSS animation duration.
+    const glowSet = new Set(this.justAddedSlotIds());
+    glowSet.add(newEmpty.slotId);
+    this.justAddedSlotIds.set(glowSet);
     setTimeout(() => {
-      const cleared = new Set(this.justAddedTempIds());
-      cleared.delete(tempId);
-      this.justAddedTempIds.set(cleared);
+      const cleared = new Set(this.justAddedSlotIds());
+      cleared.delete(newEmpty.slotId);
+      this.justAddedSlotIds.set(cleared);
     }, 1200);
 
     this.formsTicker.update(n => n + 1);
   }
 
-  /** Drop a pending tier without saving — the user clicked its X. */
+  /**
+   * Save-time sweep: any empty slot with user content the user typed
+   * but never tabbed out of also gets promoted. Belt-and-suspenders so
+   * onSaveAll never silently drops in-flight values.
+   */
+  private flushEmptyRowsBeforeSave(): void {
+    for (const [vpId, slots] of this.tierSlotsByVp().entries()) {
+      const trailing = slots[slots.length - 1];
+      if (trailing && trailing.kind === 'empty') {
+        this.onSlotInput(vpId, trailing);
+      }
+    }
+  }
+
+  /** Drop a pending tier without saving — the user clicked its trash. */
   protected removePendingTier(vpId: number, tempId: string): void {
-    const map = new Map(this.pendingTiersByVp());
-    const list = (map.get(vpId) ?? []).filter(p => p.tempId !== tempId);
-    map.set(vpId, list);
-    this.pendingTiersByVp.set(map);
+    const map = new Map(this.tierSlotsByVp());
+    const slots = (map.get(vpId) ?? []).filter(s => s.tempId !== tempId);
+    map.set(vpId, slots);
+    this.tierSlotsByVp.set(map);
     this.tierForms.delete(this.tierKey(vpId, tempId));
     this.formsTicker.update(n => n + 1);
   }
@@ -905,23 +965,20 @@ export class VendorSourcesPanelComponent {
   /** Discard all pending tiers + pending deletes — used by Cancel. */
   private clearPendingTiers(): void {
     this.pendingDeletesByVp.set(new Map());
-    for (const list of this.pendingTiersByVp().values()) {
-      for (const p of list) {
-        // Leave the form in tierForms long enough for any focused field
-        // to settle, then remove on the next tick. (Synchronous delete
-        // would null-out the form binding while a blur handler is still
-        // reading it on its way out.)
-        const vpId = this.findVpIdForPendingForm(p.form);
-        if (vpId != null) this.tierForms.delete(this.tierKey(vpId, p.tempId));
+    for (const [vpId, slots] of this.tierSlotsByVp().entries()) {
+      for (const s of slots) {
+        if (s.kind === 'pending' && s.tempId) {
+          this.tierForms.delete(this.tierKey(vpId, s.tempId));
+        }
       }
     }
-    this.pendingTiersByVp.set(new Map());
+    this.tierSlotsByVp.set(new Map());
     this.formsTicker.update(n => n + 1);
   }
 
   private findVpIdForPendingForm(form: FormGroup): number | null {
-    for (const [vpId, list] of this.pendingTiersByVp().entries()) {
-      if (list.some(p => p.form === form)) return vpId;
+    for (const [vpId, slots] of this.tierSlotsByVp().entries()) {
+      if (slots.some(s => s.form === form)) return vpId;
     }
     return null;
   }
@@ -1090,12 +1147,14 @@ export class VendorSourcesPanelComponent {
         //     queued via markTierForDelete)
         const tierSaves: Observable<unknown>[] = [];
 
-        const pendingMap = this.pendingTiersByVp();
-        for (const [vpId, list] of pendingMap.entries()) {
+        const slotsMap = this.tierSlotsByVp();
+        for (const [vpId, slots] of slotsMap.entries()) {
           if (vpId === this.STUB_ID) continue; // shouldn't happen post-Phase-1; defensive
-          for (const p of list) {
-            if (p.form.invalid) continue;
-            const v = p.form.getRawValue();
+          for (const s of slots) {
+            if (s.kind !== 'pending' || !s.tempId) continue;
+            if (s.form.invalid) continue;
+            const v = s.form.getRawValue();
+            const tempId = s.tempId;
             tierSaves.push(
               this.vendorPartsService.addPriceTier(vpId, {
                 minQuantity: v.minQuantity!,
@@ -1104,7 +1163,7 @@ export class VendorSourcesPanelComponent {
                   ? new Date(v.effectiveFrom).toISOString()
                   : null,
               }).pipe(
-                tap(() => this.tierForms.delete(this.tierKey(vpId, p.tempId))),
+                tap(() => this.tierForms.delete(this.tierKey(vpId, tempId))),
               ),
             );
           }
@@ -1142,7 +1201,7 @@ export class VendorSourcesPanelComponent {
         const phase2$ = tierSaves.length > 0 ? forkJoin(tierSaves) : of([]);
         phase2$.subscribe({
           next: () => {
-            this.pendingTiersByVp.set(new Map());
+            this.tierSlotsByVp.set(new Map());
             this.pendingDeletesByVp.set(new Map());
             this.formsTicker.update(n => n + 1);
             if (partId != null) this.reload(partId);
