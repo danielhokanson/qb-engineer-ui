@@ -8,13 +8,26 @@
 <div class="parts-layout">
 
   <div class="parts-list-panel">
-    <!-- Filters -->
+    <!-- Filters — drive SERVER-side queries (parts list is paginated;
+         column-menu filters are client-side only and won't see rows
+         that aren't loaded). External controls stay until the
+         server-side filter wiring is in place. -->
     <div class="filters-bar">
       <app-input [label]="'common.search' | translate" [formControl]="searchControl" [placeholder]="'parts.searchPlaceholder' | translate"
         (keyup.enter)="applyFilters()" />
       <app-select [label]="'common.status' | translate" [formControl]="statusFilterControl" [options]="statusFilterOptions" />
       <app-select label="Procurement" [formControl]="procurementFilterControl" [options]="procurementFilterOptions" />
       <app-select label="Class" [formControl]="inventoryClassFilterControl" [options]="inventoryClassFilterOptions" />
+    </div>
+
+    <!--
+      View toggle — extracted to a template so the same markup renders
+      in both card mode (above the cards grid) and table mode (projected
+      into the DataTable's gear cell via [table-actions]). 2026-05-05
+      user direction: in table mode, the toggle lives alongside Export
+      and Settings in the table's upper-right corner.
+    -->
+    <ng-template #viewToggle>
       <div class="view-toggle" role="group" [attr.aria-label]="'parts.viewModeLabel' | translate">
         <button class="icon-btn" [class.icon-btn--active]="viewMode() === 'table'"
                 (click)="setViewMode('table')"
@@ -31,19 +44,27 @@
           <span class="material-icons-outlined">grid_view</span>
         </button>
       </div>
-    </div>
+    </ng-template>
 
     <div [appLoadingBlock]="loading()" class="parts-list-content">
       @if (viewMode() === 'cards') {
-        <app-parts-card-grid
-          [parts]="parts()"
-          [selectedPartId]="null"
-          (partClick)="openPartDetail($event.id)" />
+        <div class="parts-cards-shell">
+          <div class="parts-cards-shell__actions">
+            <ng-container *ngTemplateOutlet="viewToggle" />
+          </div>
+          <app-parts-card-grid
+            [parts]="parts()"
+            [selectedPartId]="null"
+            (partClick)="openPartDetail($event.id)" />
+        </div>
       } @else {
         <app-data-table tableId="parts" [columns]="partColumns" [data]="combinedRows()"
           emptyIcon="inventory_2" [emptyMessage]="'parts.noPartsFound' | translate" [emptyHelpText]="'parts.noPartsHelp' | translate"
           [clickableRows]="true" [rowClass]="partRowClass" [pinPredicate]="isDraftRow"
           (rowClick)="onRowClick($any($event))">
+          <div table-actions>
+            <ng-container *ngTemplateOutlet="viewToggle" />
+          </div>
           <ng-template appColumnCell="partNumber" let-part>
             @if (part._draftRun) {
               <span class="part-row__draft-tag">{{ 'parts.drafts.rowLabel' | translate }}</span>

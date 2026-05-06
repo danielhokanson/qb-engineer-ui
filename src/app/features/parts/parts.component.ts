@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -49,7 +49,7 @@ type ViewMode = 'table' | 'cards';
   selector: 'app-parts',
   standalone: true,
   imports: [
-    DatePipe,
+    DatePipe, NgTemplateOutlet,
     ReactiveFormsModule, TranslatePipe,
     PageHeaderComponent, DialogComponent,
     InputComponent, SelectComponent, TextareaComponent,

@@ -50,6 +50,23 @@
   flex-direction: column;
 }
 
+// ─── Cards-mode shell ───────────────────────────────────────────
+// Wraps the cards grid + the view-toggle so the toggle aligns to
+// the upper-right (mirroring its position inside the DataTable's
+// gear cell when in table mode — consistent placement across modes).
+.parts-cards-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.parts-cards-shell__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: $sp-sm $sp-md;
+}
+
 // ─── Cell Styles ───
 .part-number { font-weight: 700; font-family: $font-family-mono; font-size: var(--font-size-xs); }
 .part-desc { @include truncate; max-width: 240px; }

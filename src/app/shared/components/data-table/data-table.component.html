@@ -27,45 +27,48 @@
                 [style.left.px]="first && stickyFirstColumn() ? stickyLeftOffset() : null"
                 (click)="onHeaderClick(col, $event)"
                 (contextmenu)="onHeaderContextMenu(col, $event)">
-                <span class="data-table__th-content">
-                  {{ col.header }}
-                  @if (getSortState(col.field); as sort) {
-                    <span class="material-icons-outlined data-table__sort-icon">
-                      {{ sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                    </span>
-                  }
-                </span>
-                <!--
-                  Unified column menu (2026-05-05 user direction): every
-                  column gets a single chevron that opens a menu with sort,
-                  filter, hide, and reset-width — eliminating the separate
-                  inline filter icon and freeing pages from external
-                  filter/sort toolbars. Click sets contextMenuCol BEFORE
-                  the matMenuTriggerFor opens, so the menu reads the
-                  right column's options. Right-click on the th still
-                  opens the same menu (preserved as a power-user shortcut).
-                  The chevron tints + shows a dot indicator when this
-                  column has an active filter.
-                -->
-                <button
-                  class="data-table__col-menu-btn"
-                  [class.data-table__col-menu-btn--has-filter]="hasFilter(col.field)"
-                  [matMenuTriggerFor]="headerContextMenu"
-                  (click)="contextMenuCol.set(col); $event.stopPropagation()"
-                  [attr.aria-label]="('shared.columnMenu' | translate:{ column: col.header })"
-                  [matTooltip]="('shared.columnMenu' | translate:{ column: col.header })" matTooltipPosition="above"
-                  cdkOverlayOrigin
-                  #filterOrigin="cdkOverlayOrigin">
-                  <span class="material-icons-outlined">arrow_drop_down</span>
-                </button>
+                <div class="data-table__th-inner">
+                  <span class="data-table__th-content">
+                    {{ col.header }}
+                    @if (getSortState(col.field); as sort) {
+                      <span class="material-icons-outlined data-table__sort-icon">
+                        {{ sort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    }
+                  </span>
+                  <!--
+                    Unified column menu kebab (2026-05-05 user direction):
+                    every column gets a single three-dots button on the
+                    far right that opens a menu with sort, filter, hide,
+                    and reset-width — eliminating the separate inline
+                    filter icon. Click sets contextMenuCol BEFORE the
+                    matMenuTriggerFor opens. Right-click on the th still
+                    opens the same menu (power-user shortcut). The kebab
+                    tints + shows a dot indicator when this column has
+                    an active filter.
+                  -->
+                  <button
+                    class="data-table__col-menu-btn"
+                    [class.data-table__col-menu-btn--has-filter]="hasFilter(col.field)"
+                    [matMenuTriggerFor]="headerContextMenu"
+                    (click)="contextMenuCol.set(col); $event.stopPropagation()"
+                    [attr.aria-label]="('shared.columnMenu' | translate:{ column: col.header })"
+                    [matTooltip]="('shared.columnMenu' | translate:{ column: col.header })" matTooltipPosition="above"
+                    cdkOverlayOrigin
+                    #filterOrigin="cdkOverlayOrigin">
+                    <span class="material-icons-outlined">more_vert</span>
+                  </button>
+                </div>
 
                 <!--
-                  Column-filter popover. Anchored to the column-menu chevron
+                  Column-filter popover. Anchored to the column-menu kebab
                   so it visually flows from the menu's "Filter…" item.
                   filterOpenField is set by contextFilter() inside the
-                  context menu when the user picks "Filter…".
+                  context menu when the user picks "Filter…". Renders for
+                  every column where filterable is not explicitly false
+                  (default behavior — text filter applies everywhere).
                 -->
-                @if (col.filterable) {
+                @if (col.filterable !== false) {
                   <ng-template
                     cdkConnectedOverlay
                     [cdkConnectedOverlayOrigin]="filterOrigin"
@@ -88,22 +91,34 @@
               </th>
             }
             <th class="data-table__th data-table__th--gear">
-              <button
-                class="data-table__gear-btn"
-                [attr.aria-label]="'shared.exportCsv' | translate"
-                [matTooltip]="'shared.exportCsv' | translate" matTooltipPosition="above"
-                (click)="exportCsv()">
-                <span class="material-icons-outlined">download</span>
-              </button>
-              <button
-                class="data-table__gear-btn"
-                [attr.aria-label]="'shared.manageColumns' | translate"
-                [matTooltip]="'shared.manageColumns' | translate" matTooltipPosition="above"
-                (click)="toggleColumnManager($event)"
-                cdkOverlayOrigin
-                #colManagerOrigin="cdkOverlayOrigin">
-                <span class="material-icons-outlined">settings</span>
-              </button>
+              <div class="data-table__th-inner">
+                <!--
+                  Consumer-projected actions slot. Pages can drop arbitrary
+                  buttons here (view-toggle, download-pdf, etc.) and they
+                  render alongside the built-in Export + Settings icons in
+                  the upper-right corner of the table. 2026-05-05 user
+                  direction: "If there is a card view toggle, it also needs
+                  to fit inside the header in the upper right hand side
+                  with the export and settings".
+                -->
+                <ng-content select="[table-actions]" />
+                <button
+                  class="data-table__gear-btn"
+                  [attr.aria-label]="'shared.exportCsv' | translate"
+                  [matTooltip]="'shared.exportCsv' | translate" matTooltipPosition="above"
+                  (click)="exportCsv()">
+                  <span class="material-icons-outlined">download</span>
+                </button>
+                <button
+                  class="data-table__gear-btn"
+                  [attr.aria-label]="'shared.manageColumns' | translate"
+                  [matTooltip]="'shared.manageColumns' | translate" matTooltipPosition="above"
+                  (click)="toggleColumnManager($event)"
+                  cdkOverlayOrigin
+                  #colManagerOrigin="cdkOverlayOrigin">
+                  <span class="material-icons-outlined">settings</span>
+                </button>
+              </div>
             </th>
           </tr>
         </thead>
@@ -220,7 +235,13 @@
       }
       <mat-divider />
     }
-    @if (col.filterable) {
+    <!--
+      Filter is always available — every column can be filtered. The popover
+      defaults to a text filter when col.type isn't specified, so opting OUT
+      of filtering is rare (action-only columns can set filterable: false to
+      hide the row, but the default is filter-on).
+    -->
+    @if (col.filterable !== false) {
       <button mat-menu-item (click)="contextFilter()">
         <span class="material-icons-outlined">filter_list</span>
         <span>{{ 'shared.filterEllipsis' | translate }}</span>

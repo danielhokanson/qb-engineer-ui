@@ -62,6 +62,9 @@
   position: sticky;
   top: 0;
   z-index: $z-sticky;
+  // NOTE: keep display: table-cell (default). Setting display: flex on
+  // the th breaks the table row layout (cells stack vertically). The
+  // inner __th-inner wrapper handles flex layout for the label + kebab.
 
   &--sortable {
     cursor: pointer;
@@ -85,14 +88,31 @@
   }
 
   &--gear {
-    width: 32px;
+    width: auto;
+    min-width: 32px;
     padding: $sp-md $sp-sm;
-    text-align: center;
+    text-align: right;
   }
 
   &:hover .data-table__resize-handle {
     opacity: 0.3;
   }
+}
+
+// Inner flex wrapper for column headers: label on the left (or aligned
+// per --right/--center modifiers via th's text-align), kebab pushed to
+// the far right via margin-left: auto. Kept inside a wrapper so the
+// outer th stays display: table-cell.
+.data-table__th-inner {
+  display: flex;
+  align-items: center;
+  gap: $sp-xs;
+}
+
+// Same pattern for the gear cell — flex inside, table-cell outside.
+.data-table__th--gear .data-table__th-inner {
+  justify-content: flex-end;
+  gap: $sp-xs;
 }
 
 .data-table__gear-btn {
@@ -115,7 +135,10 @@
 }
 
 .data-table__th-content {
-  display: inline;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table__sort-icon {
@@ -138,8 +161,8 @@
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
-  margin-left: $sp-xs;
-  display: inline-flex;
+  margin-left: auto;          // far right of the th, regardless of text-align
+  flex: 0 0 auto;
   vertical-align: middle;
   opacity: 0;
   transition: opacity $transition-fast, color $transition-fast,
