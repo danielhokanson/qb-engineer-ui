@@ -499,45 +499,49 @@
           }
 
           @if (editing()) {
-            @for (p of pendingTiers(vpId); track p.tempId) {
-              <tr class="tier-row--pending"
-                  [class.tier-row--just-added]="isJustAdded(p.tempId)"
-                  [attr.data-testid]="'tier-row-pending-' + p.tempId">
-                <ng-container [formGroup]="p.form">
-                  <td><app-input label="" type="number" formControlName="minQuantity" [required]="true" /></td>
-                  <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(currency)" [required]="true" /></td>
+            <!--
+              Single @for over slots (pending + the trailing empty),
+              tracked by stable slotId. When the empty slot promotes on
+              first input, its slotId stays the same — the SAME TR DOM
+              survives, the user's focused input element is preserved,
+              and their continued keystrokes go into the same form (now
+              a pending tier). A NEW empty slot with a fresh slotId is
+              appended below.
+            -->
+            @for (slot of tierSlots(vpId); track slot.slotId) {
+              <tr [class.tier-row--pending]="slot.kind === 'pending'"
+                  [class.tier-row--empty]="slot.kind === 'empty'"
+                  [class.tier-row--just-added]="isJustAdded(slot.slotId)"
+                  [attr.data-testid]="slot.kind === 'pending' ? ('tier-row-pending-' + slot.tempId) : ('tier-row-new-' + vpId)"
+                  (input)="onSlotInput(vpId, slot)">
+                <ng-container [formGroup]="slot.form">
+                  <td><app-input label="" type="number" formControlName="minQuantity"
+                    [required]="slot.kind === 'pending'"
+                    [placeholder]="slot.kind === 'empty' ? ('vendorSources.tier.placeholderMinQty' | translate) : null" /></td>
+                  <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(currency)"
+                    [required]="slot.kind === 'pending'"
+                    [placeholder]="slot.kind === 'empty' ? ('vendorSources.tier.placeholderPrice' | translate) : null" /></td>
                   <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
                   @if (showTierHistory()) {
                     <td class="vendor-source__tier-cell--to">
-                      <span class="tier-row__current">—</span>
+                      @if (slot.kind === 'pending') {
+                        <span class="tier-row__current">—</span>
+                      }
                     </td>
                   }
                   <td class="vendor-source__tier-actions">
-                    <button type="button" class="icon-btn icon-btn--danger"
-                      [matTooltip]="'common.remove' | translate"
-                      [attr.aria-label]="'vendorSources.tier.removePending' | translate"
-                      (click)="removePendingTier(vpId, p.tempId)">
-                      <span class="material-icons-outlined">delete</span>
-                    </button>
+                    @if (slot.kind === 'pending') {
+                      <button type="button" class="icon-btn icon-btn--danger"
+                        [matTooltip]="'common.remove' | translate"
+                        [attr.aria-label]="'vendorSources.tier.removePending' | translate"
+                        (click)="removePendingTier(vpId, slot.tempId!)">
+                        <span class="material-icons-outlined">delete</span>
+                      </button>
+                    }
                   </td>
                 </ng-container>
               </tr>
             }
-
-            <tr class="tier-row--empty"
-                [attr.data-testid]="'tier-row-new-' + vpId"
-                (focusout)="onEmptyRowFocusOut($event, vpId)"
-                (keydown.enter)="onEmptyRowEnter(vpId)">
-              <ng-container [formGroup]="tierFormFor(vpId, 'new')">
-                <td><app-input label="" type="number" formControlName="minQuantity" [placeholder]="'vendorSources.tier.placeholderMinQty' | translate" /></td>
-                <td><app-currency-input label="" formControlName="unitPrice" [currencySymbol]="currencySymbol(currency)" [placeholder]="'vendorSources.tier.placeholderPrice' | translate" /></td>
-                <td><app-datepicker label="" formControlName="effectiveFrom" /></td>
-                @if (showTierHistory()) {
-                  <td class="vendor-source__tier-cell--to"></td>
-                }
-                <td class="vendor-source__tier-actions"></td>
-              </ng-container>
-            </tr>
           }
         </tbody>
       </table>
