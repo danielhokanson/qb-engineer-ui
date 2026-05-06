@@ -471,7 +471,22 @@ export class VendorSourcesPanelComponent {
   protected readonly panelViolations = computed<string[]>(() => {
     this.formsTicker(); // dependency
     const out: string[] = [];
-    for (const [, form] of this.rowForms.entries()) {
+    // Only iterate row forms that correspond to a CURRENTLY VISIBLE
+    // vendor card. The STUB_ID form is only visible when preferredStub-
+    // Visible() is true; once the stub materializes (via
+    // adoptStubMaterializedRow), the STUB_ID form gets re-keyed under
+    // the real vp.id. But if a stale STUB_ID entry survives the
+    // transition for any reason (race, cancelled save, etc.) the user
+    // would see a phantom "Acme Metals Supply: Vendor Part # is required"
+    // with the field clearly filled. Skip orphan keys.
+    const visibleVpIds = new Set(this.vendorParts().map(v => v.id));
+    const stubVisible = this.preferredStubVisible();
+    for (const [key, form] of this.rowForms.entries()) {
+      if (key === this.STUB_ID) {
+        if (!stubVisible) continue;
+      } else if (!visibleVpIds.has(key)) {
+        continue;
+      }
       const vendorName = this.vendorNameForForm(form);
       const items = FormValidationService.collectViolations(form, this.violationLabels);
       for (const msg of items) {
@@ -519,7 +534,16 @@ export class VendorSourcesPanelComponent {
 
   protected readonly panelValid = computed<boolean>(() => {
     this.formsTicker();
-    for (const [, form] of this.rowForms.entries()) {
+    // Same orphan-key skip as panelViolations: only gate on row forms
+    // whose vendor card is actually visible.
+    const visibleVpIds = new Set(this.vendorParts().map(v => v.id));
+    const stubVisible = this.preferredStubVisible();
+    for (const [key, form] of this.rowForms.entries()) {
+      if (key === this.STUB_ID) {
+        if (!stubVisible) continue;
+      } else if (!visibleVpIds.has(key)) {
+        continue;
+      }
       if (form.invalid) return false;
     }
     for (const vp of this.vendorParts()) {
