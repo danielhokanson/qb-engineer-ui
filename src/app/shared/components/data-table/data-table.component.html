@@ -22,6 +22,7 @@
                 [class.data-table__th--right]="col.align === 'right'"
                 [class.data-table__th--center]="col.align === 'center'"
                 [class.data-table__th--sticky]="first && stickyFirstColumn()"
+                [class.data-table__th--has-filter]="hasFilter(col.field)"
                 [style.width]="getColumnWidth(col)"
                 [style.left.px]="first && stickyFirstColumn() ? stickyLeftOffset() : null"
                 (click)="onHeaderClick(col, $event)"
@@ -34,18 +35,37 @@
                     </span>
                   }
                 </span>
-                @if (col.filterable) {
-                  <button
-                    class="data-table__filter-btn"
-                    [class.data-table__filter-btn--active]="hasFilter(col.field)"
-                    (click)="openFilter(col.field, $event)"
-                    [attr.aria-label]="('shared.filterColumn' | translate:{ column: col.header })"
-                    [matTooltip]="('shared.filterColumn' | translate:{ column: col.header })" matTooltipPosition="above"
-                    cdkOverlayOrigin
-                    #filterOrigin="cdkOverlayOrigin">
-                    <span class="material-icons-outlined">filter_list</span>
-                  </button>
+                <!--
+                  Unified column menu (2026-05-05 user direction): every
+                  column gets a single chevron that opens a menu with sort,
+                  filter, hide, and reset-width — eliminating the separate
+                  inline filter icon and freeing pages from external
+                  filter/sort toolbars. Click sets contextMenuCol BEFORE
+                  the matMenuTriggerFor opens, so the menu reads the
+                  right column's options. Right-click on the th still
+                  opens the same menu (preserved as a power-user shortcut).
+                  The chevron tints + shows a dot indicator when this
+                  column has an active filter.
+                -->
+                <button
+                  class="data-table__col-menu-btn"
+                  [class.data-table__col-menu-btn--has-filter]="hasFilter(col.field)"
+                  [matMenuTriggerFor]="headerContextMenu"
+                  (click)="contextMenuCol.set(col); $event.stopPropagation()"
+                  [attr.aria-label]="('shared.columnMenu' | translate:{ column: col.header })"
+                  [matTooltip]="('shared.columnMenu' | translate:{ column: col.header })" matTooltipPosition="above"
+                  cdkOverlayOrigin
+                  #filterOrigin="cdkOverlayOrigin">
+                  <span class="material-icons-outlined">arrow_drop_down</span>
+                </button>
 
+                <!--
+                  Column-filter popover. Anchored to the column-menu chevron
+                  so it visually flows from the menu's "Filter…" item.
+                  filterOpenField is set by contextFilter() inside the
+                  context menu when the user picks "Filter…".
+                -->
+                @if (col.filterable) {
                   <ng-template
                     cdkConnectedOverlay
                     [cdkConnectedOverlayOrigin]="filterOrigin"

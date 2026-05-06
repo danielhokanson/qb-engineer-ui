@@ -124,32 +124,59 @@
   margin-left: $sp-xs;
 }
 
-.data-table__filter-btn {
+// Unified column-menu chevron — replaces the prior inline filter button.
+// One per column header; click opens the matMenu with sort / filter /
+// hide / reset-width. Faded at rest, tinted on hover, shows a primary-
+// colored dot indicator when this column has an active filter so the
+// chip is visible at a glance even with the menu closed.
+.data-table__col-menu-btn {
   @include flex-center;
-  width: $icon-size-sm;
-  height: $icon-size-sm;
+  width: $icon-size-md;
+  height: $icon-size-md;
   background: none;
-  border: none;
+  border: 0;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
-  margin-left: $sp-sm;
+  margin-left: $sp-xs;
   display: inline-flex;
   vertical-align: middle;
   opacity: 0;
-  transition: opacity $transition-fast;
+  transition: opacity $transition-fast, color $transition-fast,
+    background-color $transition-fast;
+  position: relative;
 
   .material-icons-outlined {
-    font-size: var(--font-size-base);
+    font-size: $icon-size-md;
   }
 
-  &--active {
+  &:hover,
+  &[aria-expanded='true'] {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  // Persistent dot when this column has a filter applied — surfaces the
+  // affordance even without hovering the column.
+  &--has-filter {
     opacity: 1;
     color: var(--primary);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
   }
 }
 
-.data-table__th:hover .data-table__filter-btn {
+.data-table__th:hover .data-table__col-menu-btn,
+.data-table__th--sortable .data-table__col-menu-btn[aria-expanded='true'] {
   opacity: 1;
 }
 

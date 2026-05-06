@@ -55,6 +55,22 @@
         [message]="'vendorSources.pricing.empty.message' | translate"
         [helpText]="'vendorSources.pricing.empty.help' | translate" />
     } @else {
+      <!--
+        Show-History toggle for the cross-vendor pricing view. The same
+        toggle existed on per-source tier tables; the pricing view is
+        downstream of the same showTierHistory signal, so the toggle
+        controls superseded-row visibility here too. Without this, users
+        on the pricing view had no way to surface historical tiers
+        (2026-05-05 user complaint: "history isn't showing up on the All").
+      -->
+      <header class="vendor-sources__pricing-header">
+        <button type="button" class="vendor-source__tier-history-toggle"
+          data-testid="pricing-tier-history-toggle"
+          (click)="toggleTierHistory()">
+          <span class="material-icons-outlined">{{ showTierHistory() ? 'visibility_off' : 'history' }}</span>
+          <span>{{ (showTierHistory() ? 'vendorSources.tier.hideHistory' : 'vendorSources.tier.showHistory') | translate }}</span>
+        </button>
+      </header>
       <table class="vendor-sources__pricing-table">
         <thead>
           <tr>

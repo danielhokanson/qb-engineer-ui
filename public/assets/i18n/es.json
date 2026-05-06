@@ -2762,6 +2762,7 @@
     "exportCsv": "Exportar CSV",
     "manageColumns": "Gestionar columnas",
     "filterColumn": "Filtrar {{column}}",
+    "columnMenu": "Opciones de {{column}}",
     "sortAscending": "Ordenar ascendente",
     "sortDescending": "Ordenar descendente",
     "clearSort": "Limpiar orden",

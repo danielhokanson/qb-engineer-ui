@@ -68,25 +68,55 @@ const FILES: TabLayoutEntry = { id: 'files', labelKey: 'parts.detail.tabs.files'
 export class PartDetailLayoutResolverService {
   resolve(procurementSource: ProcurementSource, inventoryClass: InventoryClass): TabLayoutEntry[] {
     const middle = this.middleTabs(procurementSource, inventoryClass);
-    return [IDENTITY, ...middle, ACTIVITY, FILES];
+    // Purchase History is always available — even Make / Phantom parts may
+    // have historical POs (a part could have been re-classified from Buy
+    // to Make over time, or pre-classification POs may exist). User
+    // direction (2026-05-05): always show it. The empty state covers the
+    // "no POs reference this part" case cleanly.
+    const middleWithPo = this.injectPurchaseHistory(middle);
+    return [IDENTITY, ...middleWithPo, ACTIVITY, FILES];
+  }
+
+  /**
+   * Insert PURCHASE_HISTORY into the middle layout. Per-layout placement:
+   *   • If SOURCING is present, PURCHASE_HISTORY follows it (buyer flow:
+   *     "current vendors" → "what we've ordered from them historically").
+   *   • Otherwise, PURCHASE_HISTORY follows the first inventory-or-bom tab
+   *     so it never lands as the very first tab on a Make/Phantom layout
+   *     (those open with their material/BOM context, not buying history).
+   *   • If neither exists, PURCHASE_HISTORY goes at the end.
+   *
+   * No-op if PURCHASE_HISTORY is somehow already in the layout (defensive).
+   */
+  private injectPurchaseHistory(middle: TabLayoutEntry[]): TabLayoutEntry[] {
+    if (middle.some(t => t.id === 'purchaseHistory')) return middle;
+    const sourceIdx = middle.findIndex(t => t.id === 'sourcing');
+    if (sourceIdx >= 0) {
+      return [...middle.slice(0, sourceIdx + 1), PURCHASE_HISTORY, ...middle.slice(sourceIdx + 1)];
+    }
+    const anchorIdx = middle.findIndex(t => t.id === 'inventory' || t.id === 'bom' || t.id === 'material');
+    if (anchorIdx >= 0) {
+      return [...middle.slice(0, anchorIdx + 1), PURCHASE_HISTORY, ...middle.slice(anchorIdx + 1)];
+    }
+    return [...middle, PURCHASE_HISTORY];
   }
 
   private middleTabs(ps: ProcurementSource, ic: InventoryClass): TabLayoutEntry[] {
     // Buy + Raw (B1)
     if (ps === 'Buy' && ic === 'Raw') {
-      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING];
+      return [SOURCING, INVENTORY, QUALITY, COST, PRICING];
     }
     // Buy + Component / Subassembly / FinishedGood (B2 / B3 / B4)
     if (ps === 'Buy' && (ic === 'Component' || ic === 'Subassembly' || ic === 'FinishedGood')) {
-      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
     // Buy + Consumable (B5) — no Quality
     if (ps === 'Buy' && ic === 'Consumable') {
-      return [SOURCING, PURCHASE_HISTORY, INVENTORY, COST, PRICING];
+      return [SOURCING, INVENTORY, COST, PRICING];
     }
     // Buy + Tool (B6)
     if (ps === 'Buy' && ic === 'Tool') {
-      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
 
     // Make + Component (M1)
@@ -104,10 +134,10 @@ export class PartDetailLayoutResolverService {
 
     // Subcontract + Component / Subassembly (S1 / S2)
     if (ps === 'Subcontract' && ic === 'Component') {
-      return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
     if (ps === 'Subcontract' && ic === 'Subassembly') {
-      return [SOURCING, PURCHASE_HISTORY, BOM, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+      return [SOURCING, BOM, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
     }
 
     // Phantom + Subassembly / FinishedGood (P1 / P3) — never stocked, never priced
@@ -116,6 +146,6 @@ export class PartDetailLayoutResolverService {
     }
 
     // Default: Buy + Component layout
-    return [SOURCING, PURCHASE_HISTORY, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
+    return [SOURCING, INVENTORY, QUALITY, COST, PRICING, ALTERNATES];
   }
 }
