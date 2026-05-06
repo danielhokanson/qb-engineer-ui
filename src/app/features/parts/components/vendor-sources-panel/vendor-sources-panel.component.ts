@@ -172,20 +172,18 @@ export class VendorSourcesPanelComponent {
   protected readonly vendorParts = signal<VendorPart[]>([]);
   protected readonly addingVendor = signal(false);
   /**
-   * Which existing tier is currently in cell-edit mode, keyed by
-   * `${vendorPartId}:${tierId}` (or `${vendorPartId}:new` for the always-
-   * present empty bottom row, but that's never set here — the empty row
-   * is implicitly always editable). Null means no existing tier is open
-   * for editing.
+   * Per-vendor-part set of existing tier IDs the user has marked for
+   * delete. Deletion is deferred — the row stays visible (struck-through)
+   * with an Undo affordance until the page-level Save flushes the queue.
    */
-  protected readonly editingTierKey = signal<string | null>(null);
+  protected readonly pendingDeletesByVp = signal<Map<number, Set<number>>>(new Map());
 
   /**
-   * The tier-row key that just successfully saved — drives the 1000ms
-   * green-border-fade animation that confirms the save and signals
-   * "you can keep typing." Cleared after the animation timeout.
+   * Pending-tier tempIds whose green-glow fade-in animation is still
+   * playing. Driven by promoteEmptyRowToPending; auto-clears after the
+   * animation duration (1.2s).
    */
-  protected readonly justSavedKey = signal<string | null>(null);
+  protected readonly justAddedTempIds = signal<Set<string>>(new Set());
 
   /** "Show history" toggle — when true the tier list returns superseded rows too. */
   protected readonly showTierHistory = signal(false);
@@ -224,18 +222,8 @@ export class VendorSourcesPanelComponent {
 
   protected readonly viewMode = signal<'inspector' | 'compare' | 'pricing'>('inspector');
 
-  /** Which source card's details show in the right inspector pane. */
-  protected readonly selectedSourceId = signal<number | null>(null);
-
   /** In compare mode, which cards have their details accordion expanded. */
   protected readonly expandedDetailIds = signal<Set<number>>(new Set());
-
-  /** Resolves the selected source object for the inspector pane. */
-  protected readonly selectedSource = computed<VendorPart | null>(() => {
-    const id = this.selectedSourceId();
-    if (id == null) return null;
-    return this.vendorParts().find(v => v.id === id) ?? null;
-  });
 
   /**
    * Flat list of every tier across every vendor source on this part —
@@ -279,11 +267,6 @@ export class VendorSourcesPanelComponent {
     if (next.has(vpId)) next.delete(vpId);
     else next.add(vpId);
     this.expandedDetailIds.set(next);
-  }
-
-  /** Inspector-mode card click — selects the card for the right pane. */
-  protected selectSource(vpId: number): void {
-    this.selectedSourceId.set(vpId);
   }
 
   /**
@@ -346,17 +329,9 @@ export class VendorSourcesPanelComponent {
         if (typeof vendorId === 'number') this.onVendorSelected(vendorId);
       });
 
-    // Inspector mode: auto-select the preferred (or first) source when
-    // nothing is selected and sources are present. Single-source case
-    // never makes the user click — the inspector pane just shows it.
-    effect(() => {
-      if (this.viewMode() !== 'inspector') return;
-      if (this.selectedSourceId() != null) return;
-      const rows = this.sortedRows();
-      if (rows.length === 0) return;
-      const preferred = rows.find(r => r.isPreferred);
-      this.selectedSourceId.set((preferred ?? rows[0]).id);
-    });
+    // 2026-05-06: inspector auto-select effect retired. Each vendor now
+    // renders its OWN detail pane next to its card — there's no single
+    // selected source anymore.
   }
 
   // ─── Loading ────────────────────────────────────────────────────────
@@ -378,6 +353,10 @@ export class VendorSourcesPanelComponent {
           const vpId = parseInt(vpIdStr, 10);
           if (vpId !== this.STUB_ID && !ids.has(vpId)) this.tierForms.delete(key);
         }
+        // Seed forms for every existing tier so they participate in the
+        // page's validation + Save batch. Idempotent — pristine forms get
+        // re-seeded with current values; dirty forms are left untouched.
+        this.seedExistingTierForms();
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -470,19 +449,39 @@ export class VendorSourcesPanelComponent {
         out.push(vendorName ? `${vendorName}: ${msg}` : msg);
       }
     }
-    // Pending tiers also gate Save — surface their problems with the
-    // owning vendor's name + a "(new tier)" suffix so the popover row
-    // points the user at the right place.
+    // Existing-tier forms now participate in panel-level validation
+    // because every tier is always editable (no separate "edit mode").
+    // Skip tiers the user has marked for delete — they're going away on
+    // Save, so their values don't gate validity. Use 1-based row position
+    // within the vendor's visible-tiers list as the user-facing label.
+    for (const vp of this.vendorParts()) {
+      const visible = (vp.priceTiers ?? []).filter(t => !t.effectiveTo);
+      const deletes = this.pendingDeletesByVp().get(vp.id);
+      visible.forEach((tier, idx) => {
+        if (deletes?.has(tier.id)) return;
+        const form = this.tierForms.get(this.tierKey(vp.id, tier.id));
+        if (!form) return;
+        const items = FormValidationService.collectViolations(form, this.violationLabels);
+        for (const msg of items) {
+          out.push(`${vp.vendorCompanyName} (tier #${idx + 1}): ${msg}`);
+        }
+      });
+    }
+    // Pending tiers gate Save — surface their problems with the owning
+    // vendor's name + a "new tier #N" suffix where N is 1-based position
+    // within the pending list for that vendor.
     for (const [vpId, list] of this.pendingTiersByVp().entries()) {
       const vendorName = vpId === this.STUB_ID
         ? this.preferredVendorName() || ''
         : this.vendorParts().find(v => v.id === vpId)?.vendorCompanyName ?? '';
-      for (const p of list) {
+      list.forEach((p, idx) => {
         const items = FormValidationService.collectViolations(p.form, this.violationLabels);
         for (const msg of items) {
-          out.push(vendorName ? `${vendorName} (new tier): ${msg}` : `New tier: ${msg}`);
+          out.push(vendorName
+            ? `${vendorName} (new tier #${idx + 1}): ${msg}`
+            : `New tier #${idx + 1}: ${msg}`);
         }
-      }
+      });
     }
     return out;
   });
@@ -491,6 +490,15 @@ export class VendorSourcesPanelComponent {
     this.formsTicker();
     for (const [, form] of this.rowForms.entries()) {
       if (form.invalid) return false;
+    }
+    for (const vp of this.vendorParts()) {
+      const deletes = this.pendingDeletesByVp().get(vp.id);
+      for (const tier of (vp.priceTiers ?? [])) {
+        if (tier.effectiveTo) continue;
+        if (deletes?.has(tier.id)) continue;
+        const form = this.tierForms.get(this.tierKey(vp.id, tier.id));
+        if (form && form.invalid) return false;
+      }
     }
     for (const list of this.pendingTiersByVp().values()) {
       for (const p of list) {
@@ -522,10 +530,10 @@ export class VendorSourcesPanelComponent {
 
   /**
    * Lazy-create form for editing a tier OR for the empty bottom row
-   * ('new'). Existing-tier forms get pre-populated from the live values
-   * via {@link startEditTier}; the 'new' form starts blank with
-   * effectiveFrom defaulted to today so the user only has to type qty +
-   * price before committing.
+   * ('new'). Existing-tier forms get pre-populated by
+   * {@link seedExistingTierForms} on every list load; the 'new' form
+   * starts blank with effectiveFrom defaulted to today so the user only
+   * has to type qty + price before the row promotes to a pending tier.
    */
   protected tierFormFor(vpId: number, tierId: number | 'new'): FormGroup {
     const key = this.tierKey(vpId, tierId);
@@ -711,61 +719,69 @@ export class VendorSourcesPanelComponent {
     if (partId != null) this.reload(partId);
   }
 
-  /** Switch an existing tier row into cell-edit mode and seed its form. */
-  protected startEditTier(vpId: number, tier: VendorPartPriceTier): void {
-    const key = this.tierKey(vpId, tier.id);
-    // Drop any stale form so we re-seed from current data.
-    this.tierForms.delete(key);
-    const form = this.tierFormFor(vpId, tier.id);
-    form.patchValue({
-      minQuantity: tier.minQuantity,
-      unitPrice: tier.unitPrice,
-      effectiveFrom: new Date(tier.effectiveFrom),
-    });
-    this.editingTierKey.set(key);
-  }
-
-  /** Cancel without saving — form discarded so next open re-seeds clean. */
-  protected cancelEditTier(): void {
-    const key = this.editingTierKey();
-    if (key) this.tierForms.delete(key);
-    this.editingTierKey.set(null);
-  }
-
   /**
-   * Commit the form values for either an existing tier (server supersedes
-   * the old row) or the empty bottom row (server inserts new). On
-   * success, animate the next empty row in with the green-border pulse.
+   * Seed forms for every existing tier on every loaded vendor-part so
+   * panelValid / panelViolations + onSaveAll can iterate them. Called
+   * after each list load. Forms are created pristine and re-seeded
+   * (without flipping dirty) when the server values come back unchanged
+   * — preserves any in-progress edits the user was making before reload.
    */
-  protected commitTier(vpId: number, tierId: number | 'new'): void {
-    const partId = this.partId();
-    if (partId == null) return;
-    const key = this.tierKey(vpId, tierId);
-    const form = this.tierFormFor(vpId, tierId);
-    if (form.invalid) return;
-    const v = form.getRawValue();
-    this.vendorPartsService.addPriceTier(vpId, {
-      minQuantity: v.minQuantity!,
-      unitPrice: v.unitPrice!,
-      effectiveFrom: v.effectiveFrom
-        ? new Date(v.effectiveFrom).toISOString()
-        : null,
-    }).subscribe({
-      next: () => {
-        this.tierForms.delete(key);
-        if (tierId !== 'new') this.editingTierKey.set(null);
-        // Animate the new bottom row to confirm the save and signal
-        // "you can keep typing" — full green border, fade to default.
-        const newKey = this.tierKey(vpId, 'new');
-        this.justSavedKey.set(newKey);
-        setTimeout(() => {
-          if (this.justSavedKey() === newKey) this.justSavedKey.set(null);
-        }, 1000);
-        this.reload(partId);
-        this.changed.emit();
-      },
-      error: () => this.snackbar.error(this.translate.instant('vendorSources.tierSaveFailed')),
-    });
+  private seedExistingTierForms(): void {
+    for (const vp of this.vendorParts()) {
+      for (const tier of vp.priceTiers ?? []) {
+        if (tier.effectiveTo) continue; // superseded — read-only display
+        const key = this.tierKey(vp.id, tier.id);
+        const existing = this.tierForms.get(key);
+        if (existing && existing.dirty) continue; // user is editing — leave alone
+        const form = existing ?? this.fb.group({
+          minQuantity: [null as number | null, [Validators.required, Validators.min(1)]],
+          unitPrice: [null as number | null, [Validators.required, Validators.min(0)]],
+          effectiveFrom: [new Date(), [Validators.required]],
+        });
+        form.reset({
+          minQuantity: tier.minQuantity,
+          unitPrice: tier.unitPrice,
+          effectiveFrom: new Date(tier.effectiveFrom),
+        });
+        if (!existing) {
+          form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.formsTicker.update(n => n + 1);
+          });
+          this.tierForms.set(key, form);
+        }
+      }
+    }
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** True when this existing tier is queued for delete on next Save. */
+  protected isPendingDelete(vpId: number, tierId: number): boolean {
+    return this.pendingDeletesByVp().get(vpId)?.has(tierId) ?? false;
+  }
+
+  /** Queue a delete for the page Save — does NOT hit the server. */
+  protected markTierForDelete(vpId: number, tierId: number): void {
+    const map = new Map(this.pendingDeletesByVp());
+    const set = new Set(map.get(vpId) ?? []);
+    set.add(tierId);
+    map.set(vpId, set);
+    this.pendingDeletesByVp.set(map);
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** Reverse a pending delete before Save fires. */
+  protected unmarkTierForDelete(vpId: number, tierId: number): void {
+    const map = new Map(this.pendingDeletesByVp());
+    const set = new Set(map.get(vpId) ?? []);
+    set.delete(tierId);
+    map.set(vpId, set);
+    this.pendingDeletesByVp.set(map);
+    this.formsTicker.update(n => n + 1);
+  }
+
+  /** True while the green-glow fade-out animation is still playing. */
+  protected isJustAdded(tempId: string): boolean {
+    return this.justAddedTempIds().has(tempId);
   }
 
   // ─── Pending new tiers (batch-save via panel Save) ──────────────────
@@ -797,9 +813,12 @@ export class VendorSourcesPanelComponent {
   /**
    * On (focusout) from the empty bottom row, if focus is leaving the row
    * entirely AND the user has typed something, promote the form to a
-   * pending tier and let `tierFormFor(vpId, 'new')` lazily create a fresh
-   * empty form for the next iteration. NO server call here — the panel
-   * Save button is the only commit path.
+   * pending tier and let `tierFormFor(vpId, 'new')` lazily create a
+   * fresh empty form for the next iteration. NO server call here — the
+   * panel Save button is the only commit path. Promote-on-input was
+   * tried 2026-05-06 and reverted: it caused per-keystroke promotion
+   * (user's focus stays on the same DOM input which gets rebound to
+   * a new empty form, so each char triggered a fresh promote).
    */
   protected onEmptyRowFocusOut(e: FocusEvent, vpId: number): void {
     const row = e.currentTarget as HTMLElement | null;
@@ -810,21 +829,35 @@ export class VendorSourcesPanelComponent {
   }
 
   /**
-   * Enter-key shortcut on the empty bottom row — same promote-to-pending
-   * pathway as focusout, so power users can stay on the keyboard.
+   * Enter-key shortcut on the empty bottom row — same promote path as
+   * focusout, so power users can stay on the keyboard.
    */
   protected onEmptyRowEnter(vpId: number): void {
     this.promoteEmptyRowToPending(vpId);
   }
 
+  /**
+   * Sweep every vendor's empty-row form and promote any that have user
+   * content but never received a focusout (e.g. user typed values then
+   * clicked Save without tabbing out). Belt-and-suspenders so onSaveAll
+   * never silently drops in-flight values.
+   */
+  private flushEmptyRowsBeforeSave(): void {
+    for (const vp of this.vendorParts()) {
+      this.promoteEmptyRowToPending(vp.id);
+    }
+    if (this.preferredStubVisible()) {
+      this.promoteEmptyRowToPending(this.STUB_ID);
+    }
+  }
+
   private promoteEmptyRowToPending(vpId: number): void {
     const emptyKey = this.tierKey(vpId, 'new');
     const form = this.tierForms.get(emptyKey);
-    if (!form || !form.dirty) return;
+    if (!form) return;
     const v = form.getRawValue();
-    // Skip rows where the user typed and erased — only effectiveFrom
-    // (which auto-defaults) is left. Without this, a tab-through would
-    // promote a useless row.
+    // Promote only when the user has typed something into qty or price.
+    // effectiveFrom auto-defaults to today, so it doesn't count.
     const hasUserContent = (v.minQuantity != null && v.minQuantity !== '') ||
                            (v.unitPrice != null && v.unitPrice !== '');
     if (!hasUserContent) return;
@@ -844,6 +877,18 @@ export class VendorSourcesPanelComponent {
     const list = map.get(vpId) ?? [];
     map.set(vpId, [...list, { tempId, form }]);
     this.pendingTiersByVp.set(map);
+
+    // Green-glow fade-out on the newly-promoted row. Drops out of the
+    // set after the CSS animation finishes (1.2s).
+    const glowSet = new Set(this.justAddedTempIds());
+    glowSet.add(tempId);
+    this.justAddedTempIds.set(glowSet);
+    setTimeout(() => {
+      const cleared = new Set(this.justAddedTempIds());
+      cleared.delete(tempId);
+      this.justAddedTempIds.set(cleared);
+    }, 1200);
+
     this.formsTicker.update(n => n + 1);
   }
 
@@ -857,8 +902,9 @@ export class VendorSourcesPanelComponent {
     this.formsTicker.update(n => n + 1);
   }
 
-  /** Discard all pending tiers — used by the panel-level Cancel path. */
+  /** Discard all pending tiers + pending deletes — used by Cancel. */
   private clearPendingTiers(): void {
+    this.pendingDeletesByVp.set(new Map());
     for (const list of this.pendingTiersByVp().values()) {
       for (const p of list) {
         // Leave the form in tierForms long enough for any focused field
@@ -886,33 +932,16 @@ export class VendorSourcesPanelComponent {
     this.vendorPartsService.listForPart(partId, this.showTierHistory()).subscribe({
       next: (list) => {
         this.vendorParts.set(list);
+        this.seedExistingTierForms();
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
   }
 
-  protected removeTier(vp: VendorPart, tier: VendorPartPriceTier): void {
-    const partId = this.partId();
-    if (partId == null) return;
-    this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: this.translate.instant('vendorSources.removeTier.confirmTitle'),
-        message: this.translate.instant('vendorSources.removeTier.confirmMessage'),
-        confirmLabel: this.translate.instant('common.delete'),
-        severity: 'danger',
-      } satisfies ConfirmDialogData,
-    }).afterClosed().subscribe((confirmed) => {
-      if (!confirmed) return;
-      this.vendorPartsService.deletePriceTier(vp.id, tier.id).subscribe({
-        next: () => {
-          this.load(partId);
-          this.changed.emit();
-        },
-      });
-    });
-  }
+  // Direct removeTier server-call path retired 2026-05-06: tier deletes
+  // batch with the panel Save now. See markTierForDelete /
+  // unmarkTierForDelete + the Phase 3 pending-deletes flush in onSaveAll.
 
   // ─── Row-level actions ──────────────────────────────────────────────
   protected setAsPreferred(vp: VendorPart): void {
@@ -1013,6 +1042,12 @@ export class VendorSourcesPanelComponent {
    * top user complaint about this panel.
    */
   protected onSaveAll(): void {
+    // Catch any empty-row values the user typed but never tabbed out of
+    // before clicking Save. Promotes them into pendingTiersByVp so
+    // Phase 2 picks them up. Without this sweep, in-flight typing is
+    // silently dropped on Save.
+    this.flushEmptyRowsBeforeSave();
+
     // Two-phase orchestration so price tiers entered against the
     // preferred-vendor stub (or any other not-yet-materialized row)
     // can land under their REAL vp.id after the create() POST completes.
@@ -1046,9 +1081,16 @@ export class VendorSourcesPanelComponent {
 
     phase1$.subscribe({
       next: () => {
-        // Phase 2 — fire pending-tier POSTs after rows have materialized.
-        const pendingMap = this.pendingTiersByVp();
+        // Phase 2 — flush every batched tier mutation in parallel:
+        //   • pending inserts (new tiers the user typed)
+        //   • dirty existing-tier edits (SCD Type 2 supersede via the
+        //     same addPriceTier endpoint — server marks the old row
+        //     superseded and inserts the new effective row)
+        //   • pending deletes (tiers the user clicked the trash on,
+        //     queued via markTierForDelete)
         const tierSaves: Observable<unknown>[] = [];
+
+        const pendingMap = this.pendingTiersByVp();
         for (const [vpId, list] of pendingMap.entries()) {
           if (vpId === this.STUB_ID) continue; // shouldn't happen post-Phase-1; defensive
           for (const p of list) {
@@ -1068,10 +1110,40 @@ export class VendorSourcesPanelComponent {
           }
         }
 
+        // Dirty existing-tier forms — supersede via addPriceTier.
+        const deletesMap = this.pendingDeletesByVp();
+        for (const vp of this.vendorParts()) {
+          const deletes = deletesMap.get(vp.id);
+          for (const tier of (vp.priceTiers ?? [])) {
+            if (tier.effectiveTo) continue;
+            if (deletes?.has(tier.id)) continue;
+            const form = this.tierForms.get(this.tierKey(vp.id, tier.id));
+            if (!form || !form.dirty || form.invalid) continue;
+            const v = form.getRawValue();
+            tierSaves.push(
+              this.vendorPartsService.addPriceTier(vp.id, {
+                minQuantity: v.minQuantity!,
+                unitPrice: v.unitPrice!,
+                effectiveFrom: v.effectiveFrom
+                  ? new Date(v.effectiveFrom).toISOString()
+                  : null,
+              }),
+            );
+          }
+        }
+
+        // Pending deletes.
+        for (const [vpId, set] of deletesMap.entries()) {
+          for (const tierId of set) {
+            tierSaves.push(this.vendorPartsService.deletePriceTier(vpId, tierId));
+          }
+        }
+
         const phase2$ = tierSaves.length > 0 ? forkJoin(tierSaves) : of([]);
         phase2$.subscribe({
           next: () => {
             this.pendingTiersByVp.set(new Map());
+            this.pendingDeletesByVp.set(new Map());
             this.formsTicker.update(n => n + 1);
             if (partId != null) this.reload(partId);
             this.changed.emit();
@@ -1102,6 +1174,17 @@ export class VendorSourcesPanelComponent {
    */
   protected onCancel(): void {
     this.clearPendingTiers();
+    // Drop every existing-tier form (numeric tierId keys) so the reload
+    // re-seeds them pristine. seedExistingTierForms preserves dirty
+    // forms by design (so a passive reload doesn't clobber in-progress
+    // edits) — Cancel is the explicit "throw those away" path.
+    for (const key of [...this.tierForms.keys()]) {
+      const colon = key.indexOf(':');
+      const tierId = colon < 0 ? key : key.substring(colon + 1);
+      if (tierId !== 'new' && !tierId.startsWith('pending-')) {
+        this.tierForms.delete(key);
+      }
+    }
     const id = this.partId();
     if (id != null) this.load(id);
     this.cancelled.emit();

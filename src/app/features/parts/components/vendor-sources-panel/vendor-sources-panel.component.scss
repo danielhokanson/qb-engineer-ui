@@ -53,20 +53,9 @@
     }
   }
 
-  // ─── Two-pane layout (Inspector default; Compare = single column) ──
-  &__layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: $sp-md;
-
-    .vendor-sources--inspector & {
-      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
-
-      @media (max-width: 1024px) {
-        grid-template-columns: 1fr;
-      }
-    }
-  }
+  // 2026-05-06: legacy &__layout grid retired. Each .vendor-source-row
+  // is now a self-contained flex row (card + per-vendor detail pane);
+  // .vendor-sources__list is just a vertical stack of those rows.
 
   &__list {
     display: flex;
@@ -75,33 +64,9 @@
     min-width: 0;
   }
 
-  // ─── Right-side inspector pane (Pattern C) ──────────────────────
-  // Sticks to the top of the dialog body's scroll context so the
-  // selected source's details remain visible while the user scrolls
-  // the list on the left.
-  &__inspector {
-    position: sticky;
-    top: $sp-md;
-    align-self: start;
-    background: color-mix(in srgb, var(--text-muted) 3%, var(--surface));
-    border: $border-width-thin solid var(--border);
-    padding: $sp-md;
-    display: flex;
-    flex-direction: column;
-    gap: $sp-md;
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-    @include custom-scrollbar(6px);
-  }
-
-  &__inspector-header {
-    display: flex;
-    align-items: center;
-    gap: $sp-sm;
-    flex-wrap: wrap;
-    padding-bottom: $sp-sm;
-    border-bottom: $border-width-thin solid var(--border);
-  }
+  // 2026-05-06: shared right-side inspector aside retired. Each vendor
+  // now renders its own detail pane via .vendor-source-row +
+  // .vendor-source__detail-pane (defined at the top level below).
 
   // ─── Cross-vendor pricing view (Pattern: flat table) ────────────
   &__pricing {
@@ -133,28 +98,6 @@
 
   &__pricing-pref {
     margin-left: $sp-sm;
-  }
-
-  &__inspector-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: $sp-sm;
-    padding: $sp-2xl $sp-md;
-    color: var(--text-muted);
-    text-align: center;
-
-    .material-icons-outlined {
-      font-size: $icon-size-hero;
-      color: var(--text-muted);
-      opacity: 0.4;
-    }
-
-    p {
-      margin: 0;
-      font-size: $font-size-sm;
-    }
   }
 
   &__add {
@@ -237,24 +180,9 @@
     border-style: dashed;
   }
 
-  // Selected card in inspector mode — left accent in primary color +
-  // soft tint so the user immediately sees which source is reflected
-  // in the right inspector pane.
-  &--selected {
-    border-color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 4%, var(--surface));
-    box-shadow: inset 3px 0 0 0 var(--primary);
-  }
-
-  // In inspector mode the cards are clickable to select.
-  .vendor-sources--inspector & {
-    cursor: pointer;
-    transition: background-color $transition-fast, border-color $transition-fast;
-
-    &:hover:not(.vendor-source--selected) {
-      background: color-mix(in srgb, var(--primary) 3%, var(--surface));
-    }
-  }
+  // 2026-05-06: --selected modifier + inspector-mode hover state retired.
+  // Each card now renders alongside its OWN detail pane, so there's no
+  // "selected source" concept — selection isn't needed.
 
   &__header {
     display: flex;
@@ -401,8 +329,12 @@
   }
 
   &__tier-actions {
-    width: 80px;
-    text-align: right;
+    // Tightened to fit a single 24px icon button with no extra padding
+    // to the right. (Was 80px — left visible empty space past the trash
+    // button.)
+    width: 32px;
+    padding: $sp-xs 0 !important;
+    text-align: center;
     white-space: nowrap;
   }
 
@@ -419,91 +351,42 @@
   //   3. Cursor: pointer on data cells.
   //   4. Empty bottom row uses a dashed-border treatment so it reads as
   //      "type here" rather than "this is data."
-  &__tier-table--editable {
+  // Cell tints + row variants apply to one tier-table shape (no edit-vs-
+  // readonly split). Cells host form controls in both modes via
+  // [isReadonly]; readonly mode renders the controls as plain text.
+  &__tier-table {
     tbody tr:nth-child(even) td {
       background: color-mix(in srgb, var(--text-muted) 3%, transparent);
-    }
-
-    td:not(.vendor-source__tier-actions) {
-      cursor: text;
-      position: relative;
-      transition: background-color $transition-fast, box-shadow $transition-fast;
-    }
-
-    // Hover affordance — soft primary tint + tiny edit glyph in the cell
-    // corner so the user reads "I can change this." The pseudo-element
-    // sits absolutely so it doesn't push other content.
-    td:not(.vendor-source__tier-actions):not(.tier-row__effective-to-cell):hover {
-      background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
-
-      &::after {
-        content: 'edit';
-        font-family: 'Material Icons Outlined';
-        position: absolute;
-        top: 50%;
-        right: $sp-xs;
-        transform: translateY(-50%);
-        font-size: $icon-size-xs;
-        color: var(--primary);
-        opacity: 0.7;
-        pointer-events: none;
-      }
-    }
-
-    .tier-row--editing td {
-      background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
-      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 50%, transparent);
-      cursor: text;
-
-      &:hover::after {
-        content: none;
-      }
     }
 
     .tier-row--superseded td {
       color: var(--text-muted);
       font-style: italic;
-      cursor: default !important;
-
-      &:hover {
-        background: color-mix(in srgb, var(--text-muted) 3%, transparent) !important;
-        box-shadow: none;
-        &::after { content: none; }
-      }
     }
 
-    // Empty bottom row — dashed-border treatment + muted placeholder text
-    // so it reads as "type to add a tier", not "row of data."
+    // Empty bottom row (edit mode only) — dashed-border treatment +
+    // muted placeholders read as "type to add a tier."
     .tier-row--empty td {
-      background: color-mix(in srgb, var(--text-muted) 2%, var(--surface)) !important;
+      background: color-mix(in srgb, var(--text-muted) 2%, var(--surface));
       border-top: $border-width-thin dashed var(--border);
-
-      &:hover::after { content: 'add'; }
     }
 
     .tier-row--pending-delete td {
       text-decoration: line-through;
       color: var(--text-muted);
-      cursor: default !important;
-
-      &:hover {
-        background: transparent !important;
-        box-shadow: none;
-        &::after { content: none; }
-      }
     }
 
     // Pending (typed but not saved) — subtle warning tint to differentiate
     // from committed rows above; clears once the panel Save batch lands.
     .tier-row--pending td {
       background: color-mix(in srgb, var(--warning) 6%, var(--surface));
-      cursor: default;
     }
 
-    // Just-saved animation: full border, green, fades to default over 1000ms.
-    .tier-row--just-saved td {
-      animation: tier-row-saved 1000ms ease-out;
+    // Just-added animation: green glow that fades out over 1.2s, applied
+    // to a pending tier row the instant it's promoted from the empty
+    // bottom slot. Visual confirmation that "your typing was captured."
+    .tier-row--just-added td {
+      animation: tier-row-just-added 1200ms ease-out;
     }
 
     .tier-row__effective-to {
@@ -536,13 +419,104 @@
   }
 }
 
-@keyframes tier-row-saved {
+@keyframes tier-row-just-added {
   0% {
     box-shadow: inset 0 0 0 2px var(--success);
-    background: color-mix(in srgb, var(--success) 18%, var(--surface));
+    background: color-mix(in srgb, var(--success) 22%, var(--surface));
   }
   100% {
     box-shadow: inset 0 0 0 2px transparent;
     background: transparent;
   }
+}
+
+// ─── Per-vendor row (inspector + compare modes) ──────────────────
+// Two-column horizontal layout: card-with-tiers (narrow, fixed width)
+// on the LEFT, detail pane (scales to fill) on the RIGHT.
+// align-items: stretch keeps both columns equal-height regardless of
+// which side has more content. On narrow viewports the row stacks
+// vertically with the detail pane on TOP and the card+tiers below —
+// editing the 1:1 fields is the primary task at narrow widths.
+.vendor-source-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: $sp-md;
+
+  > .vendor-source {
+    // Card width sized to fit the tier table without truncating: 7-figure
+    // qty + 9-figure currency + full mediumDate + per-row actions. With
+    // history the Effective To column adds another full date column and
+    // the card grows to keep the table from clipping.
+    flex: 0 0 auto;
+    width: 480px;
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+
+    .vendor-sources--with-history & {
+      width: 600px;
+    }
+  }
+
+  > .vendor-source__detail-pane {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+    padding: $sp-md;
+    background: color-mix(in srgb, var(--text-muted) 3%, var(--surface));
+    border: $border-width-thin solid var(--border);
+  }
+
+  // Compare mode with no expanded fields: only the card renders, so
+  // let it grow to fill the row width like the legacy single-column.
+  &--compare > .vendor-source:only-child {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  @media (max-width: 1024px) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+
+    > .vendor-source,
+    > .vendor-source__detail-pane {
+      width: 100%;
+      flex: 0 0 auto;
+    }
+  }
+}
+
+// Tier-table column widths — fixed via colgroup so cards don't reflow
+// when content varies (small qty vs 7-figure qty, etc.) and so readonly
+// vs edit appear identical in size + position (per identity-cluster
+// pattern). Widths sized to fit:
+//   • minQty up to 9,999,999 (7-fig with separators) + spinner: 100px
+//   • unitPrice up to $999,999,999.99 (9-fig + change) + spinner: 150px
+//   • effectiveFrom + effectiveTo: full mediumDate ("May 5, 2026"): 120px
+//   • actions: single icon-button, no extra padding: 32px
+.vendor-source__tier-col--qty   { width: 100px; }
+.vendor-source__tier-col--price { width: 150px; }
+.vendor-source__tier-col--from,
+.vendor-source__tier-col--to    { width: 120px; }
+.vendor-source__tier-col--actions { width: 32px; }
+
+.vendor-source__tier-cell--to {
+  font-size: $font-size-sm;
+  color: var(--text-secondary);
+}
+
+.tier-row__current {
+  color: var(--text-muted);
+}
+
+.vendor-source__tiers-empty {
+  margin: 0;
+  padding: $sp-sm;
+  font-size: $font-size-xxs;
+  color: var(--text-muted);
+  font-style: italic;
 }
