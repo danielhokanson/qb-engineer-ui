@@ -1,15 +1,17 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   forwardRef,
+  inject,
   input,
-  signal,
 } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule, MAT_DATE_FORMATS } from '@angular/material/core';
+import { MAT_DATE_FORMATS, provideNativeDateAdapter } from '@angular/material/core';
 
 /** Custom date formats enforcing MM/dd/yyyy display (project standard) */
 const QBE_DATE_FORMATS = {
@@ -25,7 +27,7 @@ const QBE_DATE_FORMATS = {
 @Component({
   selector: 'app-datepicker',
   standalone: true,
-  imports: [MatFormFieldModule, MatInputModule, MatDatepickerModule, MatNativeDateModule],
+  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatDatepickerModule],
   templateUrl: './datepicker.component.html',
   styleUrl: './datepicker.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,9 +38,17 @@ const QBE_DATE_FORMATS = {
       multi: true,
     },
     { provide: MAT_DATE_FORMATS, useValue: QBE_DATE_FORMATS },
+    // Standalone components don't inherit NgModule providers, so
+    // MatNativeDateModule's DateAdapter binding never reached
+    // matDatepicker — clicks threw NG0201 NullInjectorError. The
+    // `provideNativeDateAdapter()` helper is the standalone-friendly
+    // form and registers DateAdapter + MAT_DATE_LOCALE locally.
+    provideNativeDateAdapter(),
   ],
 })
 export class DatepickerComponent implements ControlValueAccessor {
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly label = input.required<string>();
   readonly min = input<Date | null>(null);
   readonly max = input<Date | null>(null);
@@ -46,14 +56,30 @@ export class DatepickerComponent implements ControlValueAccessor {
    *  The calendar toggle button is hidden via the global rule. */
   readonly isReadonly = input<boolean>(false);
 
-  protected readonly value = signal<Date | null>(null);
-  protected readonly disabled = signal(false);
+  /**
+   * Internal FormControl that the matInput binds to via [formControl].
+   * Material's matDatepicker requires Angular Forms integration on the
+   * input it's attached to — a plain [value] binding is NOT sufficient
+   * (the picker's overlay opens but mat-calendar can't bind to a value
+   * source, so it never renders). The CVA hooks below sync this
+   * internal control with whatever the parent's FormControl/NgModel is
+   * driving.
+   */
+  protected readonly internalControl = new FormControl<Date | null>(null);
 
   private onChange: (value: Date | null) => void = () => {};
   private onTouched: () => void = () => {};
 
+  constructor() {
+    // Forward internal-control changes out to the parent CVA. Skipping
+    // emitEvent in writeValue prevents a feedback loop.
+    this.internalControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.onChange(value));
+  }
+
   writeValue(value: Date | string | null): void {
-    this.value.set(value ? new Date(value) : null);
+    this.internalControl.setValue(value ? new Date(value) : null, { emitEvent: false });
   }
 
   registerOnChange(fn: (value: Date | null) => void): void {
@@ -65,12 +91,8 @@ export class DatepickerComponent implements ControlValueAccessor {
   }
 
   setDisabledState(disabled: boolean): void {
-    this.disabled.set(disabled);
-  }
-
-  protected onDateChange(value: Date | null): void {
-    this.value.set(value);
-    this.onChange(value);
+    if (disabled) this.internalControl.disable({ emitEvent: false });
+    else this.internalControl.enable({ emitEvent: false });
   }
 
   protected markTouched(): void {

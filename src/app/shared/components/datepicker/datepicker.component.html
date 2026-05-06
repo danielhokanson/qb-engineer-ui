@@ -2,13 +2,11 @@
   <mat-label>{{ label() }}</mat-label>
   <input matInput
     [matDatepicker]="picker"
+    [formControl]="internalControl"
     [min]="min()"
     [max]="max()"
     [readonly]="isReadonly()"
-    [disabled]="disabled()"
-    [value]="value()"
-    (dateChange)="onDateChange($event.value)"
     (blur)="markTouched()" />
-  <mat-datepicker-toggle matSuffix [for]="picker" [disabled]="isReadonly() || disabled()" />
+  <mat-datepicker-toggle matSuffix [for]="picker" [disabled]="isReadonly() || internalControl.disabled" />
   <mat-datepicker #picker />
 </mat-form-field>
