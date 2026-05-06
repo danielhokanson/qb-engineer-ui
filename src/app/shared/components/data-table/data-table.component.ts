@@ -83,9 +83,29 @@ export class DataTableComponent implements OnInit {
    * regardless of the active sort column. Returns true → row pins to top.
    */
   readonly pinPredicate = input<((row: unknown) => boolean) | null>(null);
+  /**
+   * Initial filter state applied when no persisted preferences exist for
+   * this tableId. Use to keep an opinionated default (e.g. parts list
+   * defaults to status:Active) without forcing every consumer to write
+   * the same boilerplate. Once the user changes a column filter, the
+   * persisted state takes over.
+   */
+  readonly initialFilters = input<Record<string, unknown>>({});
 
   readonly rowClick = output<unknown>();
   readonly selectionChange = output<unknown[]>();
+  /**
+   * Emitted whenever the user changes a column filter (apply or clear,
+   * including "clear all"). Server-backed pages listen and translate
+   * the filter map into API query params; pure client-side pages can
+   * ignore it and rely on the internal filteredData() pass.
+   */
+  readonly filtersChanged = output<Record<string, unknown>>();
+  /**
+   * Emitted whenever sort state changes (single, multi via shift-click,
+   * or clear). Server-backed pages translate this into API sort params.
+   */
+  readonly sortChanged = output<SortState[]>();
 
   readonly cellTemplates = contentChildren(ColumnCellDirective);
   readonly expandTemplate = contentChild(RowExpandDirective);
@@ -298,6 +318,21 @@ export class DataTableComponent implements OnInit {
     if (this.expandable()) count++;
     return count;
   });
+
+  constructor() {
+    // Bridge filter / sort signal changes to outputs so server-backed
+    // consumers can listen without instrumenting every mutation site
+    // (header click, context-menu sort, popover apply, persisted-pref
+    // restore, etc.). Pure client-side consumers can ignore the events
+    // and rely on the internal filteredData() / sortedData() pass —
+    // both signals stay authoritative.
+    effect(() => {
+      this.filtersChanged.emit(this.filters());
+    });
+    effect(() => {
+      this.sortChanged.emit(this.sortStates());
+    });
+  }
 
   ngOnInit(): void {
     this.loadPreferences();
@@ -619,6 +654,11 @@ export class DataTableComponent implements OnInit {
     const saved = this.prefs.get<TablePreferences>(`table:${this.tableId()}`);
     if (!saved) {
       this.columnOrder.set(this.columns().map(c => c.field));
+      // No persisted state — fall back to the consumer's initialFilters
+      // so opinionated defaults (e.g. status:Active) survive the first
+      // visit. Subsequent visits use whatever the user persisted.
+      const seed = this.initialFilters();
+      if (Object.keys(seed).length > 0) this.filters.set(seed);
       return;
     }
 

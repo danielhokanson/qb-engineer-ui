@@ -45,6 +45,18 @@ import { EntityCompletenessBadgeComponent } from '../../shared/components/entity
 
 type ViewMode = 'table' | 'cards';
 
+/**
+ * DataTable column-menu enum filters are multi-select arrays. The parts
+ * API takes a single value per param, so when the user selects exactly
+ * one option we forward it server-side; multi-select drops the server
+ * constraint and falls back to the DataTable's internal filter pass.
+ * Empty / array-of-zero / multi → undefined.
+ */
+function singleEnumFromFilter<T extends string>(val: unknown): T | undefined {
+  if (Array.isArray(val) && val.length === 1) return val[0] as T;
+  return undefined;
+}
+
 @Component({
   selector: 'app-parts',
   standalone: true,
@@ -125,52 +137,36 @@ export class PartsComponent {
   );
 
   // ── Page Filters ──
+  // 2026-05-06: Status / Procurement / InventoryClass selects retired.
+  // Those filters now live in the DataTable column-menu; the table emits
+  // (filtersChanged) and onTableFiltersChanged translates the filter map
+  // into the server query params below. Free-text Search stays as a
+  // page-level control because it spans multiple fields.
   protected readonly searchControl = new FormControl('');
-  // Phase 5: status filter defaults to Active so Drafts (in-flight workflows) don't pollute the live list.
-  // The user opts into Drafts/All explicitly when they want to resume / audit.
-  protected readonly statusFilterControl = new FormControl<PartStatus | ''>('Active');
-  // Pre-beta — replaced legacy single-axis `type` filter with the two
-  // orthogonal axis filters that drive the catalog view.
-  protected readonly procurementFilterControl = new FormControl<ProcurementSource | ''>('');
-  protected readonly inventoryClassFilterControl = new FormControl<InventoryClass | ''>('');
-
   private readonly searchTerm = toSignal(this.searchControl.valueChanges.pipe(startWith('')), { initialValue: '' });
-  private readonly statusFilter = toSignal(this.statusFilterControl.valueChanges.pipe(startWith('Active' as PartStatus | '')), { initialValue: 'Active' as PartStatus | '' });
-  private readonly procurementFilter = toSignal(this.procurementFilterControl.valueChanges.pipe(startWith('' as ProcurementSource | '')), { initialValue: '' as ProcurementSource | '' });
-  private readonly inventoryClassFilter = toSignal(this.inventoryClassFilterControl.valueChanges.pipe(startWith('' as InventoryClass | '')), { initialValue: '' as InventoryClass | '' });
 
-  protected readonly statusFilterOptions: SelectOption[] = [
-    { value: '', label: this.translate.instant('parts.allStatuses') },
-    { value: 'Active', label: this.translate.instant('parts.statusActive') },
-    { value: 'Draft', label: this.translate.instant('parts.statusDraft') },
-    { value: 'Prototype', label: this.translate.instant('parts.statusPrototype') },
-    { value: 'Obsolete', label: this.translate.instant('parts.statusObsolete') },
-  ];
+  // Default filter the DataTable applies on first load (when no
+  // persisted preference exists). Active-only matches the prior page-
+  // level default so drafts/obsolete don't pollute the live list.
+  protected readonly initialPartFilters: Record<string, unknown> = {
+    status: ['Active'],
+  };
 
-  protected readonly procurementFilterOptions: SelectOption[] = [
-    { value: '', label: this.translate.instant('parts.allProcurementSources') },
-    { value: 'Make', label: 'Make' },
-    { value: 'Buy', label: 'Buy' },
-    { value: 'Subcontract', label: 'Subcontract' },
-    { value: 'Phantom', label: 'Phantom' },
-  ];
-
-  protected readonly inventoryClassFilterOptions: SelectOption[] = [
-    { value: '', label: this.translate.instant('parts.allInventoryClasses') },
-    { value: 'Raw', label: 'Raw' },
-    { value: 'Component', label: 'Component' },
-    { value: 'Subassembly', label: 'Subassembly' },
-    { value: 'FinishedGood', label: 'Finished Good' },
-    { value: 'Consumable', label: 'Consumable' },
-    { value: 'Tool', label: 'Tool' },
-  ];
+  // Latest filter map emitted by the DataTable, mirrored into a signal
+  // so loadParts() can read it. Updated via (filtersChanged) on every
+  // column-menu apply / clear / clear-all.
+  private readonly tableFilters = signal<Record<string, unknown>>(this.initialPartFilters);
 
   protected readonly partColumns: ColumnDef[] = [
     { field: 'partNumber', header: this.translate.instant('parts.partNumber'), sortable: true, width: '120px' },
     { field: 'name', header: this.translate.instant('common.name'), sortable: true },
     { field: 'revision', header: this.translate.instant('parts.rev'), width: '60px', align: 'center' },
-    { field: 'procurementSource', header: 'Procurement', sortable: true, width: '110px' },
-    { field: 'inventoryClass', header: 'Class', sortable: true, width: '110px' },
+    { field: 'procurementSource', header: 'Procurement', sortable: true, filterable: true, type: 'enum', width: '110px', filterOptions: [
+      { value: 'Make', label: 'Make' }, { value: 'Buy', label: 'Buy' }, { value: 'Subcontract', label: 'Subcontract' }, { value: 'Phantom', label: 'Phantom' },
+    ]},
+    { field: 'inventoryClass', header: 'Class', sortable: true, filterable: true, type: 'enum', width: '110px', filterOptions: [
+      { value: 'Raw', label: 'Raw' }, { value: 'Component', label: 'Component' }, { value: 'Subassembly', label: 'Subassembly' }, { value: 'FinishedGood', label: 'Finished Good' }, { value: 'Consumable', label: 'Consumable' }, { value: 'Tool', label: 'Tool' },
+    ]},
     { field: 'status', header: this.translate.instant('common.status'), sortable: true, filterable: true, type: 'enum', filterOptions: [
       { value: 'Active', label: this.translate.instant('parts.statusActive') }, { value: 'Draft', label: this.translate.instant('parts.statusDraft') }, { value: 'Prototype', label: this.translate.instant('parts.statusPrototype') }, { value: 'Obsolete', label: this.translate.instant('parts.statusObsolete') },
     ]},
@@ -237,8 +233,10 @@ export class PartsComponent {
 
   constructor() {
     this.scanner.setContext('parts');
-    this.loadParts();
     this.loadEntitylessDrafts();
+    // Initial loadParts() is driven by the DataTable's first
+    // (filtersChanged) emit during loadPreferences. No upfront fetch
+    // here — otherwise we'd race + double-fetch.
 
     effect(() => {
       const scan = this.scanner.lastScan();
@@ -248,33 +246,34 @@ export class PartsComponent {
       this.loadParts();
     });
 
-    // Phase 3 F7-partial / WU-17 — debounced search + filter changes fire the
-    // standardised `?q=`, `?status=`, `?type=` query params against the
-    // server (300ms debounce per the WU-17 charter).
+    // Free-text search still drives a server refetch (300ms debounce).
+    // Status / Procurement / Class come from onTableFiltersChanged.
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe(() => this.loadParts());
+  }
 
-    this.statusFilterControl.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe(() => this.loadParts());
-
-    this.procurementFilterControl.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe(() => this.loadParts());
-
-    this.inventoryClassFilterControl.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe(() => this.loadParts());
+  /**
+   * DataTable column-menu filters → server query params. Mirrors the
+   * filter map into a signal so loadParts() can read it, then refetches.
+   * Status / procurement / class accept multi-select in the popover but
+   * the API takes a single value per param — when the user selects more
+   * than one option we drop the server constraint and let the
+   * DataTable's internal filteredData() pass cull client-side.
+   */
+  protected onTableFiltersChanged(filters: Record<string, unknown>): void {
+    this.tableFilters.set(filters);
+    this.loadParts();
   }
 
   // ── List ──
 
   protected loadParts(): void {
     this.loading.set(true);
-    const status = (this.statusFilter() ?? '') || undefined;
-    const procurementSource = (this.procurementFilter() ?? '') || undefined;
-    const inventoryClass = (this.inventoryClassFilter() ?? '') || undefined;
+    const filters = this.tableFilters();
+    const status = singleEnumFromFilter<PartStatus>(filters['status']);
+    const procurementSource = singleEnumFromFilter<ProcurementSource>(filters['procurementSource']);
+    const inventoryClass = singleEnumFromFilter<InventoryClass>(filters['inventoryClass']);
     const search = (this.searchTerm() ?? '').trim() || undefined;
     // Phase 3 F7-partial / WU-17 — paged endpoint with the standardised
     // contract; pageSize=200 matches the server cap. The data-table slices
@@ -308,15 +307,6 @@ export class PartsComponent {
     if (detail?.entityType === 'part') {
       this.openPartDetail(detail.entityId);
     }
-  }
-
-  protected applyFilters(): void {
-    this.loadParts();
-  }
-
-  protected clearSearch(): void {
-    this.searchControl.setValue('');
-    this.loadParts();
   }
 
   // ── Detail Dialog ──

@@ -8,16 +8,13 @@
 <div class="parts-layout">
 
   <div class="parts-list-panel">
-    <!-- Filters — drive SERVER-side queries (parts list is paginated;
-         column-menu filters are client-side only and won't see rows
-         that aren't loaded). External controls stay until the
-         server-side filter wiring is in place. -->
+    <!-- 2026-05-06: page-level Status / Procurement / Class selects
+         retired. Those filters now live in each column's kebab menu;
+         (filtersChanged) on the DataTable below translates the column
+         filter map into server query params. The free-text Search stays
+         here because it spans multiple fields (no per-column equivalent). -->
     <div class="filters-bar">
-      <app-input [label]="'common.search' | translate" [formControl]="searchControl" [placeholder]="'parts.searchPlaceholder' | translate"
-        (keyup.enter)="applyFilters()" />
-      <app-select [label]="'common.status' | translate" [formControl]="statusFilterControl" [options]="statusFilterOptions" />
-      <app-select label="Procurement" [formControl]="procurementFilterControl" [options]="procurementFilterOptions" />
-      <app-select label="Class" [formControl]="inventoryClassFilterControl" [options]="inventoryClassFilterOptions" />
+      <app-input [label]="'common.search' | translate" [formControl]="searchControl" [placeholder]="'parts.searchPlaceholder' | translate" />
     </div>
 
     <!--
@@ -59,9 +56,11 @@
         </div>
       } @else {
         <app-data-table tableId="parts" [columns]="partColumns" [data]="combinedRows()"
+          [initialFilters]="initialPartFilters"
           emptyIcon="inventory_2" [emptyMessage]="'parts.noPartsFound' | translate" [emptyHelpText]="'parts.noPartsHelp' | translate"
           [clickableRows]="true" [rowClass]="partRowClass" [pinPredicate]="isDraftRow"
-          (rowClick)="onRowClick($any($event))">
+          (rowClick)="onRowClick($any($event))"
+          (filtersChanged)="onTableFiltersChanged($event)">
           <div table-actions>
             <ng-container *ngTemplateOutlet="viewToggle" />
           </div>

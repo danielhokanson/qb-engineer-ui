@@ -449,8 +449,6 @@
       "abandonConfirmMessage": "The in-progress workflow will be discarded. This cannot be undone.",
       "abandoned": "Draft abandoned."
     },
-    "allProcurementSources": "All procurement sources",
-    "allInventoryClasses": "All inventory classes",
     "procurementSource": {
       "Make": "Make",
       "Buy": "Buy",
@@ -487,8 +485,6 @@
     "specifications": "Specifications",
     "info": "Info",
     "searchPlaceholder": "Search parts...",
-    "allStatuses": "All Statuses",
-    "allTypes": "All Types",
     "noPartsFound": "No parts found",
     "noPartsHelp": "Create your first part to start building your catalog. Parts can include BOMs, operations, and file attachments.",
     "externalPartNumber": "External Part #",

@@ -449,8 +449,6 @@
       "abandonConfirmMessage": "El flujo en progreso se descartará. Esto no se puede deshacer.",
       "abandoned": "Borrador abandonado."
     },
-    "allProcurementSources": "Todas las fuentes",
-    "allInventoryClasses": "Todas las clases",
     "procurementSource": {
       "Make": "Fabricar",
       "Buy": "Comprar",
@@ -487,8 +485,6 @@
     "specifications": "Especificaciones",
     "info": "Info",
     "searchPlaceholder": "Buscar piezas...",
-    "allStatuses": "Todos los Estados",
-    "allTypes": "Todos los Tipos",
     "noPartsFound": "No se encontraron piezas",
     "noPartsHelp": "Cree su primera pieza para comenzar a construir su catálogo. Las piezas pueden incluir listas de materiales, operaciones y archivos adjuntos.",
     "externalPartNumber": "Pieza Externa #",
