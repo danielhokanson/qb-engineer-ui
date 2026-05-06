@@ -1,5 +1,18 @@
 import { SelectOption } from '../components/select/select.component';
 
+export type TextMatchMode =
+  | 'contains'
+  | 'equals'
+  | 'startsWith'
+  | 'endsWith'
+  | 'notContains'
+  | 'notEquals';
+
+export interface TextFilterValue {
+  mode: TextMatchMode;
+  value: string;
+}
+
 export interface ColumnDef {
   field: string;
   header: string;

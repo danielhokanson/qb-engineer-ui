@@ -2774,6 +2774,15 @@
     "columns": "Columnas",
     "resetColumns": "Restablecer",
     "contains": "Contiene",
+    "matchMode": {
+      "label": "Coincidencia",
+      "contains": "Contiene",
+      "equals": "Es igual a",
+      "startsWith": "Comienza con",
+      "endsWith": "Termina con",
+      "notContains": "No contiene",
+      "notEquals": "No es igual a"
+    },
     "min": "Mín",
     "max": "Máx",
     "clear": "Limpiar",

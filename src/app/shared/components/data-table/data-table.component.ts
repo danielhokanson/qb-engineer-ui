@@ -152,8 +152,32 @@ export class DataTableComponent implements OnInit {
         const type = col?.type ?? 'text';
 
         switch (type) {
-          case 'text':
-            return cellVal != null && String(cellVal).toLowerCase().includes(String(filterVal).toLowerCase());
+          case 'text': {
+            // filterVal can be a plain string (legacy "contains") or
+            // { mode, value } from the new match-mode picker. Back-compat
+            // treats a bare string as contains.
+            const cell = cellVal == null ? '' : String(cellVal).toLowerCase();
+            let needle: string;
+            let mode: string;
+            if (typeof filterVal === 'string') {
+              needle = filterVal.toLowerCase();
+              mode = 'contains';
+            } else {
+              const tv = filterVal as { mode?: string; value?: string };
+              needle = (tv.value ?? '').toLowerCase();
+              mode = tv.mode ?? 'contains';
+            }
+            if (!needle) return true;
+            switch (mode) {
+              case 'equals': return cell === needle;
+              case 'startsWith': return cell.startsWith(needle);
+              case 'endsWith': return cell.endsWith(needle);
+              case 'notContains': return !cell.includes(needle);
+              case 'notEquals': return cell !== needle;
+              case 'contains':
+              default: return cell.includes(needle);
+            }
+          }
           case 'number': {
             const range = filterVal as { min?: number; max?: number };
             const num = Number(cellVal);

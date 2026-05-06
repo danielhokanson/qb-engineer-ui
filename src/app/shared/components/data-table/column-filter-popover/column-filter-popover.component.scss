@@ -24,7 +24,8 @@
   padding: $sp-lg;
 }
 
-.filter-popover__range {
+.filter-popover__range,
+.filter-popover__text-stack {
   display: flex;
   flex-direction: column;
   gap: $sp-md;

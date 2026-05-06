@@ -6,10 +6,17 @@
   <div class="filter-popover__body">
     @switch (column().type ?? 'text') {
       @case ('text') {
-        <app-input
-          [label]="'shared.contains' | translate"
-          [ngModel]="textValue()"
-          (ngModelChange)="textValue.set($event)" />
+        <div class="filter-popover__text-stack">
+          <app-select
+            [label]="'shared.matchMode.label' | translate"
+            [options]="textModeOptions()"
+            [ngModel]="textMode()"
+            (ngModelChange)="textMode.set($event)" />
+          <app-input
+            [label]="textInputLabelKey() | translate"
+            [ngModel]="textValue()"
+            (ngModelChange)="textValue.set($event)" />
+        </div>
       }
       @case ('number') {
         <div class="filter-popover__range">

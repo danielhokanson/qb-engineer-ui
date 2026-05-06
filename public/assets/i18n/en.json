@@ -2778,6 +2778,15 @@
     "columns": "Columns",
     "resetColumns": "Reset",
     "contains": "Contains",
+    "matchMode": {
+      "label": "Match",
+      "contains": "Contains",
+      "equals": "Equals",
+      "startsWith": "Starts with",
+      "endsWith": "Ends with",
+      "notContains": "Does not contain",
+      "notEquals": "Does not equal"
+    },
     "min": "Min",
     "max": "Max",
     "clear": "Clear",
