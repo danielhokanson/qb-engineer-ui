@@ -44,7 +44,7 @@
       <!-- Right: detail editor -->
       <section class="working-calendars__detail">
         <header class="working-calendars__detail-header">
-          <h3>{{ selectedId() == null ? 'New Calendar' : 'Edit Calendar' }}</h3>
+          <h3>{{ selectedId() === null ? 'New Calendar' : 'Edit Calendar' }}</h3>
           @if (selected(); as sel) {
             <div class="working-calendars__detail-actions">
               @if (!sel.isDefault) {
