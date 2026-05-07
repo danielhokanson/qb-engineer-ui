@@ -8,6 +8,7 @@ import { PagedResponse, PagedQuery } from '../../../shared/models/paged-response
 import { PurchaseOrderListItem } from '../models/purchase-order-list-item.model';
 import { PurchaseOrderDetail } from '../models/purchase-order-detail.model';
 import { CreatePurchaseOrderRequest } from '../models/create-purchase-order-request.model';
+import { UpdatePurchaseOrderRequest } from '../models/update-purchase-order-request.model';
 import { ReceiveItemsRequest } from '../models/receive-items-request.model';
 import { PurchaseOrderRelease, CreatePurchaseOrderReleaseRequest, UpdatePurchaseOrderReleaseRequest } from '../models/purchase-order-release.model';
 import { AutoPoSuggestion } from '../models/auto-po-suggestion.model';
@@ -65,7 +66,7 @@ export class PurchaseOrderService {
     return this.http.post<PurchaseOrderDetail>(this.base, request);
   }
 
-  updatePurchaseOrder(id: number, request: { notes?: string; expectedDeliveryDate?: string }): Observable<void> {
+  updatePurchaseOrder(id: number, request: UpdatePurchaseOrderRequest): Observable<void> {
     return this.http.put<void>(`${this.base}/${id}`, request);
   }
 

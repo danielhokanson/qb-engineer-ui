@@ -102,6 +102,59 @@
         </div>
       }
 
+      <!-- Bought-parts effort PR2.5 — vendor-min soft warning. Server-computed
+           against PO total + EstimatedFreight; non-blocking, informational. -->
+      @if (po.belowVendorMinimum) {
+        <div class="info-section info-section--warn" data-testid="po-below-vendor-min-banner">
+          <span class="info-label">{{ 'purchaseOrders.belowVendorMinimumLabel' | translate }}</span>
+          <div class="info-notes">
+            {{ 'purchaseOrders.belowVendorMinimumMessage' | translate:{ amount: (po.vendorMinimumOrderAmount ?? 0 | number:'1.2-2') } }}
+          </div>
+        </div>
+      }
+
+      <!-- Bought-parts effort PR2.5 — Shipping & Currency. Editable in Draft. -->
+      <div class="info-section">
+        <div class="lines-section__header">
+          <span class="info-label">{{ 'purchaseOrders.shippingAndCurrency' | translate }}</span>
+          @if (canEditShipping(po)) {
+            <button class="action-btn action-btn--sm" data-testid="po-edit-shipping-btn"
+                    (click)="openShippingDialog()" [attr.aria-label]="'common.edit' | translate">
+              <span class="material-icons-outlined">edit</span>
+              {{ 'common.edit' | translate }}
+            </button>
+          }
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">{{ 'purchaseOrders.incoterm' | translate }}</span>
+            <span class="info-value">{{ po.incoterm }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ 'purchaseOrders.quoteCurrency' | translate }}</span>
+            <span class="info-value">{{ po.quoteCurrency }}</span>
+          </div>
+          @if (po.estimatedFreight !== null) {
+            <div class="info-item">
+              <span class="info-label">{{ 'purchaseOrders.estimatedFreight' | translate }}</span>
+              <span class="info-value"><app-currency-display [value]="po.estimatedFreight" [currency]="po.quoteCurrency" /></span>
+            </div>
+          }
+          @if (po.fxRate !== null) {
+            <div class="info-item">
+              <span class="info-label">{{ 'purchaseOrders.fxRate' | translate }}</span>
+              <span class="info-value">{{ po.fxRate | number:'1.4-8' }}</span>
+            </div>
+            @if (po.fxRateSource) {
+              <div class="info-item">
+                <span class="info-label">{{ 'purchaseOrders.fxRateSource' | translate }}</span>
+                <span class="info-value">{{ po.fxRateSource }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
       <app-barcode-info
         entityType="PurchaseOrder"
         [entityId]="po.id"
@@ -303,6 +356,42 @@
         (click)="confirmShortClose()">
         {{ 'purchaseOrders.shortClose' | translate }}
       </button>
+    </div>
+  </app-dialog>
+}
+
+<!-- Bought-parts effort PR2.5 — Edit Shipping & Currency Dialog. Draft only. -->
+@if (showShippingDialog()) {
+  <app-dialog [title]="'purchaseOrders.editShippingTitle' | translate" width="480px" (closed)="showShippingDialog.set(false)">
+    <div [formGroup]="shippingForm">
+      <app-select [label]="'purchaseOrders.incoterm' | translate"
+                  formControlName="incoterm" [options]="incotermOptions" [required]="true"
+                  data-testid="po-shipping-incoterm" />
+      <app-currency-input [label]="'purchaseOrders.estimatedFreight' | translate"
+                          formControlName="estimatedFreight" [min]="0"
+                          data-testid="po-shipping-freight" />
+      <app-select [label]="'purchaseOrders.quoteCurrency' | translate"
+                  formControlName="quoteCurrency" [options]="quoteCurrencyOptions()" [required]="true"
+                  data-testid="po-shipping-currency" />
+      <app-input [label]="'purchaseOrders.fxRate' | translate" type="number"
+                 formControlName="fxRate" step="0.0001" min="0.0001"
+                 data-testid="po-shipping-fx-rate" />
+      <app-input [label]="'purchaseOrders.fxRateSource' | translate"
+                 formControlName="fxRateSource"
+                 [placeholder]="'purchaseOrders.fxRateSourcePlaceholder' | translate"
+                 data-testid="po-shipping-fx-source" />
+    </div>
+    <div dialog-footer>
+      <button class="action-btn" (click)="showShippingDialog.set(false)">{{ 'common.cancel' | translate }}</button>
+      <app-validation-button [violations]="shippingViolations" [loading]="shippingSaving()">
+        <button class="action-btn action-btn--primary"
+                data-testid="po-shipping-save-btn"
+                [disabled]="shippingForm.invalid || shippingSaving()"
+                (click)="saveShipping()">
+          <span class="material-icons-outlined">save</span>
+          {{ 'common.save' | translate }}
+        </button>
+      </app-validation-button>
     </div>
   </app-dialog>
 }

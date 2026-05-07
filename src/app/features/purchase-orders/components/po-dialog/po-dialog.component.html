@@ -99,6 +99,17 @@
         <app-input data-testid="po-job-id" [label]="'purchaseOrders.jobId' | translate" type="number" formControlName="jobId" [placeholder]="'salesOrders.optional' | translate" />
       </div>
 
+      <!-- Bought-parts effort PR2.5 — Incoterm + freight estimate + quote
+           currency. Defaults pre-fill from preferred VendorPart at create
+           time on the server; user can override here. FX rate is captured
+           later (locked at Submit, edited via PO detail panel). -->
+      <div class="dlg-sidebar-section">
+        <span class="dlg-sidebar-section__title">{{ 'purchaseOrders.shippingAndCurrency' | translate }}</span>
+        <app-select data-testid="po-incoterm" [label]="'purchaseOrders.incoterm' | translate" formControlName="incoterm" [options]="incotermOptions" />
+        <app-currency-input data-testid="po-estimated-freight" [label]="'purchaseOrders.estimatedFreight' | translate" formControlName="estimatedFreight" [min]="0" />
+        <app-select data-testid="po-quote-currency" [label]="'purchaseOrders.quoteCurrency' | translate" formControlName="quoteCurrency" [options]="quoteCurrencyOptions()" />
+      </div>
+
       <div class="dlg-sidebar-section">
         <span class="dlg-sidebar-section__title">{{ 'common.notes' | translate }}</span>
         <app-textarea formControlName="notes" [rows]="3" />
@@ -110,6 +121,16 @@
           <span>{{ 'quotes.subtotal' | translate }}</span>
           <app-currency-display [value]="lineTotal()" [currency]="null" />
         </div>
+        @if (form.controls.estimatedFreight.value) {
+          <div class="dlg-total-row">
+            <span>{{ 'purchaseOrders.estimatedFreight' | translate }}</span>
+            <app-currency-display [value]="form.controls.estimatedFreight.value" [currency]="null" />
+          </div>
+          <div class="dlg-total-row dlg-total-row--grand">
+            <span>{{ 'common.total' | translate }}</span>
+            <app-currency-display [value]="lineTotal() + form.controls.estimatedFreight.value" [currency]="null" />
+          </div>
+        }
       </div>
     </div>
 
