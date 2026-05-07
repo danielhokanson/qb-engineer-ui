@@ -371,7 +371,7 @@
                           formControlName="estimatedFreight" [min]="0"
                           data-testid="po-shipping-freight" />
       <app-select [label]="'purchaseOrders.quoteCurrency' | translate"
-                  formControlName="quoteCurrency" [options]="quoteCurrencyOptions" [required]="true"
+                  formControlName="quoteCurrency" [options]="quoteCurrencyOptions()" [required]="true"
                   data-testid="po-shipping-currency" />
       <app-input [label]="'purchaseOrders.fxRate' | translate" type="number"
                  formControlName="fxRate" step="0.0001" min="0.0001"

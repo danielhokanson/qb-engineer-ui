@@ -30,13 +30,7 @@ export const INCOTERM_OPTIONS: SelectOption[] = [
   { value: 'DDP', label: 'DDP — Delivered Duty Paid' },
 ];
 
-/** Most-common ISO-4217 currencies. Reference-data backing is a future migration. */
-export const QUOTE_CURRENCY_OPTIONS: SelectOption[] = [
-  { value: 'USD', label: 'USD — US Dollar' },
-  { value: 'EUR', label: 'EUR — Euro' },
-  { value: 'GBP', label: 'GBP — British Pound' },
-  { value: 'CAD', label: 'CAD — Canadian Dollar' },
-  { value: 'MXN', label: 'MXN — Mexican Peso' },
-  { value: 'JPY', label: 'JPY — Japanese Yen' },
-  { value: 'CNY', label: 'CNY — Chinese Yuan' },
-];
+// Quote-currency options live in `reference_data` group `currency` (seeded
+// with USD/EUR/GBP/CAD/MXN/JPY/CNY). Components fetch via
+// `ReferenceDataService.getAsOptions('currency')` so admins can extend the
+// list without a code change.

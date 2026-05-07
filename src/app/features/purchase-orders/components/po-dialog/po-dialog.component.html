@@ -107,7 +107,7 @@
         <span class="dlg-sidebar-section__title">{{ 'purchaseOrders.shippingAndCurrency' | translate }}</span>
         <app-select data-testid="po-incoterm" [label]="'purchaseOrders.incoterm' | translate" formControlName="incoterm" [options]="incotermOptions" />
         <app-currency-input data-testid="po-estimated-freight" [label]="'purchaseOrders.estimatedFreight' | translate" formControlName="estimatedFreight" [min]="0" />
-        <app-select data-testid="po-quote-currency" [label]="'purchaseOrders.quoteCurrency' | translate" formControlName="quoteCurrency" [options]="quoteCurrencyOptions" />
+        <app-select data-testid="po-quote-currency" [label]="'purchaseOrders.quoteCurrency' | translate" formControlName="quoteCurrency" [options]="quoteCurrencyOptions()" />
       </div>
 
       <div class="dlg-sidebar-section">

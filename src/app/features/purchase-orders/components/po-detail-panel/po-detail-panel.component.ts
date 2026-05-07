@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input, OnInit, output, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, OnInit, output, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -30,7 +31,8 @@ import { CurrencyInputComponent } from '../../../../shared/components/currency-i
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
 import { ColumnCellDirective } from '../../../../shared/directives/column-cell.directive';
 import { ColumnDef } from '../../../../shared/models/column-def.model';
-import { INCOTERM_OPTIONS, QUOTE_CURRENCY_OPTIONS } from '../../models/incoterm.const';
+import { INCOTERM_OPTIONS } from '../../models/incoterm.const';
+import { ReferenceDataService } from '../../../../shared/services/reference-data.service';
 
 @Component({
   selector: 'app-po-detail-panel',
@@ -51,10 +53,21 @@ import { INCOTERM_OPTIONS, QUOTE_CURRENCY_OPTIONS } from '../../models/incoterm.
 })
 export class PoDetailPanelComponent implements OnInit {
   private readonly poService = inject(PurchaseOrderService);
+  private readonly referenceDataService = inject(ReferenceDataService);
   private readonly dialog = inject(MatDialog);
   private readonly snackbar = inject(SnackbarService);
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    // Bought-parts effort PR2.5 — load currency options from reference-data
+    // (group `currency`). Cached at the service so re-opening the panel
+    // doesn't re-fetch.
+    this.referenceDataService.getAsOptions('currency').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (options) => this.quoteCurrencyOptions.set(options),
+    });
+  }
 
   // Phase 3 / WU-14 / H3 — short-close is gated to roles that handle PO
   // closure / AP follow-up. Mirrors the server-side [Authorize] list.
@@ -299,7 +312,7 @@ export class PoDetailPanelComponent implements OnInit {
   // QuoteCurrency == base; non-base currencies require an explicit value
   // before Submit.
   protected readonly incotermOptions = INCOTERM_OPTIONS;
-  protected readonly quoteCurrencyOptions = QUOTE_CURRENCY_OPTIONS;
+  protected readonly quoteCurrencyOptions = signal<SelectOption[]>([]);
   protected readonly showShippingDialog = signal(false);
   protected readonly shippingSaving = signal(false);
 
