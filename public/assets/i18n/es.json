@@ -3188,7 +3188,18 @@
     "shortCloseReason": "Motivo (obligatorio)",
     "shortClosed": "Cerrada parcialmente",
     "shortClosedQty": "Cerrada parcialmente",
-    "poShortClosed": "Orden de compra cerrada parcialmente."
+    "poShortClosed": "Orden de compra cerrada parcialmente.",
+    "shippingAndCurrency": "Envío y Moneda",
+    "incoterm": "Incoterm",
+    "estimatedFreight": "Flete Estimado",
+    "quoteCurrency": "Moneda de Cotización",
+    "fxRate": "Tasa de Cambio",
+    "fxRateSource": "Origen de la Tasa",
+    "fxRateSourcePlaceholder": "p. ej. BCE 2026-05-07, ingreso manual",
+    "editShippingTitle": "Editar Envío y Moneda",
+    "shippingUpdated": "Envío y moneda actualizados.",
+    "belowVendorMinimumLabel": "Por debajo del mínimo del proveedor",
+    "belowVendorMinimumMessage": "El total de la PO está por debajo del monto mínimo del proveedor de ${{amount}}. El proveedor puede rechazar o aplicar recargos."
   },
   "salesOrders": {
     "title": "Órdenes de Venta",

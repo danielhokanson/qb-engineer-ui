@@ -3199,7 +3199,18 @@
     "shortCloseReason": "Reason (required)",
     "shortClosed": "Short-closed",
     "shortClosedQty": "Short-closed",
-    "poShortClosed": "Purchase order short-closed."
+    "poShortClosed": "Purchase order short-closed.",
+    "shippingAndCurrency": "Shipping & Currency",
+    "incoterm": "Incoterm",
+    "estimatedFreight": "Estimated Freight",
+    "quoteCurrency": "Quote Currency",
+    "fxRate": "FX Rate",
+    "fxRateSource": "FX Rate Source",
+    "fxRateSourcePlaceholder": "e.g. ECB 2026-05-07, manual entry",
+    "editShippingTitle": "Edit Shipping & Currency",
+    "shippingUpdated": "Shipping & currency updated.",
+    "belowVendorMinimumLabel": "Below vendor minimum",
+    "belowVendorMinimumMessage": "PO total is below the vendor minimum order amount of ${{amount}}. The vendor may reject or surcharge this order."
   },
   "salesOrders": {
     "title": "Sales Orders",

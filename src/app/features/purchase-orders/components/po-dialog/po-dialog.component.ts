@@ -11,12 +11,14 @@ import { PartsService } from '../../../parts/services/parts.service';
 import { VendorResponse } from '../../../vendors/models/vendor-response.model';
 import { PartListItem } from '../../../parts/models/part-list-item.model';
 import { CreatePurchaseOrderLineRequest } from '../../models/create-purchase-order-line-request.model';
+import { INCOTERM_OPTIONS, QUOTE_CURRENCY_OPTIONS } from '../../models/incoterm.const';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';
 import { AutocompleteComponent, AutocompleteOption } from '../../../../shared/components/autocomplete/autocomplete.component';
 import { CurrencyDisplayComponent } from '../../../../shared/components/currency-display/currency-display.component';
+import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
 import { DraftConfig } from '../../../../shared/models/draft-config.model';
 import { FormValidationService } from '../../../../shared/services/form-validation.service';
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
@@ -36,7 +38,8 @@ interface LineEntry {
   imports: [
     ReactiveFormsModule, DecimalPipe,
     DialogComponent, InputComponent, SelectComponent, TextareaComponent,
-    AutocompleteComponent, CurrencyDisplayComponent, ValidationButtonComponent, TranslatePipe, MatTooltipModule,
+    AutocompleteComponent, CurrencyDisplayComponent, CurrencyInputComponent,
+    ValidationButtonComponent, TranslatePipe, MatTooltipModule,
   ],
   templateUrl: './po-dialog.component.html',
   styleUrl: './po-dialog.component.scss',
@@ -128,16 +131,30 @@ export class PoDialogComponent {
     return `One or more lines reference obsolete parts: ${obsoleteRefs.join(', ')}`;
   });
 
+  // Bought-parts effort PR2.5 — landed cost header. Defaults: Incoterm
+  // FOB_Origin (most common US-domestic case), QuoteCurrency USD. Server
+  // overrides these from the preferred VendorPart of the first line at
+  // create time when the user hasn't touched them. EstimatedFreight stays
+  // null = "no quote yet" (distinct from $0 free shipping).
+  protected readonly incotermOptions = INCOTERM_OPTIONS;
+  protected readonly quoteCurrencyOptions = QUOTE_CURRENCY_OPTIONS;
+
   readonly form = new FormGroup({
     vendorId: new FormControl<number | null>(null, [Validators.required]),
     jobId: new FormControl<number | null>(null),
     notes: new FormControl(''),
+    incoterm: new FormControl<string>('FOB_Origin', { nonNullable: true }),
+    estimatedFreight: new FormControl<number | null>(null, [Validators.min(0)]),
+    quoteCurrency: new FormControl<string>('USD', { nonNullable: true }),
   });
 
   private readonly formViolations = FormValidationService.getViolations(this.form, {
     vendorId: 'Vendor',
     jobId: 'Job',
     notes: 'Notes',
+    incoterm: 'Incoterm',
+    estimatedFreight: 'Estimated Freight',
+    quoteCurrency: 'Quote Currency',
   });
 
   protected readonly violations: Signal<string[]> = computed(() => [
@@ -259,6 +276,9 @@ export class PoDialogComponent {
       jobId: f.jobId ?? undefined,
       notes: f.notes || undefined,
       lines: lineRequests,
+      incoterm: f.incoterm,
+      estimatedFreight: f.estimatedFreight ?? undefined,
+      quoteCurrency: f.quoteCurrency,
     }).subscribe({
       next: () => {
         this.saving.set(false);

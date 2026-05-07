@@ -26,9 +26,11 @@ import { ValidationButtonComponent } from '../../../../shared/components/validat
 import { toIsoDate } from '../../../../shared/utils/date.utils';
 import { EntityLinkComponent } from '../../../../shared/components/entity-link/entity-link.component';
 import { CurrencyDisplayComponent } from '../../../../shared/components/currency-display/currency-display.component';
+import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
 import { ColumnCellDirective } from '../../../../shared/directives/column-cell.directive';
 import { ColumnDef } from '../../../../shared/models/column-def.model';
+import { INCOTERM_OPTIONS, QUOTE_CURRENCY_OPTIONS } from '../../models/incoterm.const';
 
 @Component({
   selector: 'app-po-detail-panel',
@@ -40,7 +42,7 @@ import { ColumnDef } from '../../../../shared/models/column-def.model';
     ReceiveDialogComponent, LoadingBlockDirective,
     DialogComponent, InputComponent, SelectComponent, DatepickerComponent, TextareaComponent,
     ValidationButtonComponent,
-    EntityLinkComponent, CurrencyDisplayComponent,
+    EntityLinkComponent, CurrencyDisplayComponent, CurrencyInputComponent,
     DataTableComponent, ColumnCellDirective,
   ],
   templateUrl: './po-detail-panel.component.html',
@@ -287,6 +289,73 @@ export class PoDetailPanelComponent implements OnInit {
         this.changed.emit();
       },
       error: () => this.releaseSaving.set(false),
+    });
+  }
+
+  // ─── Bought-parts effort PR2.5 — edit shipping/currency (Draft only) ─────
+  // Inline-edit dialog for Incoterm, EstimatedFreight, QuoteCurrency,
+  // FxRate, FxRateSource. Server enforces Draft-only on these fields; the
+  // UI gates the action button by status. FX rate locks at Submit when
+  // QuoteCurrency == base; non-base currencies require an explicit value
+  // before Submit.
+  protected readonly incotermOptions = INCOTERM_OPTIONS;
+  protected readonly quoteCurrencyOptions = QUOTE_CURRENCY_OPTIONS;
+  protected readonly showShippingDialog = signal(false);
+  protected readonly shippingSaving = signal(false);
+
+  protected readonly shippingForm = new FormGroup({
+    incoterm: new FormControl<string>('FOB_Origin', { nonNullable: true, validators: [Validators.required] }),
+    estimatedFreight: new FormControl<number | null>(null, [Validators.min(0)]),
+    quoteCurrency: new FormControl<string>('USD', { nonNullable: true, validators: [Validators.required] }),
+    fxRate: new FormControl<number | null>(null, [Validators.min(0.0001)]),
+    fxRateSource: new FormControl<string>(''),
+  });
+
+  protected readonly shippingViolations = FormValidationService.getViolations(this.shippingForm, {
+    incoterm: 'Incoterm',
+    estimatedFreight: 'Estimated Freight',
+    quoteCurrency: 'Quote Currency',
+    fxRate: 'FX Rate',
+    fxRateSource: 'FX Rate Source',
+  });
+
+  protected canEditShipping(po: PurchaseOrderDetail): boolean {
+    return po.status === 'Draft';
+  }
+
+  protected openShippingDialog(): void {
+    const po = this.po();
+    if (!po) return;
+    this.shippingForm.reset({
+      incoterm: po.incoterm ?? 'FOB_Origin',
+      estimatedFreight: po.estimatedFreight,
+      quoteCurrency: po.quoteCurrency ?? 'USD',
+      fxRate: po.fxRate,
+      fxRateSource: po.fxRateSource ?? '',
+    });
+    this.showShippingDialog.set(true);
+  }
+
+  protected saveShipping(): void {
+    const po = this.po();
+    if (!po || this.shippingForm.invalid) return;
+    this.shippingSaving.set(true);
+    const f = this.shippingForm.getRawValue();
+    this.poService.updatePurchaseOrder(po.id, {
+      incoterm: f.incoterm,
+      estimatedFreight: f.estimatedFreight ?? undefined,
+      quoteCurrency: f.quoteCurrency,
+      fxRate: f.fxRate ?? undefined,
+      fxRateSource: f.fxRateSource || undefined,
+    }).subscribe({
+      next: () => {
+        this.showShippingDialog.set(false);
+        this.shippingSaving.set(false);
+        this.loadDetail();
+        this.changed.emit();
+        this.snackbar.success(this.translate.instant('purchaseOrders.shippingUpdated'));
+      },
+      error: () => this.shippingSaving.set(false),
     });
   }
 
