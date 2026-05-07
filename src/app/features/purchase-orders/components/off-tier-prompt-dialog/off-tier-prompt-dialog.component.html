@@ -1,0 +1,79 @@
+<app-dialog [title]="'purchaseOrders.offTier.title' | translate" width="780px" (closed)="onCancel()">
+  <div class="off-tier">
+    <p class="off-tier__intro">
+      {{ 'purchaseOrders.offTier.intro' | translate:{ count: lines().length, threshold: (thresholdPct() | number:'1.0-1') } }}
+    </p>
+
+    <table class="off-tier__table" [attr.aria-label]="'purchaseOrders.offTier.tableLabel' | translate">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'purchaseOrders.partNumber' | translate }}</th>
+          <th scope="col" class="off-tier__right">{{ 'purchaseOrders.qty' | translate }}</th>
+          <th scope="col" class="off-tier__right">{{ 'purchaseOrders.offTier.tierPrice' | translate }}</th>
+          <th scope="col" class="off-tier__right">{{ 'purchaseOrders.offTier.enteredPrice' | translate }}</th>
+          <th scope="col" class="off-tier__right">{{ 'purchaseOrders.variance' | translate }}</th>
+          <th scope="col">{{ 'purchaseOrders.offTier.action' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of lines(); track line.partId) {
+          <tr>
+            <td>
+              <div class="off-tier__part">{{ partInfo(line.partId).partNumber }}</div>
+              <div class="off-tier__part-desc">{{ partInfo(line.partId).description }}</div>
+            </td>
+            <td class="off-tier__right">{{ line.quantity | number:'1.0-4' }}</td>
+            <td class="off-tier__right">
+              @if (line.tierPrice !== null) {
+                <app-currency-display [value]="line.tierPrice" [currency]="line.currency" />
+              } @else {
+                <span class="off-tier__muted">{{ 'purchaseOrders.offTier.noTier' | translate }}</span>
+              }
+            </td>
+            <td class="off-tier__right">
+              <app-currency-display [value]="line.unitPrice" [currency]="line.currency" />
+            </td>
+            <td class="off-tier__right">
+              @if (line.variancePct !== null) {
+                <span [class.off-tier__variance--high]="line.variancePct > thresholdPct() * 2"
+                      [class.off-tier__variance--mid]="line.variancePct > thresholdPct() && line.variancePct <= thresholdPct() * 2">
+                  {{ line.variancePct | number:'1.0-1' }}%
+                </span>
+              } @else {
+                <span class="off-tier__muted">—</span>
+              }
+            </td>
+            <td>
+              <label class="off-tier__choice">
+                <input type="checkbox"
+                  [attr.data-testid]="'off-tier-update-' + line.partId"
+                  [checked]="!!$any(updateTierByPart())[line.partId]"
+                  (change)="toggleUpdateTier(line.partId)" />
+                {{ 'purchaseOrders.offTier.updateTier' | translate }}
+              </label>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (tierUpdateCount() > 0) {
+      <p class="off-tier__summary">
+        {{ 'purchaseOrders.offTier.updateSummary' | translate:{ count: tierUpdateCount() } }}
+      </p>
+    } @else {
+      <p class="off-tier__summary off-tier__summary--exception">
+        {{ 'purchaseOrders.offTier.exceptionSummary' | translate }}
+      </p>
+    }
+  </div>
+
+  <div dialog-footer>
+    <button class="action-btn" (click)="onCancel()" data-testid="off-tier-cancel">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <button class="action-btn action-btn--primary" (click)="onConfirm()" data-testid="off-tier-continue">
+      {{ 'purchaseOrders.offTier.continue' | translate }}
+    </button>
+  </div>
+</app-dialog>

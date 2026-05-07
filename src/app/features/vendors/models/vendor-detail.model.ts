@@ -18,4 +18,9 @@ export interface VendorDetail {
   createdAt: Date;
   updatedAt: Date;
   purchaseOrders: PurchaseOrderListItem[];
+  // Bought-parts effort PR4 — per-vendor override for the off-tier
+  // prompt threshold. Null = use the system default. Surfaced in the
+  // vendor edit dialog so admins can widen tolerance for vendors with
+  // genuinely noisy pricing.
+  offTierVariancePct: number | null;
 }

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { VendorPart, VendorPartPriceTier } from '../models/vendor-part.model';
+import { CheckTierVarianceRequest, CheckTierVarianceResponse } from '../../purchase-orders/models/tier-variance-check.model';
 
 /**
  * Request body for upserting a tier. Currency is intentionally absent —
@@ -79,6 +80,18 @@ export class VendorPartsService {
   getPriceTierHistory(vendorPartId: number): Observable<VendorPartPriceTier[]> {
     return this.http.get<VendorPartPriceTier[]>(
       `${environment.apiUrl}/vendor-parts/${vendorPartId}/price-tiers/history`,
+    );
+  }
+
+  /**
+   * Bought-parts effort PR4 — variance check for the off-tier prompt.
+   * Single-call evaluation of every line on a draft PO so the UI shows
+   * one consolidated dialog instead of one prompt per line.
+   */
+  checkTierVariance(request: CheckTierVarianceRequest): Observable<CheckTierVarianceResponse> {
+    return this.http.post<CheckTierVarianceResponse>(
+      `${environment.apiUrl}/vendor-parts/check-tier-variance`,
+      request,
     );
   }
 }

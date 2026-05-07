@@ -1,0 +1,87 @@
+@use 'styles/variables' as *;
+@use 'styles/mixins' as *;
+
+:host {
+  display: block;
+}
+
+.off-tier {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-md;
+
+  &__intro {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+
+    th,
+    td {
+      padding: $sp-sm $sp-md;
+      border-bottom: $border-width-thin solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      @include uppercase-label(var(--font-size-xxs), 0.5px, 700);
+      color: var(--text-muted);
+    }
+  }
+
+  &__part {
+    font-family: $font-family-mono;
+    font-weight: 600;
+  }
+
+  &__part-desc {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  &__right {
+    text-align: right;
+  }
+
+  &__muted {
+    color: var(--text-muted);
+  }
+
+  &__variance {
+    &--mid {
+      color: var(--warning);
+    }
+    &--high {
+      color: var(--error);
+      font-weight: 600;
+    }
+  }
+
+  &__choice {
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-sm;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+  }
+
+  &__summary {
+    margin: 0;
+    padding: $sp-sm $sp-md;
+    font-size: var(--font-size-xs);
+    color: var(--text);
+    background: color-mix(in srgb, var(--info) 8%, transparent);
+    border-left: $border-width-accent solid var(--info);
+
+    &--exception {
+      background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+      border-left-color: var(--text-muted);
+    }
+  }
+}

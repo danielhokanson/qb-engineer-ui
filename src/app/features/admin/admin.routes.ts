@@ -80,5 +80,12 @@ export const ADMIN_ROUTES: Routes = [
         (m) => m.WorkingCalendarsComponent,
       ),
   },
+  // Bought-parts effort PR4 — TariffRate admin page. Admin imports HTS-code
+  // tariffs that feed the landed-cost duty component on the part Cost tab.
+  {
+    path: 'tariffs',
+    loadComponent: () =>
+      import('./tariffs/tariffs.component').then((m) => m.TariffsComponent),
+  },
   { path: ':tab', component: AdminComponent },
 ];

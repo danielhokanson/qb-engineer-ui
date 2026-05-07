@@ -32,6 +32,16 @@
       <div class="dlg-sidebar-section">
         <span class="dlg-sidebar-section__title">{{ 'common.settings' | translate }}</span>
         <app-select [label]="'vendors.paymentTerms' | translate" formControlName="paymentTerms" [options]="paymentTermsOptions" data-testid="vendor-terms" />
+        <!-- Bought-parts effort PR4 — per-vendor override for the off-tier
+             prompt threshold at PO line entry. Empty = system default (5%). -->
+        <app-input
+          [label]="'vendors.offTierVariancePct' | translate"
+          type="number"
+          formControlName="offTierVariancePct"
+          step="0.1"
+          min="0"
+          [placeholder]="'vendors.offTierVariancePctPlaceholder' | translate"
+          data-testid="vendor-off-tier-variance" />
         @if (isEditing) {
           <app-toggle [label]="'common.active' | translate" formControlName="isActive" />
         }

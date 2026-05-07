@@ -147,3 +147,13 @@
     </app-validation-button>
   </div>
 </app-dialog>
+
+<!-- Bought-parts effort PR4 — off-tier price prompt at PO save time. -->
+@if (showOffTierPrompt()) {
+  <app-off-tier-prompt-dialog
+    [lines]="offTierLines()"
+    [thresholdPct]="offTierThresholdPct()"
+    [partLookup]="partLookup()"
+    (cancelled)="onOffTierCancel()"
+    (confirmed)="onOffTierConfirm($event)" />
+}

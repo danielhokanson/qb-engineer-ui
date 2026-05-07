@@ -11,8 +11,14 @@ import { PartsService } from '../../../parts/services/parts.service';
 import { VendorResponse } from '../../../vendors/models/vendor-response.model';
 import { PartListItem } from '../../../parts/models/part-list-item.model';
 import { CreatePurchaseOrderLineRequest } from '../../models/create-purchase-order-line-request.model';
+import { CheckTierVarianceResult } from '../../models/tier-variance-check.model';
 import { INCOTERM_OPTIONS } from '../../models/incoterm.const';
 import { ReferenceDataService } from '../../../../shared/services/reference-data.service';
+import { VendorPartsService } from '../../../parts/services/vendor-parts.service';
+import { OffTierPromptDialogComponent, OffTierPromptResult } from '../off-tier-prompt-dialog/off-tier-prompt-dialog.component';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { toIsoDate } from '../../../../shared/utils/date.utils';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
@@ -41,6 +47,7 @@ interface LineEntry {
     DialogComponent, InputComponent, SelectComponent, TextareaComponent,
     AutocompleteComponent, CurrencyDisplayComponent, CurrencyInputComponent,
     ValidationButtonComponent, TranslatePipe, MatTooltipModule,
+    OffTierPromptDialogComponent,
   ],
   templateUrl: './po-dialog.component.html',
   styleUrl: './po-dialog.component.scss',
@@ -51,6 +58,7 @@ export class PoDialogComponent {
   private readonly poService = inject(PurchaseOrderService);
   private readonly vendorService = inject(VendorService);
   private readonly partsService = inject(PartsService);
+  private readonly vendorPartsService = inject(VendorPartsService);
   private readonly referenceDataService = inject(ReferenceDataService);
   private readonly snackbar = inject(SnackbarService);
   private readonly translate = inject(TranslateService);
@@ -263,6 +271,20 @@ export class PoDialogComponent {
     this.lines.update(prev => prev.filter((_, i) => i !== index));
   }
 
+  // Bought-parts effort PR4 — off-tier prompt state. Checked on save;
+  // when any line is off-tier the prompt opens and the PO submission
+  // pauses until the user confirms (or cancels).
+  protected readonly showOffTierPrompt = signal(false);
+  protected readonly offTierLines = signal<CheckTierVarianceResult[]>([]);
+  protected readonly offTierThresholdPct = signal(5);
+  protected readonly partLookup = computed(() => {
+    const map = new Map<number, { partNumber: string; description: string }>();
+    for (const p of this.parts()) {
+      map.set(p.id, { partNumber: p.partNumber, description: p.description ?? p.name });
+    }
+    return map;
+  });
+
   protected save(): void {
     if (this.form.invalid || this.lines().length === 0) return;
     // Phase 3 H2 / WU-12: refuse client-side when a deactivated vendor or
@@ -271,6 +293,78 @@ export class PoDialogComponent {
     if (this.selectedVendorWarning() || this.inactiveLineWarning()) return;
     this.saving.set(true);
 
+    // Bought-parts effort PR4 — variance check before submit. One round
+    // trip evaluates every line; if any are off-tier the prompt fires
+    // before the PO is created.
+    const f = this.form.getRawValue();
+    const vendorId = f.vendorId!;
+    this.vendorPartsService.checkTierVariance({
+      vendorId,
+      lines: this.lines().map(l => ({
+        partId: l.partId,
+        quantity: l.orderedQuantity,
+        unitPrice: l.unitPrice,
+      })),
+    }).subscribe({
+      next: (result) => {
+        const offTier = result.lines.filter(l => l.isOffTier);
+        if (offTier.length === 0) {
+          this.submitPo();
+          return;
+        }
+        this.offTierLines.set(offTier);
+        this.offTierThresholdPct.set(result.thresholdPct);
+        this.showOffTierPrompt.set(true);
+        this.saving.set(false);
+      },
+      error: () => {
+        // If the variance check itself fails, don't block submit — log a
+        // soft toast and proceed. The variance prompt is informational; a
+        // server hiccup shouldn't block legitimate PO creation.
+        this.submitPo();
+      },
+    });
+  }
+
+  protected onOffTierCancel(): void {
+    this.showOffTierPrompt.set(false);
+    this.offTierLines.set([]);
+  }
+
+  protected onOffTierConfirm(result: OffTierPromptResult): void {
+    this.showOffTierPrompt.set(false);
+    this.saving.set(true);
+
+    // For lines flagged "update tier", upsert a new VendorPartPriceTier.
+    // Skip lines that already exist with no VendorPartId — those need a
+    // VendorPart row first, which is admin-managed; we'd rather record
+    // the line as exception and leave the tier insert for a follow-up.
+    const tierUpserts = result.updateTierLines
+      .filter(l => l.vendorPartId !== null)
+      .map(l => this.vendorPartsService.addPriceTier(l.vendorPartId!, {
+        minQuantity: l.quantity,
+        unitPrice: l.unitPrice,
+        effectiveFrom: toIsoDate(new Date()),
+      }).pipe(catchError(() => of(null))));
+
+    if (tierUpserts.length === 0) {
+      this.submitPo();
+      return;
+    }
+
+    forkJoin(tierUpserts).pipe(map(() => null)).subscribe({
+      next: () => this.submitPo(),
+      error: () => {
+        // Tier upsert failed — surface to user but don't block PO submit.
+        // The PO is still legitimate; tier update can be retried later.
+        this.snackbar.error(this.translate.instant('purchaseOrders.offTier.updateTierFailed'));
+        this.submitPo();
+      },
+    });
+  }
+
+  private submitPo(): void {
+    this.saving.set(true);
     const f = this.form.getRawValue();
     const lineRequests: CreatePurchaseOrderLineRequest[] = this.lines().map(l => ({
       partId: l.partId,

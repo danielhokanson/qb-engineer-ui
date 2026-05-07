@@ -1892,6 +1892,28 @@
     "lockPeriodFailed": "Failed to lock period",
     "lockPeriodHint": "Lock a pay period to prevent further edits",
     "payPeriod": "Pay Period",
+    "tariffs": {
+      "title": "Tariff Rates",
+      "hint": "HTS-code import duty rates feed the landed-cost duty component on the part Cost tab. SCD-2: to retire a rate, edit the row and set Effective To, then add a new row with a fresh Effective From.",
+      "newTariff": "New Tariff",
+      "editTariff": "Edit Tariff",
+      "empty": "No tariff rates yet — landed cost will show duty as \"—\" until rates are imported.",
+      "open": "open",
+      "htsCode": "HTS Code",
+      "htsPlaceholder": "e.g. 8471.30.0100",
+      "countryOfOrigin": "Country of Origin (ISO-2)",
+      "countryPlaceholder": "e.g. CN",
+      "ratePct": "Rate %",
+      "effectiveFrom": "Effective From",
+      "effectiveTo": "Effective To",
+      "source": "Source",
+      "sourcePlaceholder": "e.g. USITC manual import 2026-05-01",
+      "created": "Tariff rate created.",
+      "updated": "Tariff rate updated.",
+      "deleted": "Tariff rate deleted.",
+      "deleteTitle": "Delete tariff rate?",
+      "deleteMessage": "Soft-delete the {{hts}} / {{country}} rate? Landed-cost duty for receipts using this rate will fall back to the next-effective row (or 0% if none)."
+    },
     "entityCompleteness": {
       "title": "Entity Completeness Requirements",
       "subtitle": "Define which entity fields each capability requires.",
@@ -3149,7 +3171,9 @@
       "catalogEmpty": "This vendor has no parts in the catalog yet.",
       "catalogEmptyHelp": "Add a part this vendor supplies.",
       "addPartToCatalog": "Add Part"
-    }
+    },
+    "offTierVariancePct": "Off-Tier Variance %",
+    "offTierVariancePctPlaceholder": "Default: 5%"
   },
   "purchaseOrders": {
     "title": "Purchase Orders",
@@ -3231,7 +3255,21 @@
     "belowVendorMinimumMessage": "PO total is below the vendor minimum order amount of ${{amount}}. The vendor may reject or surcharge this order.",
     "actualFreight": "Actual Freight",
     "freightAllocationMethod": "Allocation",
-    "variance": "Variance"
+    "variance": "Variance",
+    "offTier": {
+      "title": "Off-tier prices",
+      "intro": "{{count}} line(s) priced more than {{threshold}}% off the current vendor tier. Pick how to handle each — by default the entered prices stay as one-off exceptions and don't change vendor master pricing.",
+      "tableLabel": "Off-tier line items",
+      "tierPrice": "Tier price",
+      "enteredPrice": "Entered price",
+      "noTier": "no tier",
+      "action": "Action",
+      "updateTier": "Update vendor's tiers with this price",
+      "updateSummary": "{{count}} line(s) will insert a new vendor price tier; remaining off-tier lines stay as one-off exceptions on this PO only.",
+      "exceptionSummary": "All off-tier prices recorded as one-off exceptions for this PO. Vendor master pricing unchanged.",
+      "continue": "Continue",
+      "updateTierFailed": "Couldn't update one or more vendor tiers — PO will still be created."
+    }
   },
   "salesOrders": {
     "title": "Sales Orders",

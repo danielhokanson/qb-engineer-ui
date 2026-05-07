@@ -1888,6 +1888,28 @@
     "lockPeriodFailed": "Error al bloquear período",
     "lockPeriodHint": "Bloquear un período de nómina para evitar ediciones",
     "payPeriod": "Período de Nómina",
+    "tariffs": {
+      "title": "Tarifas Arancelarias",
+      "hint": "Las tasas arancelarias por código HTS alimentan el componente de aranceles del costo aterrizado en la pestaña de Costo de la pieza. SCD-2: para retirar una tasa, edita la fila y establece Vigente Hasta, luego añade una nueva fila con un Vigente Desde nuevo.",
+      "newTariff": "Nueva Tarifa",
+      "editTariff": "Editar Tarifa",
+      "empty": "Aún no hay tarifas — el costo aterrizado mostrará aranceles como \"—\" hasta que se importen tasas.",
+      "open": "abierta",
+      "htsCode": "Código HTS",
+      "htsPlaceholder": "p. ej. 8471.30.0100",
+      "countryOfOrigin": "País de Origen (ISO-2)",
+      "countryPlaceholder": "p. ej. CN",
+      "ratePct": "Tasa %",
+      "effectiveFrom": "Vigente Desde",
+      "effectiveTo": "Vigente Hasta",
+      "source": "Origen",
+      "sourcePlaceholder": "p. ej. importación manual USITC 2026-05-01",
+      "created": "Tarifa creada.",
+      "updated": "Tarifa actualizada.",
+      "deleted": "Tarifa eliminada.",
+      "deleteTitle": "¿Eliminar tarifa?",
+      "deleteMessage": "¿Eliminación lógica de la tarifa {{hts}} / {{country}}? El cálculo del costo aterrizado de recepciones que usen esta tarifa volverá a la siguiente fila vigente (o 0% si no hay)."
+    },
     "entityCompleteness": {
       "title": "Requisitos de Integridad de Entidades",
       "subtitle": "Define qué campos de entidad requiere cada capacidad.",
@@ -3138,7 +3160,9 @@
       "catalogEmpty": "Este proveedor aún no tiene piezas en el catálogo.",
       "catalogEmptyHelp": "Añade una pieza que este proveedor suministre.",
       "addPartToCatalog": "Añadir pieza"
-    }
+    },
+    "offTierVariancePct": "% Variación Fuera de Tarifa",
+    "offTierVariancePctPlaceholder": "Predeterminado: 5%"
   },
   "purchaseOrders": {
     "title": "Órdenes de Compra",
@@ -3220,7 +3244,21 @@
     "belowVendorMinimumMessage": "El total de la PO está por debajo del monto mínimo del proveedor de ${{amount}}. El proveedor puede rechazar o aplicar recargos.",
     "actualFreight": "Flete Real",
     "freightAllocationMethod": "Asignación",
-    "variance": "Variación"
+    "variance": "Variación",
+    "offTier": {
+      "title": "Precios fuera de tarifa",
+      "intro": "{{count}} línea(s) con precio más de {{threshold}}% por encima/debajo del nivel de tarifa actual del proveedor. Elige cómo manejar cada una — por defecto los precios ingresados quedan como excepciones únicas y no cambian el precio maestro del proveedor.",
+      "tableLabel": "Líneas fuera de tarifa",
+      "tierPrice": "Precio de tarifa",
+      "enteredPrice": "Precio ingresado",
+      "noTier": "sin tarifa",
+      "action": "Acción",
+      "updateTier": "Actualizar tarifa del proveedor con este precio",
+      "updateSummary": "{{count}} línea(s) insertarán una nueva tarifa de proveedor; las líneas restantes fuera de tarifa quedan como excepciones únicas solo para esta OC.",
+      "exceptionSummary": "Todos los precios fuera de tarifa registrados como excepciones únicas para esta OC. Precio maestro del proveedor sin cambios.",
+      "continue": "Continuar",
+      "updateTierFailed": "No se pudo actualizar una o más tarifas del proveedor — la OC se creará igualmente."
+    }
   },
   "salesOrders": {
     "title": "Órdenes de Venta",

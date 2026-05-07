@@ -1,0 +1,96 @@
+<app-page-layout [pageTitle]="'admin.tariffs.title' | translate">
+  <ng-container toolbar>
+    <app-toolbar>
+      <span class="toolbar__hint">{{ 'admin.tariffs.hint' | translate }}</span>
+      <span appSpacer></span>
+      <button class="action-btn action-btn--create" (click)="openNew()" data-testid="tariff-new-btn">
+        <span class="material-icons-outlined">add</span>
+        {{ 'admin.tariffs.newTariff' | translate }}
+      </button>
+    </app-toolbar>
+  </ng-container>
+
+  <ng-container content>
+    <div [appLoadingBlock]="loading()">
+      <app-data-table
+        tableId="admin-tariffs"
+        [columns]="columns"
+        [data]="tariffs()"
+        emptyIcon="public"
+        [emptyMessage]="'admin.tariffs.empty' | translate">
+
+        <ng-template appColumnCell="ratePct" let-row>
+          {{ $any(row).ratePct | number:'1.2-4' }}%
+        </ng-template>
+
+        <ng-template appColumnCell="effectiveFrom" let-row>
+          {{ $any(row).effectiveFrom | date:'MM/dd/yyyy' }}
+        </ng-template>
+
+        <ng-template appColumnCell="effectiveTo" let-row>
+          @if ($any(row).effectiveTo) {
+            {{ $any(row).effectiveTo | date:'MM/dd/yyyy' }}
+          } @else {
+            <span class="tariffs__open">{{ 'admin.tariffs.open' | translate }}</span>
+          }
+        </ng-template>
+
+        <ng-template appColumnCell="actions" let-row>
+          <button class="icon-btn" [attr.aria-label]="'common.edit' | translate"
+                  (click)="openEdit($any(row))" data-testid="tariff-edit-btn">
+            <span class="material-icons-outlined">edit</span>
+          </button>
+          <button class="icon-btn icon-btn--danger" [attr.aria-label]="'common.delete' | translate"
+                  (click)="confirmDelete($any(row))" data-testid="tariff-delete-btn">
+            <span class="material-icons-outlined">delete</span>
+          </button>
+        </ng-template>
+      </app-data-table>
+    </div>
+  </ng-container>
+</app-page-layout>
+
+@if (showDialog()) {
+  <app-dialog
+    [title]="(editingId() === null ? 'admin.tariffs.newTariff' : 'admin.tariffs.editTariff') | translate"
+    width="520px"
+    (closed)="close()">
+    <div [formGroup]="form">
+      <app-input [label]="'admin.tariffs.htsCode' | translate"
+        formControlName="htsCode" [required]="true"
+        [placeholder]="'admin.tariffs.htsPlaceholder' | translate"
+        data-testid="tariff-hts" />
+      <app-input [label]="'admin.tariffs.countryOfOrigin' | translate"
+        formControlName="countryOfOrigin" [required]="true"
+        [placeholder]="'admin.tariffs.countryPlaceholder' | translate"
+        [maxlength]="2"
+        data-testid="tariff-country" />
+      <app-input [label]="'admin.tariffs.ratePct' | translate"
+        type="number" formControlName="ratePct" [required]="true"
+        step="0.01" min="0" max="1000"
+        data-testid="tariff-rate" />
+      <app-datepicker [label]="'admin.tariffs.effectiveFrom' | translate"
+        formControlName="effectiveFrom" [required]="true"
+        data-testid="tariff-effective-from" />
+      <app-datepicker [label]="'admin.tariffs.effectiveTo' | translate"
+        formControlName="effectiveTo"
+        data-testid="tariff-effective-to" />
+      <app-input [label]="'admin.tariffs.source' | translate"
+        formControlName="source"
+        [placeholder]="'admin.tariffs.sourcePlaceholder' | translate"
+        data-testid="tariff-source" />
+    </div>
+    <div dialog-footer>
+      <button class="action-btn" (click)="close()">{{ 'common.cancel' | translate }}</button>
+      <app-validation-button [violations]="violations" [loading]="saving()">
+        <button class="action-btn action-btn--primary"
+          [disabled]="form.invalid || saving()"
+          (click)="save()"
+          data-testid="tariff-save-btn">
+          <span class="material-icons-outlined">save</span>
+          {{ 'common.save' | translate }}
+        </button>
+      </app-validation-button>
+    </div>
+  </app-dialog>
+}

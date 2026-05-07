@@ -59,6 +59,8 @@ export class VendorDialogComponent {
     paymentTerms: new FormControl(''),
     notes: new FormControl(''),
     isActive: new FormControl(true),
+    // Bought-parts effort PR4 — per-vendor variance threshold override.
+    offTierVariancePct: new FormControl<number | null>(null, [Validators.min(0)]),
   });
 
   protected readonly violations = FormValidationService.getViolations(this.form, {
@@ -69,6 +71,7 @@ export class VendorDialogComponent {
     paymentTerms: 'Payment Terms',
     notes: 'Notes',
     isActive: 'Active',
+    offTierVariancePct: 'Off-Tier Variance %',
   });
 
   protected readonly paymentTermsOptions = PAYMENT_TERMS_OPTIONS;
@@ -85,6 +88,7 @@ export class VendorDialogComponent {
         paymentTerms: v.paymentTerms ?? '',
         notes: v.notes ?? '',
         isActive: v.isActive,
+        offTierVariancePct: (v as { offTierVariancePct?: number | null }).offTierVariancePct ?? null,
       });
     }
   }
@@ -112,6 +116,7 @@ export class VendorDialogComponent {
       ...fromAddressToVendor(addr),
       paymentTerms: f.paymentTerms || undefined,
       notes: f.notes || undefined,
+      offTierVariancePct: f.offTierVariancePct,
     };
 
     if (v) {

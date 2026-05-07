@@ -1,0 +1,15 @@
+@use 'styles/variables' as *;
+
+:host {
+  display: block;
+}
+
+.toolbar__hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.tariffs__open {
+  color: var(--text-muted);
+  font-style: italic;
+}

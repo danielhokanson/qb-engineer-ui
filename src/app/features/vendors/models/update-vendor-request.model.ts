@@ -11,4 +11,9 @@ export interface UpdateVendorRequest {
   paymentTerms?: string;
   notes?: string;
   isActive?: boolean;
+  // Bought-parts effort PR4 — per-vendor override for the off-tier price
+  // prompt threshold. Null = use system default (`purchasing.offTierVariancePct`,
+  // 5% out of the box). Wider tolerance silences prompts for vendors with
+  // genuinely noisy pricing.
+  offTierVariancePct?: number | null;
 }
