@@ -1,0 +1,208 @@
+@use 'styles/variables' as *;
+@use 'styles/mixins' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.spacer { flex: 1 1 auto; }
+
+.working-calendars {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: $sp-md;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-xs;
+    border: $border-width-thin solid var(--border);
+    background: var(--surface);
+    padding: $sp-sm;
+    overflow-y: auto;
+    @include custom-scrollbar(6px);
+  }
+
+  &__item {
+    appearance: none;
+    background: transparent;
+    border: $border-width-thin solid transparent;
+    text-align: left;
+    padding: $sp-sm $sp-md;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-xs;
+    transition: background-color $transition-fast, border-color $transition-fast;
+
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 5%, transparent);
+    }
+
+    &--selected {
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+      border-color: var(--primary);
+    }
+  }
+
+  &__item-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  &__item-meta {
+    @include uppercase-label($font-size-xxs, 0.06em, 600);
+    color: var(--text-muted);
+  }
+
+  &__item-chips {
+    display: flex;
+    gap: $sp-xs;
+  }
+
+  &__detail {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+    padding: $sp-md;
+    border: $border-width-thin solid var(--border);
+    background: var(--surface);
+    overflow-y: auto;
+    @include custom-scrollbar(6px);
+  }
+
+  &__detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-md;
+    border-bottom: $border-width-thin solid var(--border);
+    padding-bottom: $sp-sm;
+
+    h3 {
+      margin: 0;
+      font-size: $font-size-lg;
+      font-weight: 700;
+    }
+  }
+
+  &__detail-actions {
+    display: flex;
+    gap: $sp-sm;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-md;
+  }
+
+  &__day-toggles {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    flex-wrap: wrap;
+  }
+
+  &__day-toggles-label {
+    @include uppercase-label($font-size-xxs, 0.06em, 700);
+    color: var(--text-muted);
+    margin-right: $sp-sm;
+  }
+
+  &__day-btn {
+    appearance: none;
+    background: transparent;
+    border: $border-width-thin solid var(--border);
+    color: var(--text-muted);
+    padding: $sp-xs $sp-md;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    min-width: 48px;
+    transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
+
+    &--on {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+  }
+
+  &__form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $sp-sm;
+  }
+
+  &__holidays {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-sm;
+    margin-top: $sp-md;
+    padding-top: $sp-md;
+    border-top: $border-width-thin solid var(--border);
+
+    h4 {
+      margin: 0;
+      font-size: $font-size-md;
+      font-weight: 700;
+      color: var(--text);
+    }
+  }
+
+  &__holidays-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: $font-size-sm;
+  }
+
+  &__holidays-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-size-sm;
+
+    th {
+      @include uppercase-label($font-size-xxs, 0.06em, 700);
+      color: var(--text-muted);
+      text-align: left;
+      padding: $sp-xs $sp-sm;
+      border-bottom: $border-width-thin solid var(--border);
+    }
+
+    td {
+      padding: $sp-xs $sp-sm;
+      border-bottom: $border-width-thin solid var(--border);
+    }
+  }
+
+  &__holidays-action {
+    width: 32px;
+    text-align: center;
+  }
+
+  &__add-holiday {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 120px auto;
+    gap: $sp-sm;
+    align-items: end;
+    padding: $sp-md;
+    background: color-mix(in srgb, var(--text-muted) 3%, transparent);
+    border: $border-width-thin dashed var(--border);
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}

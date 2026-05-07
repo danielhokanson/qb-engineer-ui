@@ -1,0 +1,152 @@
+<app-page-layout pageTitle="Working Calendars">
+  <ng-container toolbar>
+    <button class="action-btn" (click)="back()">
+      <span class="material-icons-outlined">arrow_back</span>
+      <span>Back to Admin</span>
+    </button>
+    <span class="spacer"></span>
+    <button class="action-btn action-btn--create" (click)="newCalendar()">
+      <span class="material-icons-outlined">add</span>
+      <span>New Calendar</span>
+    </button>
+  </ng-container>
+
+  <ng-container content>
+    <div class="working-calendars" [appLoadingBlock]="loading()">
+      <!-- Left: list of calendars -->
+      <aside class="working-calendars__list">
+        @if (calendars().length === 0) {
+          <app-empty-state icon="event_available" message="No calendars yet"
+            helpText="Create your first calendar to get started." />
+        } @else {
+          @for (cal of calendars(); track cal.id) {
+            <button type="button"
+              class="working-calendars__item"
+              [class.working-calendars__item--selected]="selectedId() === cal.id"
+              (click)="select(cal.id)">
+              <span class="working-calendars__item-name">{{ cal.name }}</span>
+              <span class="working-calendars__item-meta">
+                {{ cal.timeZone }} · {{ cal.holidays.length }} holiday{{ cal.holidays.length === 1 ? '' : 's' }}
+              </span>
+              <span class="working-calendars__item-chips">
+                @if (cal.isDefault) {
+                  <span class="chip chip--primary">Default</span>
+                }
+                @if (!cal.isActive) {
+                  <span class="chip chip--muted">Inactive</span>
+                }
+              </span>
+            </button>
+          }
+        }
+      </aside>
+
+      <!-- Right: detail editor -->
+      <section class="working-calendars__detail">
+        <header class="working-calendars__detail-header">
+          <h3>{{ selectedId() == null ? 'New Calendar' : 'Edit Calendar' }}</h3>
+          @if (selected(); as sel) {
+            <div class="working-calendars__detail-actions">
+              @if (!sel.isDefault) {
+                <button class="action-btn" (click)="setDefault()">
+                  <span class="material-icons-outlined">star</span>
+                  <span>Set as Default</span>
+                </button>
+              }
+              <button class="action-btn action-btn--danger" (click)="delete()">
+                <span class="material-icons-outlined">delete</span>
+                <span>Delete</span>
+              </button>
+            </div>
+          }
+        </header>
+
+        <form [formGroup]="calendarForm" class="working-calendars__form">
+          <app-input label="Name" formControlName="name" [required]="true" />
+          <app-select label="Time Zone" formControlName="timeZone"
+            [options]="timeZoneOptions" [required]="true" />
+
+          <div class="working-calendars__day-toggles">
+            <span class="working-calendars__day-toggles-label">Working days</span>
+            @for (name of dayNames; track $index) {
+              <button type="button"
+                class="working-calendars__day-btn"
+                [class.working-calendars__day-btn--on]="dayBits()[$index]"
+                (click)="toggleDay($index)">
+                {{ name }}
+              </button>
+            }
+          </div>
+
+          <app-toggle label="Active" formControlName="isActive" />
+
+          <div class="working-calendars__form-actions">
+            <app-validation-button [violations]="calendarViolations" [loading]="saving()">
+              <button class="action-btn action-btn--primary" type="button"
+                [disabled]="calendarForm.invalid || saving()"
+                (click)="save()">
+                <span class="material-icons-outlined">save</span>
+                <span>Save</span>
+              </button>
+            </app-validation-button>
+          </div>
+        </form>
+
+        @if (selected(); as sel) {
+          <!-- Holidays sub-panel -->
+          <div class="working-calendars__holidays">
+            <h4>Holidays</h4>
+
+            @if (sel.holidays.length === 0) {
+              <p class="working-calendars__holidays-empty">No holidays configured.</p>
+            } @else {
+              <table class="working-calendars__holidays-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Observed</th>
+                    <th>Recurring</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (h of sel.holidays; track h.id) {
+                    <tr>
+                      <td>{{ h.date }}</td>
+                      <td>{{ h.name }}</td>
+                      <td>{{ h.observedDate ?? '—' }}</td>
+                      <td>{{ h.isRecurring ? 'Yes' : 'No' }}</td>
+                      <td class="working-calendars__holidays-action">
+                        <button type="button" class="icon-btn icon-btn--danger"
+                          [matTooltip]="'Remove'"
+                          (click)="deleteHoliday(h)">
+                          <span class="material-icons-outlined">delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+
+            <form [formGroup]="holidayForm" class="working-calendars__add-holiday">
+              <app-datepicker label="Date" formControlName="date" />
+              <app-input label="Name" formControlName="name" />
+              <app-datepicker label="Observed Date (optional)" formControlName="observedDate" />
+              <app-toggle label="Recurring" formControlName="isRecurring" />
+              <app-validation-button [violations]="holidayViolations">
+                <button class="action-btn action-btn--create" type="button"
+                  [disabled]="holidayForm.invalid"
+                  (click)="addHoliday()">
+                  <span class="material-icons-outlined">add</span>
+                  <span>Add Holiday</span>
+                </button>
+              </app-validation-button>
+            </form>
+          </div>
+        }
+      </section>
+    </div>
+  </ng-container>
+</app-page-layout>

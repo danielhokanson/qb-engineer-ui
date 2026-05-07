@@ -70,5 +70,15 @@ export const ADMIN_ROUTES: Routes = [
         (m) => m.EntityCompletenessAdminComponent,
       ),
   },
+  // Bought-parts effort PR1 — working calendars + holidays. Drives every
+  // business-day calculation in the system. Tenant-default + per-CompanyLocation
+  // override; resolution at runtime via IWorkingCalendarService server-side.
+  {
+    path: 'working-calendars',
+    loadComponent: () =>
+      import('./working-calendars/working-calendars.component').then(
+        (m) => m.WorkingCalendarsComponent,
+      ),
+  },
   { path: ':tab', component: AdminComponent },
 ];
