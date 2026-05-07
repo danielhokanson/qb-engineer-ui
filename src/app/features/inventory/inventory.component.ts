@@ -11,7 +11,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { InventoryService } from './services/inventory.service';
 import { ReplenishmentService } from './services/replenishment.service';
 import { PurchaseOrderService } from '../purchase-orders/services/purchase-order.service';
-import { PurchaseOrderListItem } from '../purchase-orders/models/purchase-order-list-item.model';
 import { StorageLocation } from './models/storage-location.model';
 import { InventoryPartSummary } from './models/inventory-part-summary.model';
 import { LowStockAlert } from './models/low-stock-alert.model';

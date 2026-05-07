@@ -6,7 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { LotService } from '../../services/lot.service';
-import { LotTrace, LotTraceEvent } from '../../models/lot-trace.model';
+import { LotTrace } from '../../models/lot-trace.model';
 import { EntityActivitySectionComponent } from '../../../../shared/components/entity-activity-section/entity-activity-section.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 

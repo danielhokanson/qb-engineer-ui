@@ -5,7 +5,6 @@ import {
   contentChild,
   contentChildren,
   DestroyRef,
-  effect,
   inject,
   input,
   OnInit,
@@ -20,7 +19,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay';
+import { OverlayModule } from '@angular/cdk/overlay';
 
 import { unparse } from 'papaparse';
 import { TranslatePipe } from '@ngx-translate/core';

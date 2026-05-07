@@ -22,7 +22,6 @@ import { DialogComponent } from '../../../../shared/components/dialog/dialog.com
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
 import { LoadingBlockDirective } from '../../../../shared/directives/loading-block.directive';
 import { ColumnDef } from '../../../../shared/models/column-def.model';
-import { toIsoDate } from '../../../../shared/utils/date.utils';
 
 @Component({
   selector: 'app-events-panel',

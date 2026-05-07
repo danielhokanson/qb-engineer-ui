@@ -17,7 +17,7 @@ import { ChatBroadcastService } from './services/chat-broadcast.service';
 import { ChatConversation } from './models/chat-conversation.model';
 import { ChatMessage } from './models/chat-message.model';
 import { ChatMessageEvent } from './models/chat-message-event.model';
-import { ChatRoom, ChannelType } from './models/chat-room.model';
+import { ChatRoom } from './models/chat-room.model';
 import { CreateChannelDialogComponent } from './components/create-channel-dialog/create-channel-dialog.component';
 import { ChannelBrowserDialogComponent } from './components/channel-browser-dialog/channel-browser-dialog.component';
 import { ChannelSettingsDialogComponent, ChannelSettingsDialogData, ChannelSettingsDialogResult } from './components/channel-settings-dialog/channel-settings-dialog.component';

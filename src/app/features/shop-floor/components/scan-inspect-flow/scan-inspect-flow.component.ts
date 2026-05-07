@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy, Component, inject, input, output, signal,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { TextareaComponent } from '../../../../shared/components/textarea/textarea.component';

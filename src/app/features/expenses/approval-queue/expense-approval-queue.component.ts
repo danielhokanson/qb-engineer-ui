@@ -3,7 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, CurrencyPipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
-import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ExpensesService } from '../services/expenses.service';

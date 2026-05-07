@@ -4,7 +4,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { PurchaseOrderService } from '../../services/purchase-order.service';
-import { AutoPoSettings, UpdateAutoPoSettingsRequest } from '../../models/auto-po-settings.model';
+import { UpdateAutoPoSettingsRequest } from '../../models/auto-po-settings.model';
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 import { ToggleComponent } from '../../../../shared/components/toggle/toggle.component';

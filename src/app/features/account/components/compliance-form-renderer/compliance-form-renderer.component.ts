@@ -14,14 +14,12 @@ import { FormValidationService } from '../../../../shared/services/form-validati
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
 import { DynamicQbFormControlComponent } from '../../../../shared/components/dynamic-form/dynamic-qb-form-control.component';
 import {
-  complianceDefinitionToModels,
   sectionsToModels,
   isValueControl,
 } from '../../../../shared/components/dynamic-form/compliance-form-adapter';
 import {
   ComplianceFormDefinition,
   FormFieldDefinition,
-  FormPage,
   FormSection,
   normalizeFormPages,
 } from '../../../../shared/models/compliance-form-definition.model';

@@ -70,7 +70,7 @@ export class HelpTourService {
     return this.tours.has(tourId);
   }
 
-  private async launchDriver(steps: DriverStep[], tourId: string): Promise<void> {
+  private async launchDriver(steps: DriverStep[], _tourId: string): Promise<void> {
     const { driver } = await import('driver.js');
 
     this.tourSvg = createTourSvg();

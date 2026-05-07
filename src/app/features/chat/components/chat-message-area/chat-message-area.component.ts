@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, viewChild } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { MatTooltipModule } from '@angular/material/tooltip';

@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, effect, inject, OnDestroy, OnInit, signal,
+  ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal,
 } from '@angular/core';
 
 import { ScannerService } from '../../../shared/services/scanner.service';

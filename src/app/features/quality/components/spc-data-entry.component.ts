@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { SpcService } from '../services/spc.service';
 import { SpcCharacteristic, SpcSubgroupEntry } from '../models/spc.model';
@@ -54,8 +54,7 @@ export class SpcDataEntryComponent {
   });
 
   constructor() {
-    // Initialize values array when characteristic changes
-    const char = this.characteristic;
+    // Initialize values array when characteristic changes (handled via initValues)
   }
 
   protected initValues(): void {

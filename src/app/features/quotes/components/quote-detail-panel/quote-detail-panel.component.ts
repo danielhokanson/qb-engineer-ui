@@ -116,7 +116,7 @@ export class QuoteDetailPanelComponent {
       next: (order) => {
         this.loadQuote(q.id);
         this.changed.emit();
-        this.snackbar.success(this.translate.instant('quotes.quoteConverted', { number: order.salesOrderNumber ?? '' }));
+        this.snackbar.success(this.translate.instant('quotes.quoteConverted', { number: order.orderNumber ?? '' }));
       },
     });
   }

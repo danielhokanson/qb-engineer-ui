@@ -322,7 +322,7 @@ export class LeadsComponent {
   }
 
   /** Formats estimated value — placeholder since LeadItem has no estimatedValue field yet */
-  protected formatValue(lead: LeadItem): string | null {
+  protected formatValue(_lead: LeadItem): string | null {
     // LeadItem does not currently carry estimatedValue — extend when API adds it
     return null;
   }

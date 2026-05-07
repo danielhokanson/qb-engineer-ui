@@ -79,7 +79,7 @@ export class ShipmentDetailPanelComponent implements OnInit {
   // --- Rates Dialog ---
   protected openRatesDialog(): void { this.showRatesDialog.set(true); }
   protected closeRatesDialog(): void { this.showRatesDialog.set(false); }
-  protected onLabelCreated(label: ShippingLabel): void {
+  protected onLabelCreated(_label: ShippingLabel): void {
     this.refreshDetail();
     this.shipmentChanged.emit();
   }

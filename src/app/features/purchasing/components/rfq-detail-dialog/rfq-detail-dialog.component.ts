@@ -202,7 +202,7 @@ export class RfqDetailDialogComponent {
 
       this.saving.set(true);
       this.purchasingService.awardRfq(this.data.rfqId, response.id).subscribe({
-        next: (result) => {
+        next: () => {
           this.snackbar.successWithNav(this.translate.instant('purchasing.snackbar.rfqAwarded'), `/purchase-orders`, 'View PO');
           this.saving.set(false);
           this.hasChanged = true;

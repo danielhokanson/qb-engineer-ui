@@ -298,7 +298,7 @@ export class DiscoveryComponent implements OnInit {
     });
   }
 
-  protected getRecommendedAndAlternativeDeltas(altPresetId: string): DiscoveryRecommendation | null {
+  protected getRecommendedAndAlternativeDeltas(_altPresetId: string): DiscoveryRecommendation | null {
     // For full delta refresh on alt selection we'd call /preview again with
     // the picked preset — outside Phase F scope. The recommendation already
     // surfaces deltas for the recommended preset; alternative deltas are

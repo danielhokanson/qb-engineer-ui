@@ -42,9 +42,9 @@ export class ClockEventTypeService {
     if (this.loaded) return;
     this.loaded = true;
 
-    this.http.get<ReferenceDataItem[]>('/api/v1/reference-data/clock_event_type').subscribe({
+    this.http.get<ReferenceDataItem[] | { data?: ReferenceDataItem[] }>('/api/v1/reference-data/clock_event_type').subscribe({
       next: (result) => {
-        const items = Array.isArray(result) ? result : (result as any).data ?? [];
+        const items: ReferenceDataItem[] = Array.isArray(result) ? result : result.data ?? [];
         const defs = items.map((item: ReferenceDataItem) => this.parseDefinition(item));
         this._definitions.set(defs);
       },

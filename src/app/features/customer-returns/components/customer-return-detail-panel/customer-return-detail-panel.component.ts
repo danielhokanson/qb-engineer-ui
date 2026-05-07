@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { MatDialog } from '@angular/material/dialog';

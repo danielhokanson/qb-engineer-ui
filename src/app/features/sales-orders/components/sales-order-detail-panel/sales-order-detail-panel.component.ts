@@ -314,7 +314,7 @@ export class SalesOrderDetailPanelComponent {
     });
   }
 
-  protected onFileUploaded(file: UploadedFile): void {
+  protected onFileUploaded(_file: UploadedFile): void {
     this.loadDocuments(this.salesOrderId());
     this.snackbar.success(this.translate.instant('salesOrders.fileUploaded'));
   }

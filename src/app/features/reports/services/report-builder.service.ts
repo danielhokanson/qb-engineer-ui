@@ -6,7 +6,6 @@ import { environment } from '../../../../environments/environment';
 import {
   ReportEntityDefinition,
   ReportFilter,
-  ReportChartType,
   SavedReport,
   RunReportResponse,
 } from '../models/report-builder.model';

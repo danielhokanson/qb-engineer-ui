@@ -41,7 +41,6 @@ import { ScanLocationViewComponent } from './components/scan-location-view/scan-
 import { NumericKeypadComponent } from './components/numeric-keypad/numeric-keypad.component';
 
 const FONT_SIZES = [12, 14, 16, 18, 20] as const;
-type FontSizeStep = typeof FONT_SIZES[number];
 
 const REFRESH_INTERVAL_MS = 15_000;
 const AUTO_LOGOUT_MS = 30_000;

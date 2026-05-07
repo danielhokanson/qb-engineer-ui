@@ -42,12 +42,12 @@ export function initDemoMode(): void {
   } catch { /* defensive */ }
 
   try {
-    // eslint-disable-next-line no-console
+     
     console.log(
       '%cQB Engineer · DEMO MODE',
       'background:#ffc107;color:#7a4a00;padding:6px 14px;font:600 14px monospace;border-radius:2px;',
     );
-    // eslint-disable-next-line no-console
+     
     console.log(
       '%cNot production data. All changes are local to this browser tab and reset on refresh.',
       'color:#7a4a00;font:12px monospace;',

@@ -6,6 +6,7 @@ import { environment } from '../../../../environments/environment';
 import { QuoteListItem } from '../models/quote-list-item.model';
 import { QuoteDetail } from '../models/quote-detail.model';
 import { CreateQuoteRequest } from '../models/create-quote-request.model';
+import { SalesOrderListItem } from '../../sales-orders/models/sales-order-list-item.model';
 
 @Injectable({ providedIn: 'root' })
 export class QuoteService {
@@ -43,8 +44,8 @@ export class QuoteService {
     return this.http.post<void>(`${this.base}/${id}/reject`, {});
   }
 
-  convertToOrder(id: number): Observable<any> {
-    return this.http.post<any>(`${this.base}/${id}/convert`, {});
+  convertToOrder(id: number): Observable<SalesOrderListItem> {
+    return this.http.post<SalesOrderListItem>(`${this.base}/${id}/convert`, {});
   }
 
   deleteQuote(id: number): Observable<void> {

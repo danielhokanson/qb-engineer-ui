@@ -22,7 +22,15 @@ module.exports = tseslint.config(
         { type: "element", prefix: "app", style: "kebab-case" },
       ],
       // Relax rules that conflict with project patterns
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },

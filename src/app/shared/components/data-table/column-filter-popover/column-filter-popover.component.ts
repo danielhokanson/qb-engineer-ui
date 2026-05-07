@@ -5,7 +5,7 @@ import {
   inject,
   input,
   output,
-  signal,
+  signal, OnInit,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -30,7 +30,7 @@ export interface ColumnFilterState {
   styleUrl: './column-filter-popover.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ColumnFilterPopoverComponent {
+export class ColumnFilterPopoverComponent implements OnInit {
   private readonly translate = inject(TranslateService);
 
   readonly column = input.required<ColumnDef>();

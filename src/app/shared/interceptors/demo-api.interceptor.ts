@@ -1,4 +1,4 @@
-import { HttpEvent, HttpHandlerFn, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
+import { HttpEvent, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, defer, from, of } from 'rxjs';
 
@@ -55,7 +55,7 @@ export const demoApiInterceptor: HttpInterceptorFn = (req, next) => {
   return defer(() => from(handleApi(store, req)));
 };
 
-function handleAuth(url: string, method: string, body: unknown): unknown | null {
+function handleAuth(url: string, method: string, _body: unknown): unknown | null {
   const path = safePath(url);
 
   if (path.endsWith('/auth/login') || path.endsWith('/auth/kiosk-login') || path.endsWith('/auth/scan-login') || path.endsWith('/auth/complete-setup') || path.endsWith('/auth/setup')) {

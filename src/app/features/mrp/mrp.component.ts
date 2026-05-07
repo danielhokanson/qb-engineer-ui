@@ -216,7 +216,7 @@ export class MrpComponent {
     const request = { runType: 'Full' as const, planningHorizonDays: 90 };
     const call = simulate ? this.mrpService.simulateRun(request) : this.mrpService.executeRun(request);
     call.subscribe({
-      next: (run) => {
+      next: () => {
         this.executingRun.set(false);
         this.snackbar.success(simulate ? this.translate.instant('mrp.snackbar.simulationComplete') : this.translate.instant('mrp.snackbar.runComplete'));
         this.loadRuns();

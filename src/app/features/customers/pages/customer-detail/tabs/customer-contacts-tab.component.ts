@@ -14,16 +14,7 @@ import { SelectComponent, SelectOption } from '../../../../../shared/components/
 import { ToggleComponent } from '../../../../../shared/components/toggle/toggle.component';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
 import { ValidationButtonComponent } from '../../../../../shared/components/validation-button/validation-button.component';
-
-interface Contact {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-  isPrimary: boolean;
-}
+import { Contact } from '../../../models/contact.model';
 
 
 @Component({
@@ -89,7 +80,7 @@ export class CustomerContactsTabComponent implements OnInit {
     this.loading.set(true);
     this.customerService.getCustomerById(this.customerId()).subscribe({
       next: detail => {
-        this.contacts.set((detail as any).contacts ?? []);
+        this.contacts.set(detail.contacts ?? []);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

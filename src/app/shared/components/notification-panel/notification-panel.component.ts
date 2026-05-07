@@ -56,7 +56,7 @@ export class NotificationPanelComponent {
     }
   }
 
-  private resolveEntityRoute(entityType: string, entityId: number): { path: any[]; query?: Record<string, unknown> } | null {
+  private resolveEntityRoute(entityType: string, entityId: number): { path: (string | number)[]; query?: Record<string, unknown> } | null {
     switch (entityType.toLowerCase()) {
       case 'job': return { path: ['/board'], query: { job: entityId } };
       case 'quote': return { path: ['/quotes'], query: { id: entityId } };

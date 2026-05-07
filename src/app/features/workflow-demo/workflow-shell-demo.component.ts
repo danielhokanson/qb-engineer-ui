@@ -175,7 +175,7 @@ export class WorkflowShellDemoComponent {
 
   protected onCompleteRequested(): void {
     // Demo: just announce. The real shell would call WorkflowService.completeRun().
-    // eslint-disable-next-line no-alert
+     
     alert('Demo: Mark Complete — would call WorkflowService.completeRun() against a real run.');
   }
 

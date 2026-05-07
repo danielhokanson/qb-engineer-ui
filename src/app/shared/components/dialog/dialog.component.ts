@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, OnInit, output, signal,
+  ChangeDetectionStrategy, Component, DestroyRef, inject, input, OnInit, output, signal,
 } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 

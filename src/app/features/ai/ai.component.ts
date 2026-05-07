@@ -6,7 +6,7 @@ import { map } from 'rxjs';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { AiService, AiHelpMessage, AiHelpResponse } from '../../shared/services/ai.service';
+import { AiService, AiHelpMessage } from '../../shared/services/ai.service';
 import { LoadingBlockDirective } from '../../shared/directives/loading-block.directive';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';

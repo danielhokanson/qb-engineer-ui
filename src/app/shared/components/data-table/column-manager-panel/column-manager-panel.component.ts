@@ -3,7 +3,7 @@ import {
   Component,
   input,
   output,
-  signal,
+  signal, OnInit,
 } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -25,7 +25,7 @@ export interface ColumnManagerState {
   styleUrl: './column-manager-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ColumnManagerPanelComponent {
+export class ColumnManagerPanelComponent implements OnInit {
   readonly columns = input.required<ColumnDef[]>();
   readonly visibility = input.required<Record<string, boolean>>();
   readonly order = input.required<string[]>();

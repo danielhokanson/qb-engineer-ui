@@ -6,7 +6,7 @@ import { DatePipe } from '@angular/common';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { ApprovalsService } from '../../services/approvals.service';
-import { ApprovalWorkflow, ApproverType } from '../../models/approval.model';
+import { ApprovalWorkflow } from '../../models/approval.model';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
 import { ColumnCellDirective } from '../../../../shared/directives/column-cell.directive';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';

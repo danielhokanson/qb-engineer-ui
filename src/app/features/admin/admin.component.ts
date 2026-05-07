@@ -344,7 +344,7 @@ export class AdminComponent {
     this.loading.set(true);
     this.adminService.getUsers().subscribe({
       next: (users) => { this.users.set(users); this.loading.set(false); },
-      error: (err) => { this.error.set(this.translate.instant('admin.loadUsersFailed')); this.loading.set(false); },
+      error: () => { this.error.set(this.translate.instant('admin.loadUsersFailed')); this.loading.set(false); },
     });
   }
 
@@ -440,7 +440,7 @@ export class AdminComponent {
             finalize();
           }
         },
-        error: (err) => { this.saving.set(false); this.error.set(this.translate.instant('admin.updateUserFailed')); },
+        error: () => { this.saving.set(false); this.error.set(this.translate.instant('admin.updateUserFailed')); },
       });
     } else {
       this.adminService.createUser({

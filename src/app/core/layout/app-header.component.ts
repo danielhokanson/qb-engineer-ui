@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal, HostListener, OnInit } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, filter, map, switchMap, catchError, of, EMPTY } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, switchMap, catchError, of } from 'rxjs';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { MatTooltipModule } from '@angular/material/tooltip';

@@ -6,7 +6,6 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { AuthService } from '../../../../shared/services/auth.service';
-import { ChatHubService } from '../../../../shared/services/chat-hub.service';
 import { ChatService } from '../../services/chat.service';
 import { ChatMessage } from '../../models/chat-message.model';
 import { MentionRenderPipe } from '../../pipes/mention-render.pipe';

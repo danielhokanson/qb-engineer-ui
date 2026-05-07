@@ -7,7 +7,7 @@ import {
   input,
   output,
   signal,
-  viewChild,
+  viewChild, OnInit,
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -23,7 +23,7 @@ import { GalleryItem } from '../../models/gallery-item.model';
   styleUrl: './lightbox-gallery.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LightboxGalleryComponent {
+export class LightboxGalleryComponent implements OnInit {
   readonly items = input.required<GalleryItem[]>();
   readonly startIndex = input<number>(0);
 

@@ -19,7 +19,6 @@ import { ColumnCellDirective } from '../../shared/directives/column-cell.directi
 import { ColumnDef } from '../../shared/models/column-def.model';
 import { FormValidationService } from '../../shared/services/form-validation.service';
 import { ValidationButtonComponent } from '../../shared/components/validation-button/validation-button.component';
-import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { SnackbarService } from '../../shared/services/snackbar.service';
 import { LoadingBlockDirective } from '../../shared/directives/loading-block.directive';
 import { EntityCompletenessChipComponent } from '../../shared/components/entity-completeness-chip/entity-completeness-chip.component';

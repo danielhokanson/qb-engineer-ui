@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal, OnInit } from '@angular/core';
 import { LabelPrintService } from '../../services/label-print.service';
 
 export interface LabelData {
@@ -16,7 +16,7 @@ export interface LabelData {
   styleUrl: './production-label.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductionLabelComponent {
+export class ProductionLabelComponent implements OnInit {
   private readonly labelPrint = inject(LabelPrintService);
 
   readonly label = input.required<LabelData>();

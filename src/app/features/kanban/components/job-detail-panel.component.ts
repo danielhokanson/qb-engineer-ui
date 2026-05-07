@@ -234,7 +234,7 @@ export class JobDetailPanelComponent implements OnInit {
   }
 
 
-  protected onFileUploaded(file: UploadedFile): void {
+  protected onFileUploaded(_file: UploadedFile): void {
     this.kanbanService.getJobFiles(this.jobId()).subscribe(f => {
       this.files.set(f);
       this.snackbar.success(this.translate.instant('kanban.fileUploaded'));

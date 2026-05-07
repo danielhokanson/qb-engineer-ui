@@ -12,7 +12,7 @@ import { FormValidationService } from '../../../../shared/services/form-validati
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { ChatService } from '../../services/chat.service';
-import { ChatRoom, ChatRoomMember } from '../../models/chat-room.model';
+import { ChatRoom } from '../../models/chat-room.model';
 
 export interface ChannelSettingsDialogData {
   channel: ChatRoom;

@@ -12,6 +12,11 @@ interface SankeyDataPoint {
   flow: number;
 }
 
+interface SankeyScriptableContext {
+  dataset: { data: SankeyDataPoint[] };
+  dataIndex: number;
+}
+
 const NODE_COLORS: string[] = [
   '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
   '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
@@ -50,12 +55,12 @@ export class SankeyChartComponent {
       datasets: [{
         label: '',
         data: dataPoints,
-        colorFrom: (ctx: any) => {
-          const dp = ctx.dataset.data[ctx.dataIndex] as SankeyDataPoint | undefined;
+        colorFrom: (ctx: SankeyScriptableContext) => {
+          const dp = ctx.dataset.data[ctx.dataIndex];
           return dp ? colorMap.get(dp.from) ?? '#999' : '#999';
         },
-        colorTo: (ctx: any) => {
-          const dp = ctx.dataset.data[ctx.dataIndex] as SankeyDataPoint | undefined;
+        colorTo: (ctx: SankeyScriptableContext) => {
+          const dp = ctx.dataset.data[ctx.dataIndex];
           return dp ? colorMap.get(dp.to) ?? '#999' : '#999';
         },
         colorMode: 'gradient' as const,
@@ -71,8 +76,8 @@ export class SankeyChartComponent {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx: any) => {
-            const dp = ctx.dataset.data[ctx.dataIndex] as SankeyDataPoint;
+          label: (ctx: SankeyScriptableContext) => {
+            const dp = ctx.dataset.data[ctx.dataIndex];
             return `${dp.from} → ${dp.to}: ${dp.flow}`;
           },
         },
