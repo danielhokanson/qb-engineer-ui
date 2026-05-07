@@ -38,6 +38,34 @@
         }
       </tbody>
     </table>
+
+    <!-- Bought-parts effort PR3 — receipt-level freight capture. Defaults
+         to PO.estimatedFreight; user can override. Variance vs estimate
+         shows as a non-blocking pill on the right when meaningful. -->
+    <div class="receive-freight">
+      <div class="receive-freight__title">{{ 'purchaseOrders.shippingAndCurrency' | translate }}</div>
+      <div class="receive-freight__row">
+        <app-currency-input
+          [label]="'purchaseOrders.actualFreight' | translate"
+          [formControl]="actualFreightCtrl"
+          [min]="0"
+          data-testid="receive-actual-freight" />
+        <app-select
+          [label]="'purchaseOrders.freightAllocationMethod' | translate"
+          [formControl]="allocationMethodCtrl"
+          [options]="allocationOptions"
+          data-testid="receive-allocation-method" />
+        @if (freightVariancePct() !== null) {
+          <span class="chip"
+                [class.chip--info]="freightVariancePct()! >= -10 && freightVariancePct()! <= 10"
+                [class.chip--warning]="(freightVariancePct()! > 10 && freightVariancePct()! <= 25) || (freightVariancePct()! < -10 && freightVariancePct()! >= -25)"
+                [class.chip--error]="freightVariancePct()! > 25 || freightVariancePct()! < -25"
+                data-testid="receive-freight-variance">
+            {{ 'purchaseOrders.variance' | translate }}: {{ freightVariancePct() | number:'1.0-1' }}%
+          </span>
+        }
+      </div>
+    </div>
   }
 
   <div dialog-footer>

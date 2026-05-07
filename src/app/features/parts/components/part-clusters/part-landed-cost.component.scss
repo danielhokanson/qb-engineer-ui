@@ -1,0 +1,114 @@
+@use 'styles/variables' as *;
+@use 'styles/mixins' as *;
+
+:host {
+  display: block;
+  margin-top: $sp-lg;
+}
+
+.landed-cost {
+  position: relative;
+  border-top: $border-width-thin solid var(--border);
+  padding-top: $sp-md;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-md;
+
+  &__title {
+    @include uppercase-label(var(--font-size-xxs), 0.5px, 700);
+    color: var(--text-muted);
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    gap: $sp-sm;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    padding: $sp-md 0;
+  }
+
+  &__headline {
+    display: flex;
+    align-items: baseline;
+    gap: $sp-md;
+  }
+
+  &__average {
+    font-size: $font-size-kpi;
+    font-weight: 700;
+    color: var(--text);
+    font-family: $font-family-mono;
+  }
+
+  &__average-meta {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  &__breakdown {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $sp-xs $sp-md;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: $sp-md;
+    padding: $sp-xs 0;
+    border-bottom: $border-width-thin dashed var(--border);
+    font-size: var(--font-size-sm);
+
+    &-label {
+      color: var(--text-secondary);
+    }
+
+    &-value {
+      font-family: $font-family-mono;
+      color: var(--text);
+
+      &--muted {
+        color: var(--text-muted);
+      }
+    }
+  }
+
+  &__section-title {
+    @include uppercase-label(var(--font-size-xxs), 0.5px, 700);
+    color: var(--text-muted);
+    margin-top: $sp-md;
+  }
+
+  &__receipts,
+  &__compare {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+
+    th,
+    td {
+      padding: $sp-sm $sp-md;
+      border-bottom: $border-width-thin solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      @include uppercase-label(var(--font-size-xxs), 0.5px, 700);
+      color: var(--text-muted);
+    }
+  }
+
+  &__right {
+    text-align: right;
+  }
+
+  &__bold {
+    font-weight: 600;
+  }
+
+  &__compare-row--cheapest {
+    background: color-mix(in srgb, var(--success) 8%, transparent);
+  }
+}

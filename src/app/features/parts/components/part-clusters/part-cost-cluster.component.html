@@ -35,4 +35,8 @@
       </app-validation-button>
     </div>
   }
+
+  <!-- Bought-parts effort PR3 — landed cost surface. Child component owns
+       the API fetch + render so the parent cluster stays a dumb form. -->
+  <app-part-landed-cost [partId]="part().id" />
 </div>

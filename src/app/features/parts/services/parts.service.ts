@@ -17,6 +17,7 @@ import { PartRevision } from '../models/part-revision.model';
 import { CreatePartRevisionRequest } from '../models/create-part-revision-request.model';
 import { PartInventorySummary } from '../models/part-inventory-summary.model';
 import { PartPurchaseHistoryItem } from '../models/part-purchase-history-item.model';
+import { PartLandedCost } from '../models/part-landed-cost.model';
 import { FileAttachment } from '../../../shared/models/file.model';
 import { ActivityItem } from '../../../shared/models/activity.model';
 import { Operation, OperationMaterial } from '../models/operation.model';
@@ -140,6 +141,17 @@ export class PartsService {
     const url = `${this.base}/${partId}/purchase-history`;
     const params = search?.trim() ? new HttpParams().set('search', search.trim()) : undefined;
     return this.http.get<PartPurchaseHistoryItem[]>(url, params ? { params } : {});
+  }
+
+  /**
+   * Bought-parts effort PR3 — landed-cost surface for the part Cost tab.
+   * `maxReceipts` controls the average window (default 3 receipts, all
+   * with captured freight). Records pre-PR3 / freight-skipped do not
+   * contribute.
+   */
+  getLandedCost(partId: number, maxReceipts = 3): Observable<PartLandedCost> {
+    const params = new HttpParams().set('maxReceipts', String(maxReceipts));
+    return this.http.get<PartLandedCost>(`${this.base}/${partId}/landed-cost`, { params });
   }
 
   linkAccountingItem(partId: number, externalId: string, externalRef: string): Observable<void> {

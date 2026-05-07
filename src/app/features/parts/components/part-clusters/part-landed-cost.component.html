@@ -1,0 +1,119 @@
+<div class="landed-cost" [appLoadingBlock]="loading()">
+  @if (data(); as d) {
+    <div class="landed-cost__title">{{ 'parts.landedCost.title' | translate }}</div>
+
+    @if (d.averageLandedUnitCost === null) {
+      <div class="landed-cost__empty">
+        <span class="material-icons-outlined">local_shipping</span>
+        <div>{{ 'parts.landedCost.empty' | translate }}</div>
+      </div>
+    } @else {
+      <!-- Headline: average + receipts used -->
+      <div class="landed-cost__headline">
+        <div class="landed-cost__average">
+          <app-currency-display [value]="d.averageLandedUnitCost" [currency]="d.baseCurrency" />
+        </div>
+        <div class="landed-cost__average-meta">
+          {{ 'parts.landedCost.averageOver' | translate:{ count: d.receiptCountUsed } }}
+        </div>
+      </div>
+
+      <!-- Component breakdown -->
+      <div class="landed-cost__breakdown">
+        <div class="landed-cost__row">
+          <span class="landed-cost__row-label">{{ 'parts.landedCost.baseUnitPrice' | translate }}</span>
+          <span class="landed-cost__row-value"><app-currency-display [value]="d.averageBaseUnitPrice" [currency]="d.baseCurrency" /></span>
+        </div>
+        <div class="landed-cost__row">
+          <span class="landed-cost__row-label">{{ 'parts.landedCost.freightPerUnit' | translate }}</span>
+          <span class="landed-cost__row-value"><app-currency-display [value]="d.averageFreightPerUnit" [currency]="d.baseCurrency" /></span>
+        </div>
+        <div class="landed-cost__row">
+          <span class="landed-cost__row-label">{{ 'parts.landedCost.dutyPerUnit' | translate }}</span>
+          @if (d.averageDutyPerUnit > 0) {
+            <span class="landed-cost__row-value"><app-currency-display [value]="d.averageDutyPerUnit" [currency]="d.baseCurrency" /></span>
+          } @else {
+            <span class="landed-cost__row-value landed-cost__row-value--muted">—</span>
+          }
+        </div>
+        <div class="landed-cost__row">
+          <span class="landed-cost__row-label">{{ 'parts.landedCost.fxAdjustmentPerUnit' | translate }}</span>
+          @if (d.averageFxAdjustmentPerUnit !== 0) {
+            <span class="landed-cost__row-value"><app-currency-display [value]="d.averageFxAdjustmentPerUnit" [currency]="d.baseCurrency" /></span>
+          } @else {
+            <span class="landed-cost__row-value landed-cost__row-value--muted">—</span>
+          }
+        </div>
+      </div>
+
+      <!-- Recent receipts -->
+      @if (d.recentReceipts.length > 0) {
+        <div class="landed-cost__section-title">{{ 'parts.landedCost.recentReceipts' | translate }}</div>
+        <table class="landed-cost__receipts" [attr.aria-label]="'parts.landedCost.recentReceipts' | translate">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'parts.landedCost.receivedAt' | translate }}</th>
+              <th scope="col">{{ 'purchaseOrders.poNumber' | translate }}</th>
+              <th scope="col">{{ 'purchaseOrders.vendor' | translate }}</th>
+              <th scope="col" class="landed-cost__right">{{ 'purchaseOrders.qty' | translate }}</th>
+              <th scope="col" class="landed-cost__right">{{ 'parts.landedCost.basePrice' | translate }}</th>
+              <th scope="col" class="landed-cost__right">{{ 'parts.landedCost.freight' | translate }}</th>
+              <th scope="col" class="landed-cost__right">{{ 'parts.landedCost.duty' | translate }}</th>
+              <th scope="col" class="landed-cost__right">{{ 'parts.landedCost.landed' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of d.recentReceipts; track r.receivingRecordId) {
+              <tr>
+                <td>{{ r.receivedAt | date:'MM/dd/yyyy' }}</td>
+                <td><app-entity-link type="purchase-order" [entityId]="r.purchaseOrderId">{{ r.purchaseOrderNumber }}</app-entity-link></td>
+                <td><app-entity-link type="vendor" [entityId]="r.vendorId">{{ r.vendorName }}</app-entity-link></td>
+                <td class="landed-cost__right">{{ r.quantityReceived | number:'1.0-4' }}</td>
+                <td class="landed-cost__right"><app-currency-display [value]="r.baseUnitPrice" [currency]="d.baseCurrency" /></td>
+                <td class="landed-cost__right"><app-currency-display [value]="r.allocatedFreightPerUnit" [currency]="d.baseCurrency" /></td>
+                <td class="landed-cost__right">
+                  @if (r.dutyPerUnit > 0) {
+                    <app-currency-display [value]="r.dutyPerUnit" [currency]="d.baseCurrency" />
+                  } @else {
+                    <span class="landed-cost__row-value--muted">—</span>
+                  }
+                </td>
+                <td class="landed-cost__right landed-cost__bold"><app-currency-display [value]="r.landedUnitCost" [currency]="d.baseCurrency" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <!-- Vendor comparison — only show when more than one vendor has receipt history -->
+      @if (d.vendorComparison.length > 1) {
+        <div class="landed-cost__section-title">{{ 'parts.landedCost.vendorCompare' | translate }}</div>
+        <table class="landed-cost__compare" [attr.aria-label]="'parts.landedCost.vendorCompare' | translate">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'purchaseOrders.vendor' | translate }}</th>
+              <th scope="col">{{ 'parts.landedCost.lastReceiptAt' | translate }}</th>
+              <th scope="col" class="landed-cost__right">{{ 'parts.landedCost.landed' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of d.vendorComparison; track v.vendorId; let first = $first) {
+              <tr [class.landed-cost__compare-row--cheapest]="first">
+                <td>
+                  <app-entity-link type="vendor" [entityId]="v.vendorId">{{ v.vendorName }}</app-entity-link>
+                  @if (first) {
+                    <span class="chip chip--success">{{ 'parts.landedCost.cheapestSource' | translate }}</span>
+                  }
+                </td>
+                <td>{{ v.mostRecentReceiptAt | date:'MM/dd/yyyy' }}</td>
+                <td class="landed-cost__right landed-cost__bold">
+                  <app-currency-display [value]="v.mostRecentLandedUnitCost ?? 0" [currency]="d.baseCurrency" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+  }
+</div>

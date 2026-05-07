@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input, OnInit, output, signal, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal, ViewChild } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -7,17 +8,20 @@ import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { PurchaseOrderDetail } from '../../models/purchase-order-detail.model';
 import { PurchaseOrderLine } from '../../models/purchase-order-line.model';
 import { ReceiveLineRequest } from '../../models/receive-line-request.model';
+import { FreightAllocationMethod } from '../../models/receive-items-request.model';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { DraftConfig } from '../../../../shared/models/draft-config.model';
+import { CurrencyInputComponent } from '../../../../shared/components/currency-input/currency-input.component';
+import { SelectComponent, SelectOption } from '../../../../shared/components/select/select.component';
 
 @Component({
   selector: 'app-receive-dialog',
   standalone: true,
   imports: [
-    ReactiveFormsModule,
-    DialogComponent, EmptyStateComponent,
+    ReactiveFormsModule, DecimalPipe,
+    DialogComponent, EmptyStateComponent, CurrencyInputComponent, SelectComponent,
     TranslatePipe,
   ],
   templateUrl: './receive-dialog.component.html',
@@ -39,6 +43,26 @@ export class ReceiveDialogComponent implements OnInit {
   protected readonly receivableLines = signal<PurchaseOrderLine[]>([]);
   protected readonly lineControls = signal<FormControl<number>[]>([]);
 
+  // Bought-parts effort PR3 — receipt-level freight capture. ActualFreight
+  // defaults from PO.EstimatedFreight on init so the "matches estimate"
+  // case is one click. Allocation method is admin-overridable per receipt.
+  protected readonly actualFreightCtrl = new FormControl<number | null>(null, [Validators.min(0)]);
+  protected readonly allocationMethodCtrl = new FormControl<FreightAllocationMethod>('ByExtendedValue', { nonNullable: true });
+
+  protected readonly allocationOptions: SelectOption[] = [
+    { value: 'ByExtendedValue', label: 'By Extended Value (default)' },
+    { value: 'ByQuantity', label: 'By Quantity' },
+    { value: 'Manual', label: 'Manual (per-line)' },
+  ];
+
+  /** Variance % between actual freight and the PO estimate. Null when either side missing. */
+  protected readonly freightVariancePct = computed(() => {
+    const est = this.purchaseOrder().estimatedFreight;
+    const actual = this.actualFreightCtrl.value;
+    if (est == null || est <= 0 || actual == null) return null;
+    return ((actual - est) / est) * 100;
+  });
+
   /** Wrapper FormGroup for draft system — holds line quantities keyed by line ID */
   protected readonly formGroup = new FormGroup({});
 
@@ -54,6 +78,11 @@ export class ReceiveDialogComponent implements OnInit {
         validators: [Validators.min(0), Validators.max(l.remainingQuantity)],
       }))
     );
+    // Default actual freight to the PO's estimate so the common case is
+    // one-click. Buyer can override.
+    if (po.estimatedFreight != null) {
+      this.actualFreightCtrl.setValue(po.estimatedFreight);
+    }
 
     this.draftConfig = {
       entityType: 'po-receipt',
@@ -109,7 +138,11 @@ export class ReceiveDialogComponent implements OnInit {
     if (receiveLines.length === 0) return;
 
     this.saving.set(true);
-    this.poService.receiveItems(this.purchaseOrder().id, { lines: receiveLines }).subscribe({
+    this.poService.receiveItems(this.purchaseOrder().id, {
+      lines: receiveLines,
+      actualFreight: this.actualFreightCtrl.value ?? undefined,
+      freightAllocationMethod: this.allocationMethodCtrl.value,
+    }).subscribe({
       next: () => {
         this.saving.set(false);
         this.dialogRef.clearDraft();

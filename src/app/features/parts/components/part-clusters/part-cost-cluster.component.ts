@@ -6,6 +6,7 @@ import { CurrencyInputComponent } from '../../../../shared/components/currency-i
 import { ValidationButtonComponent } from '../../../../shared/components/validation-button/validation-button.component';
 import { FormValidationService } from '../../../../shared/services/form-validation.service';
 import { PartDetail } from '../../models/part-detail.model';
+import { PartLandedCostComponent } from './part-landed-cost.component';
 
 /**
  * Pillar 4 — Cost cluster.
@@ -21,6 +22,7 @@ import { PartDetail } from '../../models/part-detail.model';
   imports: [
     ReactiveFormsModule, TranslatePipe,
     CurrencyInputComponent, ValidationButtonComponent,
+    PartLandedCostComponent,
   ],
   templateUrl: './part-cost-cluster.component.html',
   styleUrl: './part-clusters.shared.scss',

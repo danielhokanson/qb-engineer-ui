@@ -976,6 +976,24 @@
       "addedSnack": "Effective price added.",
       "deletedSnack": "Price row removed.",
       "confirmDelete": "Remove this price row from history?"
+    },
+    "landedCost": {
+      "title": "Landed Cost",
+      "empty": "No receipts with captured freight yet — landed cost will populate once you receive a PO and record actual freight.",
+      "averageOver": "average over {{count}} recent receipts",
+      "baseUnitPrice": "Base unit price",
+      "freightPerUnit": "Freight / unit",
+      "dutyPerUnit": "Duty / unit",
+      "fxAdjustmentPerUnit": "FX adjustment / unit",
+      "recentReceipts": "Contributing receipts",
+      "receivedAt": "Received",
+      "basePrice": "Base",
+      "freight": "Freight",
+      "duty": "Duty",
+      "landed": "Landed",
+      "vendorCompare": "Vendor comparison",
+      "lastReceiptAt": "Last receipt",
+      "cheapestSource": "Cheapest"
     }
   },
   "vendorSources": {
@@ -3199,7 +3217,11 @@
     "shortCloseReason": "Reason (required)",
     "shortClosed": "Short-closed",
     "shortClosedQty": "Short-closed",
-    "poShortClosed": "Purchase order short-closed."
+    "poShortClosed": "Purchase order short-closed.",
+    "shippingAndCurrency": "Shipping & Freight",
+    "actualFreight": "Actual Freight",
+    "freightAllocationMethod": "Allocation",
+    "variance": "Variance"
   },
   "salesOrders": {
     "title": "Sales Orders",

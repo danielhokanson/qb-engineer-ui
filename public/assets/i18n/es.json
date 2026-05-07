@@ -972,7 +972,25 @@
     "subcontractTurnTimeDays": "Tiempo de retorno (días)",
     "subcontractLabel": "Subcontratación",
     "subcontractVendorMissing": "(sin proveedor)",
-    "daysTurn": "días de retorno"
+    "daysTurn": "días de retorno",
+    "landedCost": {
+      "title": "Costo Aterrizado",
+      "empty": "Aún no hay recepciones con flete capturado — el costo aterrizado se completará cuando recibas una OC y registres el flete real.",
+      "averageOver": "promedio sobre {{count}} recepciones recientes",
+      "baseUnitPrice": "Precio base por unidad",
+      "freightPerUnit": "Flete / unidad",
+      "dutyPerUnit": "Aranceles / unidad",
+      "fxAdjustmentPerUnit": "Ajuste FX / unidad",
+      "recentReceipts": "Recepciones contribuyentes",
+      "receivedAt": "Recibido",
+      "basePrice": "Base",
+      "freight": "Flete",
+      "duty": "Aranceles",
+      "landed": "Aterrizado",
+      "vendorCompare": "Comparación de proveedores",
+      "lastReceiptAt": "Última recepción",
+      "cheapestSource": "Más barato"
+    }
   },
   "vendorSources": {
     "preferred": "Preferido",
@@ -3188,7 +3206,11 @@
     "shortCloseReason": "Motivo (obligatorio)",
     "shortClosed": "Cerrada parcialmente",
     "shortClosedQty": "Cerrada parcialmente",
-    "poShortClosed": "Orden de compra cerrada parcialmente."
+    "poShortClosed": "Orden de compra cerrada parcialmente.",
+    "shippingAndCurrency": "Envío y Flete",
+    "actualFreight": "Flete Real",
+    "freightAllocationMethod": "Asignación",
+    "variance": "Variación"
   },
   "salesOrders": {
     "title": "Órdenes de Venta",

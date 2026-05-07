@@ -59,6 +59,32 @@
   }
 }
 
+// Bought-parts effort PR3 — receipt-level freight capture footer.
+.receive-freight {
+  margin-top: $sp-md;
+  padding: $sp-md;
+  border: $border-width-thin solid var(--border);
+  background: var(--bg);
+
+  &__title {
+    @include uppercase-label(var(--font-size-xxs), 0.5px, 700);
+    color: var(--text-muted);
+    margin-bottom: $sp-sm;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: $sp-md;
+
+    > app-currency-input,
+    > app-select {
+      flex: 1;
+      min-width: 180px;
+    }
+  }
+}
+
 .empty-receive {
   display: flex;
   flex-direction: column;

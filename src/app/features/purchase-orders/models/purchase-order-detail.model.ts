@@ -25,4 +25,9 @@ export interface PurchaseOrderDetail {
   // Phase 3 / WU-14 / H3 — short-close audit fields. Null on POs that were not short-closed.
   shortCloseReason: string | null;
   shortClosedAt: Date | null;
+  // Bought-parts effort PR2.5 — landed cost foundation. Added here so the
+  // PR3 receive-dialog can default ActualFreight from the PO's estimate.
+  // (PR2.5 — landing in parallel — extends this further with incoterm /
+  // quoteCurrency / fxRate / fxRateSource and the vendor-min surface.)
+  estimatedFreight: number | null;
 }
